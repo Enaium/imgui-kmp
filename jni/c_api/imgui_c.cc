@@ -23,10 +23,26 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 
+#include <cstdarg>
+#include <cstdio>
 #include <cstring>
 #include <string>
 
 #include "imgui_c.h"
+
+// glibc 2.38+ (Ubuntu 24.04) redirects sscanf() to __isoc23_sscanf() in the
+// headers; Kotlin/Native's bundled Linux libc predates it, so the final link
+// fails with "undefined symbol: __isoc23_sscanf". Provide the alias so the
+// static library links against the K/N toolchain. The ABI matches sscanf().
+#if defined(__linux__) && defined(__GNUC__)
+extern "C" int __isoc23_sscanf(const char* str, const char* fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    int result = vsscanf(str, fmt, ap);
+    va_end(ap);
+    return result;
+}
+#endif
 
 // The opaque C handles are only ever passed as pointers; the implementation
 // casts them to the real imgui types (both sides are incomplete types, so

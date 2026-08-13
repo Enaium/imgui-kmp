@@ -72,6 +72,9 @@ jobs:
           ./gradlew --no-daemon :examples:jvmRun
           --args="--renderer --frames 120"
 
+      - name: Build native renderer example
+        run: ./gradlew --no-daemon :examples:linkDebugExecutableMacosArm64
+
       - name: Run native renderer example (headless)
         run: >
           SDL_VIDEO_DRIVER=dummy IMGUI_KMP_FRAMES=120
@@ -130,6 +133,9 @@ jobs:
           SDL_VIDEO_DRIVER=dummy
           ./gradlew --no-daemon :examples:jvmRun
           --args="--renderer --frames 120"
+
+      - name: Build native renderer example (linuxX64)
+        run: ./gradlew --no-daemon :examples:linkDebugExecutableLinuxX64
 
       - name: Run native renderer example (linuxX64, headless)
         run: >
