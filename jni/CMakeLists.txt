@@ -47,6 +47,11 @@ if(BUILD_JNI)
         # MinGW prefixes DLLs with "lib"; strip it so the artifact is
         # imgui_jni.dll everywhere (NativeLoader expects no prefix).
         set_target_properties(imgui_jni PROPERTIES PREFIX "")
+        if(MINGW)
+            # Statically link the MinGW runtime so the DLL loads without
+            # libstdc++-6.dll/libgcc_s_seh-1.dll on PATH.
+            target_link_options(imgui_jni PRIVATE -static-libgcc -static-libstdc++)
+        endif()
     endif()
 
     if(ANDROID)
