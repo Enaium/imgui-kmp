@@ -1,0 +1,2 @@
+headers = imgui_c.h implot_c.h cinterop_helpers.h
+compilerOpts = -std=c11
