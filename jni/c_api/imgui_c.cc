@@ -30,11 +30,29 @@
 
 #include "imgui_c.h"
 
-// glibc 2.38+ (Ubuntu 24.04) redirects sscanf() to __isoc23_sscanf() in the
-// headers; Kotlin/Native's bundled Linux libc predates it, so the final link
-// fails with "undefined symbol: __isoc23_sscanf". Provide the alias so the
-// static library links against the K/N toolchain. The ABI matches sscanf().
-#if defined(__linux__) && defined(__GNUC__)
+// glibc 2.38+ (Ubuntu 24.04) redirects the stdio formatted-I/O functions to
+// __isoc23_* variants in its headers; Kotlin/Native's bundled Linux libc
+// predates them, so the final link fails with "undefined symbol: __isoc23_*".
+// Provide ABI-compatible aliases so the static library links against the K/N
+// toolchain. The headers' macros are undefined first so the shims call the
+// real (pre-C23) glibc exports, avoiding recursion on newer build hosts.
+#if defined(__GLIBC__) && defined(__GNUC__)
+
+#include <stdio.h>
+
+#undef sscanf
+#undef vsscanf
+#undef scanf
+#undef vscanf
+#undef fscanf
+#undef vfscanf
+#undef snprintf
+#undef vsnprintf
+#undef printf
+#undef vprintf
+#undef fprintf
+#undef vfprintf
+
 extern "C" int __isoc23_sscanf(const char* str, const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
@@ -42,7 +60,72 @@ extern "C" int __isoc23_sscanf(const char* str, const char* fmt, ...) {
     va_end(ap);
     return result;
 }
-#endif
+
+extern "C" int __isoc23_vsscanf(const char* str, const char* fmt, va_list ap) {
+    return vsscanf(str, fmt, ap);
+}
+
+extern "C" int __isoc23_scanf(const char* fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    int result = vscanf(fmt, ap);
+    va_end(ap);
+    return result;
+}
+
+extern "C" int __isoc23_vscanf(const char* fmt, va_list ap) {
+    return vscanf(fmt, ap);
+}
+
+extern "C" int __isoc23_fscanf(FILE* stream, const char* fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    int result = vfscanf(stream, fmt, ap);
+    va_end(ap);
+    return result;
+}
+
+extern "C" int __isoc23_vfscanf(FILE* stream, const char* fmt, va_list ap) {
+    return vfscanf(stream, fmt, ap);
+}
+
+extern "C" int __isoc23_snprintf(char* str, size_t size, const char* fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    int result = vsnprintf(str, size, fmt, ap);
+    va_end(ap);
+    return result;
+}
+
+extern "C" int __isoc23_vsnprintf(char* str, size_t size, const char* fmt, va_list ap) {
+    return vsnprintf(str, size, fmt, ap);
+}
+
+extern "C" int __isoc23_printf(const char* fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    int result = vprintf(fmt, ap);
+    va_end(ap);
+    return result;
+}
+
+extern "C" int __isoc23_vprintf(const char* fmt, va_list ap) {
+    return vprintf(fmt, ap);
+}
+
+extern "C" int __isoc23_fprintf(FILE* stream, const char* fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    int result = vfprintf(stream, fmt, ap);
+    va_end(ap);
+    return result;
+}
+
+extern "C" int __isoc23_vfprintf(FILE* stream, const char* fmt, va_list ap) {
+    return vfprintf(stream, fmt, ap);
+}
+
+#endif // __GLIBC__
 
 // The opaque C handles are only ever passed as pointers; the implementation
 // casts them to the real imgui types (both sides are incomplete types, so
