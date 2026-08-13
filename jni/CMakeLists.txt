@@ -49,8 +49,8 @@ if(BUILD_JNI)
         set_target_properties(imgui_jni PROPERTIES PREFIX "")
         if(MINGW)
             # Statically link the MinGW runtime so the DLL loads without
-            # libstdc++-6.dll/libgcc_s_seh-1.dll on PATH.
-            target_link_options(imgui_jni PRIVATE -static-libgcc -static-libstdc++)
+            # libstdc++-6.dll/libgcc_s_seh-1.dll/libwinpthread-1.dll on PATH.
+            target_link_options(imgui_jni PRIVATE -static -static-libgcc -static-libstdc++)
         endif()
     endif()
 

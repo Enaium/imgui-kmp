@@ -84,6 +84,8 @@ internal object NativeLoader {
         try {
             System.load(target.absolutePath)
         } catch (e: UnsatisfiedLinkError) {
+            System.err.println("imgui-kmp: failed to load $target (resource $resourcePath)")
+            e.printStackTrace()
             throw UnsatisfiedLinkError(
                 "Failed to load $libFile from $resourcePath (os=${System.getProperty("os.name")}, " +
                     "arch=${System.getProperty("os.arch")}): ${e.message}",

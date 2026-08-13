@@ -197,6 +197,14 @@ jobs:
           path: "**/hs_err_pid*.log"
           if-no-files-found: ignore
 
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-windows
+          path: "**/build/test-results/**/*.xml"
+          if-no-files-found: ignore
+
       - name: Compile native klib (mingwX64)
         # The mingwX64 klib ships bindings only (the static library is built
         # on the matching host), so only the klib compile is validated here.
