@@ -229,8 +229,9 @@ val hostJniProjectName = run {
 
 if (hostJniProjectName != null) {
     val hostJniProject = project(hostJniProjectName)
+    val hostClassifier = hostJniProjectName.removePrefix(":jni-jvm-")
     val hostNativeDir = hostJniProject.layout.buildDirectory.dir(
-        "jni-native/${hostJniProjectName.removePrefix(":jni-jvm-")}",
+        "resources/main/cn/enaium/imgui/native/$hostClassifier",
     )
 
     tasks.withType<Test>().configureEach {

@@ -3,6 +3,12 @@
  * Ships libimgui_jni.dylib as a classpath resource at
  * /cn/enaium/imgui/native/darwin-aarch64/, which NativeLoader
  * (in :imgui-kmp's jvmMain) extracts and System.load()s at runtime.
+ *
+ * CMake writes the shared library directly into build/resources/main so the
+ * produced JAR always carries it, regardless of generator or output-dir
+ * quirks. No copy step is involved (a Copy task snapshots its sources at
+ * configuration time, when the artifact does not exist yet on fresh
+ * checkouts).
  */
 import org.gradle.internal.os.OperatingSystem
 
@@ -27,14 +33,16 @@ val resourceDir = "cn/enaium/imgui/native/$classifier"
 
 val canBuildHere = OperatingSystem.current().isMacOsX
 
-val nativeOutputDir = layout.buildDirectory.dir("jni-native/$classifier")
+// The shared library lands directly in the resources output, so the jar
+// task picks it up with no further copying.
+val resourceOutputDir = layout.buildDirectory.dir("resources/main/$resourceDir")
 val cmakeBuildDir = layout.buildDirectory.dir("cmake-jni/$classifier")
 
 val configureJniLibrary = tasks.register<Exec>("configureJniLibrary") {
     group = "build"
-    description = "cmake-configures libimgui_jni for $classifier."
+    description = "cmake-configures libimgui_jni.dylib for $classifier."
     onlyIf { canBuildHere }
-    val outDir = nativeOutputDir.get().asFile
+    val outDir = resourceOutputDir.get().asFile
     val buildDir = cmakeBuildDir.get().asFile
     doFirst {
         outDir.mkdirs()
@@ -46,12 +54,13 @@ val configureJniLibrary = tasks.register<Exec>("configureJniLibrary") {
     commandLine(
         "cmake",
         rootProject.file("jni").absolutePath,
+        
         "-DCMAKE_BUILD_TYPE=Release",
         "-DJNI_INCLUDE_DIR=$jniInclude",
         "-DJNI_INCLUDE_DIR_PLATFORM=$jniInclude/darwin",
+        "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=${outDir.absolutePath}",
         "-DCMAKE_OSX_ARCHITECTURES=arm64",
         "-DCMAKE_SYSTEM_PROCESSOR=arm64",
-        "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=${outDir.absolutePath}",
     )
 }
 
@@ -66,36 +75,18 @@ val buildJniLibrary = tasks.register<Exec>("buildJniLibrary") {
     inputs.dir(rootProject.file("jni/c_api"))
     inputs.dir(rootProject.file("includes/imgui"))
     inputs.dir(rootProject.file("includes/implot"))
-    outputs.file(nativeOutputDir.map { it.file(libFile) })
+    outputs.file(resourceOutputDir.map { it.file(libFile) })
 }
 
-tasks.named<Copy>("processResources") {
+// cmake writes the library into the resources output; make sure it is
+// built before anything packages it.
+tasks.named("jar") {
     dependsOn(buildJniLibrary)
-    // Use the build task's declared outputs (lazily resolved at execution
-    // time) instead of the directory Provider, which may be snapshotted
-    // empty at configuration time.
-    from(buildJniLibrary.map { it.outputs.files }) {
-        include(libFile)
-        into(resourceDir)
-    }
-    // MSVC builds place the artifact in a Release/ folder under the cmake
-    // build dir; cover that location too.
-    from(cmakeBuildDir.map { it.asFile.resolve("Release") }) {
-        include(libFile)
-        into(resourceDir)
-    }
-    doLast {
-        val out = layout.buildDirectory.file("resources/main/$resourceDir/$libFile").get().asFile
-        if (!out.isFile) {
-            val candidates = mutableListOf<String>()
-            nativeOutputDir.get().asFile.listFiles()?.forEach { candidates.add(it.name) }
-            cmakeBuildDir.get().asFile.resolve("Release").listFiles()?.forEach { candidates.add(it.name) }
-            throw GradleException(
-                "Build of $libFile produced no artifact. Found: $candidates",
-            )
-        }
-    }
 }
+
+// The Android host tests (JVM) load the library from java.library.path; it
+// lives in the same resources output the JNI jar ships.
+val hostNativeDir = resourceOutputDir
 
 mavenPublishing {
     publishToMavenCentral(automaticRelease = true)
