@@ -71,14 +71,15 @@ val buildJniLibrary = tasks.register<Exec>("buildJniLibrary") {
 
 tasks.named<Copy>("processResources") {
     dependsOn(buildJniLibrary)
-    // Copy the built shared library into the classpath resources. Sources
-    // are resolved at execution time (the directory is created by the cmake
-    // configure step); MSVC builds place the artifact in a Release/ folder
-    // under the cmake build dir, so both locations are covered.
-    from(nativeOutputDir) {
+    // Use the build task's declared outputs (lazily resolved at execution
+    // time) instead of the directory Provider, which may be snapshotted
+    // empty at configuration time.
+    from(buildJniLibrary.map { it.outputs.files }) {
         include(libFile)
         into(resourceDir)
     }
+    // MSVC builds place the artifact in a Release/ folder under the cmake
+    // build dir; cover that location too.
     from(cmakeBuildDir.map { it.asFile.resolve("Release") }) {
         include(libFile)
         into(resourceDir)
