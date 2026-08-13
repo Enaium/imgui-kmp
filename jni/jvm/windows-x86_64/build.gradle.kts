@@ -46,6 +46,8 @@ val configureJniLibrary by tasks.registering(Exec::class) {
     commandLine(
         "cmake",
         rootProject.file("jni").absolutePath,
+        "-G",
+        "MinGW Makefiles",
         "-DCMAKE_BUILD_TYPE=Release",
         "-DJNI_INCLUDE_DIR=$jniInclude",
         "-DJNI_INCLUDE_DIR_PLATFORM=$jniInclude/win32",
