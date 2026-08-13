@@ -177,18 +177,13 @@ jobs:
           Get-Item "$env:RUNNER_TEMP\signing-key.gpg" | Select-Object Length
           Format-Hex -Path "$env:RUNNER_TEMP\signing-key.gpg" -Count 16
 
-      - name: Publish all platforms to Maven Local
+      - name: Publish windows JNI to Maven Local
         shell: cmd
         run: >
           ./gradlew --no-daemon --stacktrace
           -Psigning.keyId="${{ secrets.SIGNING_KEY_ID }}"
           -Psigning.secretKeyRingFile="${{ runner.temp }}\signing-key.gpg"
           -Psigning.password="${{ secrets.SIGNING_PASSWORD }}"
-          :imgui-kmp:publishToMavenLocal
-          :jni-jvm-linux-x86_64:publishToMavenLocal
-          :jni-jvm-linux-aarch64:publishToMavenLocal
-          :jni-jvm-darwin-x86_64:publishToMavenLocal
-          :jni-jvm-darwin-aarch64:publishToMavenLocal
           :jni-jvm-windows-x86_64:publishToMavenLocal
 
       - name: Run JVM tests

@@ -388,6 +388,10 @@ val androidApiLevel = 21
 
 val pinnedAndroidNdkVersion = "27.0.12077973"
 
+// Windows hosts default CMake to the MSVC generator which is incompatible
+// with the NDK toolchain; the Android JNI libs are built on macOS/Linux.
+fun canBuildAndroidJni(): Boolean = !OperatingSystem.current().isWindows
+
 fun resolveAndroidSdkDir(): java.io.File? {
     listOf("ANDROID_HOME", "ANDROID_SDK_ROOT").forEach { key ->
         System.getenv(key)?.takeIf { it.isNotBlank() }?.let {
@@ -435,7 +439,7 @@ androidJniAbis.forEach { abi ->
     val cmakeBuildDir = layout.buildDirectory.dir("cmake-android-$abi").get().asFile
 
     val configureTask = tasks.register<Exec>("configureAndroidJni_$abi") {
-        onlyIf { androidNdkToolchain?.isFile == true }
+        onlyIf { canBuildAndroidJni() && androidNdkToolchain?.isFile == true }
         doFirst {
             cmakeBuildDir.mkdirs()
             outputDir.get().asFile.mkdirs()
@@ -452,7 +456,7 @@ androidJniAbis.forEach { abi ->
     }
 
     val buildTask = tasks.register<Exec>("buildAndroidJni_$abi") {
-        onlyIf { androidNdkToolchain?.isFile == true }
+        onlyIf { canBuildAndroidJni() && androidNdkToolchain?.isFile == true }
         dependsOn(configureTask)
         workingDir = cmakeBuildDir
         commandLine(cmakeExecutable, "--build", ".", "--config", "Release")
