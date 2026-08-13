@@ -3,6 +3,13 @@ cmake_minimum_required(VERSION 3.16)
 project(imgui C CXX)
 set(CMAKE_CXX_STANDARD 17)
 
+# On Windows, DLLs are runtime artifacts and ignore CMAKE_LIBRARY_OUTPUT_DIRECTORY
+# (which only controls the import library). Route them to the same place so the
+# JNI packaging steps can find the artifact.
+if(WIN32 AND CMAKE_LIBRARY_OUTPUT_DIRECTORY)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+endif()
+
 # Builds the JNI shared library by default. Native (cinterop) targets build
 # only the static library by passing -DBUILD_JNI=OFF.
 option(BUILD_JNI "Build the JNI shared library" ON)
