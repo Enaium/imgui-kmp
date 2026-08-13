@@ -30,7 +30,7 @@ val canBuildHere = OperatingSystem.current().isMacOsX
 val nativeOutputDir = layout.buildDirectory.dir("jni-native/$classifier")
 val cmakeBuildDir = layout.buildDirectory.dir("cmake-jni/$classifier")
 
-val configureJniLibrary by tasks.registering(Exec::class) {
+val configureJniLibrary = tasks.register<Exec>("configureJniLibrary") {
     group = "build"
     description = "cmake-configures libimgui_jni for $classifier."
     onlyIf { canBuildHere }
@@ -55,7 +55,7 @@ val configureJniLibrary by tasks.registering(Exec::class) {
     )
 }
 
-val buildJniLibrary by tasks.registering(Exec::class) {
+val buildJniLibrary = tasks.register<Exec>("buildJniLibrary") {
     group = "build"
     description = "Builds libimgui_jni.dylib for $classifier."
     onlyIf { canBuildHere }
@@ -71,12 +71,28 @@ val buildJniLibrary by tasks.registering(Exec::class) {
 
 tasks.named<Copy>("processResources") {
     dependsOn(buildJniLibrary)
-    // Use the build task's declared outputs (lazily resolved at execution
-    // time) instead of the directory Provider, which may be snapshotted
-    // empty at configuration time.
-    from(buildJniLibrary.map { it.outputs.files }) {
+    // Copy the built shared library into the classpath resources. Sources
+    // are resolved at execution time (the directory is created by the cmake
+    // configure step); MSVC builds place the artifact in a Release/ folder
+    // under the cmake build dir, so both locations are covered.
+    from(nativeOutputDir) {
         include(libFile)
         into(resourceDir)
+    }
+    from(cmakeBuildDir.map { it.asFile.resolve("Release") }) {
+        include(libFile)
+        into(resourceDir)
+    }
+    doLast {
+        val out = layout.buildDirectory.file("resources/main/$resourceDir/$libFile").get().asFile
+        if (!out.isFile) {
+            val candidates = mutableListOf<String>()
+            nativeOutputDir.get().asFile.listFiles()?.forEach { candidates.add(it.name) }
+            cmakeBuildDir.get().asFile.resolve("Release").listFiles()?.forEach { candidates.add(it.name) }
+            throw GradleException(
+                "Build of $libFile produced no artifact. Found: $candidates",
+            )
+        }
     }
 }
 
