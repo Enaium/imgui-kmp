@@ -22,13 +22,22 @@ val hostArch = System.getProperty("os.arch").lowercase()
 // Kotlin/Native target. Apple targets build from macOS via Xcode; linuxX64 and
 // mingwX64 build on Linux hosts (mingwX64 via the MinGW cross-compiler, which
 // matches Kotlin/Native's own MinGW linker).
+fun hasMingwCrossToolchain(): Boolean {
+    val name = "x86_64-w64-mingw32-gcc"
+    return System.getenv("PATH")?.split(File.pathSeparator).orEmpty().any { dir ->
+        val f = File(dir, name)
+        f.isFile && f.canExecute()
+    }
+}
+
 fun canBuildNativeTarget(targetName: String): Boolean {
     return when {
         hostOs.isMacOsX && targetName.startsWith("macos") -> true
         hostOs.isMacOsX && targetName.startsWith("ios") -> true
         hostOs.isMacOsX && targetName.startsWith("tvos") -> true
         hostOs.isMacOsX && targetName.startsWith("watchos") -> true
-        hostOs.isLinux && (targetName == "linuxX64" || targetName == "mingwX64") -> true
+        hostOs.isLinux && targetName == "linuxX64" -> true
+        hostOs.isLinux && targetName == "mingwX64" && hasMingwCrossToolchain() -> true
         else -> false
     }
 }
