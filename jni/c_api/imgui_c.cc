@@ -31,98 +31,96 @@
 #include "imgui_c.h"
 
 // glibc 2.38+ (Ubuntu 24.04) redirects the stdio formatted-I/O functions to
-// __isoc23_* variants in its headers; Kotlin/Native's bundled Linux libc
-// predates them, so the final link fails with "undefined symbol: __isoc23_*".
-// Provide ABI-compatible aliases so the static library links against the K/N
-// toolchain. The headers' macros are undefined first so the shims call the
-// real (pre-C23) glibc exports, avoiding recursion on newer build hosts.
+// __isoc23_* variants in its headers (via __REDIRECT asm labels, so #undef
+// cannot undo them). Kotlin/Native's bundled Linux libc predates those
+// symbols, so the final link fails with "undefined symbol: __isoc23_*".
+//
+// Every __isoc23_* name that the redirected headers make the code call is
+// implemented here. The implementations route through helper names whose
+// asm-labels point at the classic glibc exports, which exist in every glibc
+// version - this avoids both the missing symbols and the infinite recursion
+// that calling the redirected names would cause.
 #if defined(__GLIBC__) && defined(__GNUC__)
 
 #include <stdio.h>
 
-#undef sscanf
-#undef vsscanf
-#undef scanf
-#undef vscanf
-#undef fscanf
-#undef vfscanf
-#undef snprintf
-#undef vsnprintf
-#undef printf
-#undef vprintf
-#undef fprintf
-#undef vfprintf
+extern "C" int imgui_kmp_vsscanf(const char*, const char*, va_list) __asm__("vsscanf");
+extern "C" int imgui_kmp_vscanf(const char*, va_list) __asm__("vscanf");
+extern "C" int imgui_kmp_vfscanf(FILE*, const char*, va_list) __asm__("vfscanf");
+extern "C" int imgui_kmp_vsnprintf(char*, size_t, const char*, va_list) __asm__("vsnprintf");
+extern "C" int imgui_kmp_vprintf(const char*, va_list) __asm__("vprintf");
+extern "C" int imgui_kmp_vfprintf(FILE*, const char*, va_list) __asm__("vfprintf");
 
 extern "C" int __isoc23_sscanf(const char* str, const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
-    int result = vsscanf(str, fmt, ap);
+    int result = imgui_kmp_vsscanf(str, fmt, ap);
     va_end(ap);
     return result;
 }
 
 extern "C" int __isoc23_vsscanf(const char* str, const char* fmt, va_list ap) {
-    return vsscanf(str, fmt, ap);
+    return imgui_kmp_vsscanf(str, fmt, ap);
 }
 
 extern "C" int __isoc23_scanf(const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
-    int result = vscanf(fmt, ap);
+    int result = imgui_kmp_vscanf(fmt, ap);
     va_end(ap);
     return result;
 }
 
 extern "C" int __isoc23_vscanf(const char* fmt, va_list ap) {
-    return vscanf(fmt, ap);
+    return imgui_kmp_vscanf(fmt, ap);
 }
 
 extern "C" int __isoc23_fscanf(FILE* stream, const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
-    int result = vfscanf(stream, fmt, ap);
+    int result = imgui_kmp_vfscanf(stream, fmt, ap);
     va_end(ap);
     return result;
 }
 
 extern "C" int __isoc23_vfscanf(FILE* stream, const char* fmt, va_list ap) {
-    return vfscanf(stream, fmt, ap);
+    return imgui_kmp_vfscanf(stream, fmt, ap);
 }
 
 extern "C" int __isoc23_snprintf(char* str, size_t size, const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
-    int result = vsnprintf(str, size, fmt, ap);
+    int result = imgui_kmp_vsnprintf(str, size, fmt, ap);
     va_end(ap);
     return result;
 }
 
 extern "C" int __isoc23_vsnprintf(char* str, size_t size, const char* fmt, va_list ap) {
-    return vsnprintf(str, size, fmt, ap);
+    return imgui_kmp_vsnprintf(str, size, fmt, ap);
 }
 
 extern "C" int __isoc23_printf(const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
-    int result = vprintf(fmt, ap);
+    int result = imgui_kmp_vprintf(fmt, ap);
     va_end(ap);
     return result;
 }
 
 extern "C" int __isoc23_vprintf(const char* fmt, va_list ap) {
-    return vprintf(fmt, ap);
+    return imgui_kmp_vprintf(fmt, ap);
 }
 
 extern "C" int __isoc23_fprintf(FILE* stream, const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
-    int result = vfprintf(stream, fmt, ap);
+    int result = imgui_kmp_vfprintf(stream, fmt, ap);
     va_end(ap);
     return result;
 }
 
 extern "C" int __isoc23_vfprintf(FILE* stream, const char* fmt, va_list ap) {
-    return vfprintf(stream, fmt, ap);
+    return imgui_kmp_vfprintf(stream, fmt, ap);
 }
 
 #endif // __GLIBC__
