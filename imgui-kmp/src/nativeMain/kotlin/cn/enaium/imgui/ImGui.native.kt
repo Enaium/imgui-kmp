@@ -42,31 +42,31 @@ internal class NativeImGuiContext(internal val ptr: CPointer<imgui_context>?) : 
 
 internal class NativeImGuiIO(internal val ptr: CPointer<imgui_io>?) : ImGuiIO {
     override var displaySize: ImVec2
-        get() = error("displaySize is write-only; set it before NewFrame")
+        get() = imgui_io_get_display_size(ptr).useContents { ImVec2(x, y) }
         set(value) = imgui_io_set_display_size(ptr, value.x, value.y)
 
     override var displayFramebufferScale: ImVec2
-        get() = error("displayFramebufferScale is write-only; set it before NewFrame")
+        get() = imgui_io_get_display_framebuffer_scale(ptr).useContents { ImVec2(x, y) }
         set(value) = imgui_io_set_display_framebuffer_scale(ptr, value.x, value.y)
 
     override var deltaTime: Float
-        get() = error("deltaTime is write-only; set it before NewFrame")
+        get() = imgui_io_get_delta_time(ptr)
         set(value) = imgui_io_set_delta_time(ptr, value)
 
     override var configFlags: Int
-        get() = error("configFlags is write-only; set it before NewFrame")
+        get() = imgui_io_get_config_flags(ptr)
         set(value) = imgui_io_set_config_flags(ptr, value)
 
     override var backendFlags: Int
-        get() = error("backendFlags is write-only; set it before NewFrame")
+        get() = imgui_io_get_backend_flags(ptr)
         set(value) = imgui_io_set_backend_flags(ptr, value)
 
     override var iniFilename: String?
-        get() = error("iniFilename is write-only")
+        get() = imgui_io_get_ini_filename(ptr)?.toKString()
         set(value) = imgui_io_set_ini_filename(ptr, value)
 
     override var fontGlobalScale: Float
-        get() = error("fontGlobalScale is write-only")
+        get() = imgui_io_get_font_global_scale(ptr)
         set(value) = imgui_io_set_font_global_scale(ptr, value)
 
     override val fonts: ImFontAtlas
@@ -635,6 +635,7 @@ actual object ImGui {
     actual fun labelText(label: String, text: String) = imgui_label_text(label, text)
     actual fun bulletText(text: String) = imgui_bullet_text(text)
     actual fun bullet() = imgui_bullet()
+    actual fun alignTextToFramePadding() = imgui_align_text_to_frame_padding()
     actual fun separator() = imgui_separator()
     actual fun separatorText(text: String) = imgui_separator_text(text)
     actual fun sameLine(offsetFromStartX: Float, spacing: Float) = imgui_same_line(offsetFromStartX, spacing)

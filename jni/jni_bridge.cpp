@@ -652,6 +652,10 @@ extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_bullet(JNIEnv*, jclas
     imgui_bullet();
 }
 
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_alignTextToFramePadding(JNIEnv*, jclass) {
+    imgui_align_text_to_frame_padding();
+}
+
 extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_separator(JNIEnv*, jclass) {
     imgui_separator();
 }
@@ -2030,6 +2034,43 @@ extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_ioSetIniFilename(JNIE
 
 extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_ioSetFontGlobalScale(JNIEnv*, jclass, jlong io, jfloat scale) {
     imgui_io_set_font_global_scale(reinterpret_cast<imgui_io*>(io), scale);
+}
+
+extern "C" JNIEXPORT jfloatArray JNICALL Java_cn_enaium_imgui_Jni_ioGetDisplaySize(JNIEnv* env, jclass, jlong io) {
+    imgui_vec2 v = imgui_io_get_display_size(reinterpret_cast<imgui_io*>(io));
+    jfloatArray out = env->NewFloatArray(2);
+    jfloat data[2] = {v.x, v.y};
+    env->SetFloatArrayRegion(out, 0, 2, data);
+    return out;
+}
+
+extern "C" JNIEXPORT jfloatArray JNICALL Java_cn_enaium_imgui_Jni_ioGetDisplayFramebufferScale(JNIEnv* env, jclass, jlong io) {
+    imgui_vec2 v = imgui_io_get_display_framebuffer_scale(reinterpret_cast<imgui_io*>(io));
+    jfloatArray out = env->NewFloatArray(2);
+    jfloat data[2] = {v.x, v.y};
+    env->SetFloatArrayRegion(out, 0, 2, data);
+    return out;
+}
+
+extern "C" JNIEXPORT jfloat JNICALL Java_cn_enaium_imgui_Jni_ioGetDeltaTime(JNIEnv*, jclass, jlong io) {
+    return imgui_io_get_delta_time(reinterpret_cast<imgui_io*>(io));
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_cn_enaium_imgui_Jni_ioGetConfigFlags(JNIEnv*, jclass, jlong io) {
+    return imgui_io_get_config_flags(reinterpret_cast<imgui_io*>(io));
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_cn_enaium_imgui_Jni_ioGetBackendFlags(JNIEnv*, jclass, jlong io) {
+    return imgui_io_get_backend_flags(reinterpret_cast<imgui_io*>(io));
+}
+
+extern "C" JNIEXPORT jstring JNICALL Java_cn_enaium_imgui_Jni_ioGetIniFilename(JNIEnv* env, jclass, jlong io) {
+    const char* path = imgui_io_get_ini_filename(reinterpret_cast<imgui_io*>(io));
+    return path == nullptr ? nullptr : env->NewStringUTF(path);
+}
+
+extern "C" JNIEXPORT jfloat JNICALL Java_cn_enaium_imgui_Jni_ioGetFontGlobalScale(JNIEnv*, jclass, jlong io) {
+    return imgui_io_get_font_global_scale(reinterpret_cast<imgui_io*>(io));
 }
 
 extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_ioAddMousePosEvent(JNIEnv*, jclass, jlong io, jfloat x, jfloat y) {

@@ -309,6 +309,9 @@ object ImPlotAxisFlags {
     const val LOCK_MIN = 1 shl 14
     const val LOCK_MAX = 1 shl 15
     const val LOCK = LOCK_MIN or LOCK_MAX
+
+    const val NO_DECORATIONS = NO_LABEL or NO_GRID_LINES or NO_TICK_MARKS or NO_TICK_LABELS
+    const val AUX_DEFAULT = NO_GRID_LINES or OPPOSITE
 }
 
 object ImPlotMarker {

@@ -11,6 +11,33 @@
  * checkouts).
  */
 import org.gradle.internal.os.OperatingSystem
+import java.io.File
+
+// Resolves cmake from PATH plus the common install locations (IDEs often
+// start Gradle without the Homebrew paths on PATH).
+fun resolveCmakeExecutable(): String {
+    val exeName = if (OperatingSystem.current().isWindows) "cmake.exe" else "cmake"
+
+    System.getenv("PATH")?.split(File.pathSeparator).orEmpty().forEach { dir ->
+        val candidate = File(dir, exeName)
+        if (candidate.isFile && candidate.canExecute()) return candidate.absolutePath
+    }
+
+    val extraPaths = listOf(
+        "/opt/homebrew/bin",
+        "/usr/local/bin",
+        "/usr/bin",
+        "/opt/local/bin",
+    )
+    extraPaths.forEach { dir ->
+        val candidate = File(dir, exeName)
+        if (candidate.isFile && candidate.canExecute()) return candidate.absolutePath
+    }
+
+    return exeName
+}
+
+val cmakeExecutable = resolveCmakeExecutable()
 
 plugins {
     `java-library`
@@ -52,7 +79,7 @@ val configureJniLibrary = tasks.register<Exec>("configureJniLibrary") {
     val javaHome = System.getProperty("java.home") ?: System.getenv("JAVA_HOME") ?: ""
     val jniInclude = if (javaHome.isNotEmpty()) "$javaHome/include" else ""
     commandLine(
-        "cmake",
+        cmakeExecutable,
         rootProject.file("jni").absolutePath,
         "-G",
         "MinGW Makefiles",
@@ -70,7 +97,7 @@ val buildJniLibrary = tasks.register<Exec>("buildJniLibrary") {
     onlyIf { canBuildHere }
     dependsOn(configureJniLibrary)
     workingDir = cmakeBuildDir.get().asFile
-    commandLine("cmake", "--build", ".", "--config", "Release")
+    commandLine(cmakeExecutable, "--build", ".", "--config", "Release")
     inputs.files(rootProject.file("jni/CMakeLists.txt"), rootProject.file("jni/jni_bridge.cpp"))
     inputs.dir(rootProject.file("jni/c_api"))
     inputs.dir(rootProject.file("includes/imgui"))

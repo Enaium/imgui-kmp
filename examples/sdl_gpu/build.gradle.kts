@@ -86,3 +86,15 @@ kotlin {
         }
     }
 }
+
+// SDL3 on macOS (via LWJGL) must run on the first thread, otherwise video
+// driver init fails with "No available video device". Mirrors sdl-kmp's own
+// examples. --enable-native-access silences the LWJGL JVM warnings.
+tasks.withType(JavaExec::class.java).configureEach {
+    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX && name == "jvmRun") {
+        jvmArgs(
+            "--enable-native-access=ALL-UNNAMED",
+            "-XstartOnFirstThread",
+        )
+    }
+}

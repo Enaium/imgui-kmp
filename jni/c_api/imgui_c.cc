@@ -549,6 +549,10 @@ void imgui_bullet(void) {
     ImGui::Bullet();
 }
 
+void imgui_align_text_to_frame_padding(void) {
+    ImGui::AlignTextToFramePadding();
+}
+
 void imgui_separator(void) {
     ImGui::Separator();
 }
@@ -1633,6 +1637,36 @@ void imgui_io_set_ini_filename(imgui_io* io, const char* path) {
 
 void imgui_io_set_font_global_scale(imgui_io* io, float scale) {
     ((ImGuiIO*)io)->FontGlobalScale = scale;
+}
+
+imgui_vec2 imgui_io_get_display_size(imgui_io* io) {
+    ImVec2 v = ((ImGuiIO*)io)->DisplaySize;
+    return {v.x, v.y};
+}
+
+imgui_vec2 imgui_io_get_display_framebuffer_scale(imgui_io* io) {
+    ImVec2 v = ((ImGuiIO*)io)->DisplayFramebufferScale;
+    return {v.x, v.y};
+}
+
+float imgui_io_get_delta_time(imgui_io* io) {
+    return ((ImGuiIO*)io)->DeltaTime;
+}
+
+int imgui_io_get_config_flags(imgui_io* io) {
+    return ((ImGuiIO*)io)->ConfigFlags;
+}
+
+int imgui_io_get_backend_flags(imgui_io* io) {
+    return ((ImGuiIO*)io)->BackendFlags;
+}
+
+const char* imgui_io_get_ini_filename(imgui_io* io) {
+    return ((ImGuiIO*)io)->IniFilename;
+}
+
+float imgui_io_get_font_global_scale(imgui_io* io) {
+    return ((ImGuiIO*)io)->FontGlobalScale;
 }
 
 void imgui_io_add_mouse_pos_event(imgui_io* io, float x, float y) {

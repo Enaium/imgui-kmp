@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 
-package cn.enaium.imgui.example.gpu
+package cn.enaium.imgui.backends.sdl
 
 /**
  * Vertex/fragment shaders for the SDL3 GPU backend.

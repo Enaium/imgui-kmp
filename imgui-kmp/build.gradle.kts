@@ -46,6 +46,8 @@ fun canBuildNativeTarget(targetName: String): Boolean {
     }
 }
 
+// Resolves cmake from PATH plus the common install locations (IDEs often
+// start Gradle without the Homebrew paths on PATH).
 fun resolveCmakeExecutable(): String {
     val exeName = if (OperatingSystem.current().isWindows) "cmake.exe" else "cmake"
 
@@ -63,15 +65,6 @@ fun resolveCmakeExecutable(): String {
     extraPaths.forEach { dir ->
         val candidate = File(dir, exeName)
         if (candidate.isFile && candidate.canExecute()) return candidate.absolutePath
-    }
-
-    val sdkCmakeRoot = resolveAndroidSdkDir()?.resolve("cmake")
-    if (sdkCmakeRoot?.isDirectory == true) {
-        val newest = sdkCmakeRoot.listFiles()
-            ?.filter { it.isDirectory }
-            ?.maxByOrNull { it.name }
-        val candidate = newest?.resolve("bin/$exeName")
-        if (candidate?.isFile == true && candidate.canExecute()) return candidate.absolutePath
     }
 
     return exeName
@@ -165,11 +158,56 @@ kotlin {
     }
 
     // ==================== Source sets ====================
+    // Ensure the default hierarchy template (nativeMain, appleMain, macosMain,
+    // iosMain, tvosMain, ...) is materialized before we create custom source
+    // sets, so that native targets keep their shared intermediate sets.
+    applyDefaultHierarchyTemplate()
     sourceSets {
         getByName("commonMain") {
             dependencies {
                 implementation(kotlin("stdlib-common"))
             }
+        }
+
+        // SDL backends (cn.enaium.imgui.backends.sdl). sdl-kmp publishes for
+        // every target imgui-kmp declares except the watchOS family, so the
+        // backends live in these intermediate source sets instead of commonMain.
+        // Two variants are needed because the native one must sit on top of
+        // nativeMain (to see the expect/actual declarations) while the JVM one
+        // sits on top of commonMain. Both share the src/sdlMain/kotlin sources.
+        val sdlMain by creating {
+            dependsOn(getByName("commonMain"))
+            dependencies {
+                implementation(libs.sdl.kmp)
+            }
+        }
+        val sdlNativeMain by creating {
+            dependsOn(getByName("nativeMain"))
+            kotlin.srcDir("src/sdlMain/kotlin")
+            dependencies {
+                implementation(libs.sdl.kmp)
+            }
+        }
+
+        // All targets sdl-kmp supports: desktop, mobile Apple and Android.
+        getByName("jvmMain").dependsOn(sdlMain)
+        getByName("androidMain").dependsOn(sdlMain)
+        listOf(
+            "macosArm64",
+            "macosX64",
+            "linuxX64",
+            "mingwX64",
+            "androidNativeArm64",
+            "androidNativeArm32",
+            "androidNativeX64",
+            "androidNativeX86",
+            "iosArm64",
+            "iosX64",
+            "iosSimulatorArm64",
+            "tvosArm64",
+            "tvosSimulatorArm64",
+        ).forEach { targetName ->
+            getByName("${targetName}Main").dependsOn(sdlNativeMain)
         }
 
         getByName("commonTest") {
@@ -566,3 +604,5 @@ mavenPublishing {
         }
     }
 }
+
+

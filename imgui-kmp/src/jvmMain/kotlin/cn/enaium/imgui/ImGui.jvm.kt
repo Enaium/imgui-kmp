@@ -138,6 +138,7 @@ internal object Jni {
     external fun labelText(label: String, text: String)
     external fun bulletText(text: String)
     external fun bullet()
+    external fun alignTextToFramePadding()
     external fun separator()
     external fun separatorText(text: String)
     external fun sameLine(offsetFromStartX: Float, spacing: Float)
@@ -374,6 +375,13 @@ internal object Jni {
     external fun ioSetBackendFlags(io: Long, flags: Int)
     external fun ioSetIniFilename(io: Long, path: String?)
     external fun ioSetFontGlobalScale(io: Long, scale: Float)
+    external fun ioGetDisplaySize(io: Long): FloatArray
+    external fun ioGetDisplayFramebufferScale(io: Long): FloatArray
+    external fun ioGetDeltaTime(io: Long): Float
+    external fun ioGetConfigFlags(io: Long): Int
+    external fun ioGetBackendFlags(io: Long): Int
+    external fun ioGetIniFilename(io: Long): String?
+    external fun ioGetFontGlobalScale(io: Long): Float
     external fun ioAddMousePosEvent(io: Long, x: Float, y: Float)
     external fun ioAddMouseButtonEvent(io: Long, button: Int, down: Boolean)
     external fun ioAddMouseWheelEvent(io: Long, x: Float, y: Float)
@@ -438,31 +446,37 @@ internal class JvmImGuiContext(internal val ptr: Long) : ImGuiContext {
 
 internal class JvmImGuiIO(internal val ptr: Long) : ImGuiIO {
     override var displaySize: ImVec2
-        get() = error("displaySize is write-only; set it before NewFrame")
+        get() {
+            val v = Jni.ioGetDisplaySize(ptr)
+            return ImVec2(v[0], v[1])
+        }
         set(value) = Jni.ioSetDisplaySize(ptr, value.x, value.y)
 
     override var displayFramebufferScale: ImVec2
-        get() = error("displayFramebufferScale is write-only; set it before NewFrame")
+        get() {
+            val v = Jni.ioGetDisplayFramebufferScale(ptr)
+            return ImVec2(v[0], v[1])
+        }
         set(value) = Jni.ioSetDisplayFramebufferScale(ptr, value.x, value.y)
 
     override var deltaTime: Float
-        get() = error("deltaTime is write-only; set it before NewFrame")
+        get() = Jni.ioGetDeltaTime(ptr)
         set(value) = Jni.ioSetDeltaTime(ptr, value)
 
     override var configFlags: Int
-        get() = error("configFlags is write-only; set it before NewFrame")
+        get() = Jni.ioGetConfigFlags(ptr)
         set(value) = Jni.ioSetConfigFlags(ptr, value)
 
     override var backendFlags: Int
-        get() = error("backendFlags is write-only; set it before NewFrame")
+        get() = Jni.ioGetBackendFlags(ptr)
         set(value) = Jni.ioSetBackendFlags(ptr, value)
 
     override var iniFilename: String?
-        get() = error("iniFilename is write-only")
+        get() = Jni.ioGetIniFilename(ptr)
         set(value) = Jni.ioSetIniFilename(ptr, value)
 
     override var fontGlobalScale: Float
-        get() = error("fontGlobalScale is write-only")
+        get() = Jni.ioGetFontGlobalScale(ptr)
         set(value) = Jni.ioSetFontGlobalScale(ptr, value)
 
     override val fonts: ImFontAtlas
@@ -785,6 +799,7 @@ actual object ImGui {
     actual fun labelText(label: String, text: String) = Jni.labelText(label, text)
     actual fun bulletText(text: String) = Jni.bulletText(text)
     actual fun bullet() = Jni.bullet()
+    actual fun alignTextToFramePadding() = Jni.alignTextToFramePadding()
     actual fun separator() = Jni.separator()
     actual fun separatorText(text: String) = Jni.separatorText(text)
     actual fun sameLine(offsetFromStartX: Float, spacing: Float) = Jni.sameLine(offsetFromStartX, spacing)

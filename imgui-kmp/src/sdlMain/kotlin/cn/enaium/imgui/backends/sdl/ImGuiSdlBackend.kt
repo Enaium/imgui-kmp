@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 
-package cn.enaium.imgui.example.common
+package cn.enaium.imgui.backends.sdl
 
 import cn.enaium.imgui.ImGui
 import cn.enaium.imgui.ImGuiKey
@@ -34,8 +34,8 @@ import cn.enaium.sdl.SDLWindow
  *
  * Mirrors what imgui_impl_sdl3.cpp does in C: it feeds SDL events into the
  * imgui input queue and sets the per-frame IO values (display size, delta
- * time). Rendering is handled separately by a [ImGuiSdlRenderer] or an
- * [ImGuiSdlGpuRenderer].
+ * time). Rendering is handled separately by [ImGuiSdlRendererBackend] or
+ * [ImGuiSdlGpuBackend].
  */
 class ImGuiSdlBackend(private val window: SDLWindow) {
 
@@ -47,6 +47,22 @@ class ImGuiSdlBackend(private val window: SDLWindow) {
         get() {
             val size = window.sizeInPixels
             return ImVec2(size.x.toFloat(), size.y.toFloat())
+        }
+
+    /**
+     * The ratio between physical and logical pixels (e.g. 2.0 on Retina).
+     * Matches imgui 1.92+'s expectation: [displaySize] holds logical units
+     * and this scale drives the font rasterizer density, keeping text crisp.
+     */
+    val framebufferScale: ImVec2
+        get() {
+            val logical = window.size
+            val physical = window.sizeInPixels
+            if (logical.x <= 0 || logical.y <= 0) return ImVec2(1f, 1f)
+            return ImVec2(
+                physical.x.toFloat() / logical.x.toFloat(),
+                physical.y.toFloat() / logical.y.toFloat(),
+            )
         }
 
     fun init() {
@@ -97,8 +113,13 @@ class ImGuiSdlBackend(private val window: SDLWindow) {
 
     /** Starts a new imgui frame. Call once per render loop iteration. */
     fun newFrame() {
-        val size = sizeInPixels
-        io.displaySize = size
+        // imgui 1.92+ expects DisplaySize in LOGICAL units and
+        // DisplayFramebufferScale = physical/logical ratio; the font
+        // rasterizer density (antialiasing) is derived from the latter.
+        val logical = window.size
+        val scale = framebufferScale
+        io.displaySize = ImVec2(logical.x.toFloat(), logical.y.toFloat())
+        io.displayFramebufferScale = scale
         io.deltaTime = computeDeltaTime()
 
         // Toggle SDL text input to match imgui's need (typing in a widget).

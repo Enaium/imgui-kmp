@@ -304,6 +304,7 @@ expect object ImGui {
     fun labelText(label: String, text: String)
     fun bulletText(text: String)
     fun bullet()
+    fun alignTextToFramePadding()
     fun separator()
     fun separatorText(text: String)
     fun sameLine(offsetFromStartX: Float = 0f, spacing: Float = -1f)
@@ -1051,4 +1052,130 @@ object ImGuiTableBgTarget {
     const val ROW_BG0 = 1
     const val ROW_BG1 = 2
     const val CELL_BG = 3
+}
+
+object ImGuiTableRowFlags {
+    const val NONE = 0
+    const val HEADERS = 1 shl 0
+}
+
+object ImGuiTableColumnFlags {
+    const val NONE = 0
+    const val DISABLED = 1 shl 0
+    const val DEFAULT_HIDE = 1 shl 1
+    const val DEFAULT_SORT = 1 shl 2
+    const val WIDTH_STRETCH = 1 shl 3
+    const val WIDTH_FIXED = 1 shl 4
+    const val NO_RESIZE = 1 shl 5
+    const val NO_REORDER = 1 shl 6
+    const val NO_HIDE = 1 shl 7
+    const val NO_CLIP = 1 shl 8
+    const val NO_SORT = 1 shl 9
+    const val NO_SORT_ASCENDING = 1 shl 10
+    const val NO_SORT_DESCENDING = 1 shl 11
+    const val NO_HEADER_LABEL = 1 shl 12
+    const val NO_HEADER_WIDTH = 1 shl 13
+    const val PREFER_SORT_ASCENDING = 1 shl 14
+    const val PREFER_SORT_DESCENDING = 1 shl 15
+    const val INDENT_ENABLE = 1 shl 16
+    const val INDENT_DISABLE = 1 shl 17
+    const val ANGLED_HEADER = 1 shl 18
+
+    // Output status flags (read via ImGui.tableGetColumnFlags)
+    const val IS_ENABLED = 1 shl 24
+    const val IS_VISIBLE = 1 shl 25
+    const val IS_SORTED = 1 shl 26
+    const val IS_HOVERED = 1 shl 27
+}
+
+object ImGuiStyleVar {
+    const val ALPHA = 0
+    const val DISABLED_ALPHA = 1
+    const val WINDOW_PADDING = 2
+    const val WINDOW_ROUNDING = 3
+    const val WINDOW_BORDER_SIZE = 4
+    const val WINDOW_MIN_SIZE = 5
+    const val WINDOW_TITLE_ALIGN = 6
+    const val CHILD_ROUNDING = 7
+    const val CHILD_BORDER_SIZE = 8
+    const val POPUP_ROUNDING = 9
+    const val POPUP_BORDER_SIZE = 10
+    const val FRAME_PADDING = 11
+    const val FRAME_ROUNDING = 12
+    const val FRAME_BORDER_SIZE = 13
+    const val ITEM_SPACING = 14
+    const val ITEM_INNER_SPACING = 15
+    const val INDENT_SPACING = 16
+    const val CELL_PADDING = 17
+    const val SCROLLBAR_SIZE = 18
+    const val SCROLLBAR_ROUNDING = 19
+    const val SCROLLBAR_PADDING = 20
+    const val GRAB_MIN_SIZE = 21
+    const val GRAB_ROUNDING = 22
+    const val IMAGE_ROUNDING = 23
+    const val IMAGE_BORDER_SIZE = 24
+    const val TAB_ROUNDING = 25
+    const val TAB_BORDER_SIZE = 26
+    const val TAB_MIN_WIDTH_BASE = 27
+    const val TAB_MIN_WIDTH_SHRINK = 28
+    const val TAB_BAR_BORDER_SIZE = 29
+    const val TAB_BAR_OVERLINE_SIZE = 30
+    const val TABLE_ANGLED_HEADERS_ANGLE = 31
+    const val TABLE_ANGLED_HEADERS_TEXT_ALIGN = 32
+    const val TREE_LINES_SIZE = 33
+    const val TREE_LINES_ROUNDING = 34
+    const val MENU_ITEM_ROUNDING = 35
+    const val SELECTABLE_ROUNDING = 36
+    const val DRAG_DROP_TARGET_ROUNDING = 37
+    const val BUTTON_TEXT_ALIGN = 38
+    const val SELECTABLE_TEXT_ALIGN = 39
+    const val SEPARATOR_SIZE = 40
+    const val SEPARATOR_TEXT_BORDER_SIZE = 41
+    const val SEPARATOR_TEXT_ALIGN = 42
+    const val SEPARATOR_TEXT_PADDING = 43
+}
+
+object ImGuiColorEditFlags {
+    const val NONE = 0
+    const val NO_ALPHA = 1 shl 1
+    const val NO_PICKER = 1 shl 2
+    const val NO_OPTIONS = 1 shl 3
+    const val NO_SMALL_PREVIEW = 1 shl 4
+    const val NO_INPUTS = 1 shl 5
+    const val NO_TOOLTIP = 1 shl 6
+    const val NO_LABEL = 1 shl 7
+    const val NO_SIDE_PREVIEW = 1 shl 8
+    const val NO_DRAG_DROP = 1 shl 9
+    const val NO_BORDER = 1 shl 10
+    const val NO_COLOR_MARKERS = 1 shl 11
+    const val ALPHA_OPAQUE = 1 shl 12
+    const val ALPHA_NO_BG = 1 shl 13
+    const val ALPHA_PREVIEW_HALF = 1 shl 14
+    const val ALPHA_BAR = 1 shl 18
+    const val HDR = 1 shl 19
+    const val DISPLAY_RGB = 1 shl 20
+    const val DISPLAY_HSV = 1 shl 21
+    const val DISPLAY_HEX = 1 shl 22
+    const val UINT8 = 1 shl 23
+    const val FLOAT = 1 shl 24
+    const val PICKER_HUE_BAR = 1 shl 25
+    const val PICKER_HUE_WHEEL = 1 shl 26
+    const val PICKER_NO_ROTATE = 1 shl 27
+    const val INPUT_RGB = 1 shl 28
+    const val INPUT_HSV = 1 shl 29
+}
+
+object ImGuiMouseCursor {
+    const val NONE = -1
+    const val ARROW = 0
+    const val TEXT_INPUT = 1
+    const val RESIZE_ALL = 2
+    const val RESIZE_NS = 3
+    const val RESIZE_EW = 4
+    const val RESIZE_NESW = 5
+    const val RESIZE_NWSE = 6
+    const val HAND = 7
+    const val WAIT = 8
+    const val PROGRESS = 9
+    const val NOT_ALLOWED = 10
 }
