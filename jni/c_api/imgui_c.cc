@@ -51,7 +51,7 @@ extern "C" int imgui_kmp_vsnprintf(char*, size_t, const char*, va_list) __asm__(
 extern "C" int imgui_kmp_vprintf(const char*, va_list) __asm__("vprintf");
 extern "C" int imgui_kmp_vfprintf(FILE*, const char*, va_list) __asm__("vfprintf");
 
-extern "C" int __isoc23_sscanf(const char* str, const char* fmt, ...) {
+extern "C" __attribute__((weak)) int __isoc23_sscanf(const char* str, const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     int result = imgui_kmp_vsscanf(str, fmt, ap);
@@ -59,11 +59,11 @@ extern "C" int __isoc23_sscanf(const char* str, const char* fmt, ...) {
     return result;
 }
 
-extern "C" int __isoc23_vsscanf(const char* str, const char* fmt, va_list ap) {
+extern "C" __attribute__((weak)) int __isoc23_vsscanf(const char* str, const char* fmt, va_list ap) {
     return imgui_kmp_vsscanf(str, fmt, ap);
 }
 
-extern "C" int __isoc23_scanf(const char* fmt, ...) {
+extern "C" __attribute__((weak)) int __isoc23_scanf(const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     int result = imgui_kmp_vscanf(fmt, ap);
@@ -71,11 +71,11 @@ extern "C" int __isoc23_scanf(const char* fmt, ...) {
     return result;
 }
 
-extern "C" int __isoc23_vscanf(const char* fmt, va_list ap) {
+extern "C" __attribute__((weak)) int __isoc23_vscanf(const char* fmt, va_list ap) {
     return imgui_kmp_vscanf(fmt, ap);
 }
 
-extern "C" int __isoc23_fscanf(FILE* stream, const char* fmt, ...) {
+extern "C" __attribute__((weak)) int __isoc23_fscanf(FILE* stream, const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     int result = imgui_kmp_vfscanf(stream, fmt, ap);
@@ -83,11 +83,11 @@ extern "C" int __isoc23_fscanf(FILE* stream, const char* fmt, ...) {
     return result;
 }
 
-extern "C" int __isoc23_vfscanf(FILE* stream, const char* fmt, va_list ap) {
+extern "C" __attribute__((weak)) int __isoc23_vfscanf(FILE* stream, const char* fmt, va_list ap) {
     return imgui_kmp_vfscanf(stream, fmt, ap);
 }
 
-extern "C" int __isoc23_snprintf(char* str, size_t size, const char* fmt, ...) {
+extern "C" __attribute__((weak)) int __isoc23_snprintf(char* str, size_t size, const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     int result = imgui_kmp_vsnprintf(str, size, fmt, ap);
@@ -95,11 +95,11 @@ extern "C" int __isoc23_snprintf(char* str, size_t size, const char* fmt, ...) {
     return result;
 }
 
-extern "C" int __isoc23_vsnprintf(char* str, size_t size, const char* fmt, va_list ap) {
+extern "C" __attribute__((weak)) int __isoc23_vsnprintf(char* str, size_t size, const char* fmt, va_list ap) {
     return imgui_kmp_vsnprintf(str, size, fmt, ap);
 }
 
-extern "C" int __isoc23_printf(const char* fmt, ...) {
+extern "C" __attribute__((weak)) int __isoc23_printf(const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     int result = imgui_kmp_vprintf(fmt, ap);
@@ -107,11 +107,11 @@ extern "C" int __isoc23_printf(const char* fmt, ...) {
     return result;
 }
 
-extern "C" int __isoc23_vprintf(const char* fmt, va_list ap) {
+extern "C" __attribute__((weak)) int __isoc23_vprintf(const char* fmt, va_list ap) {
     return imgui_kmp_vprintf(fmt, ap);
 }
 
-extern "C" int __isoc23_fprintf(FILE* stream, const char* fmt, ...) {
+extern "C" __attribute__((weak)) int __isoc23_fprintf(FILE* stream, const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     int result = imgui_kmp_vfprintf(stream, fmt, ap);
@@ -119,7 +119,7 @@ extern "C" int __isoc23_fprintf(FILE* stream, const char* fmt, ...) {
     return result;
 }
 
-extern "C" int __isoc23_vfprintf(FILE* stream, const char* fmt, va_list ap) {
+extern "C" __attribute__((weak)) int __isoc23_vfprintf(FILE* stream, const char* fmt, va_list ap) {
     return imgui_kmp_vfprintf(stream, fmt, ap);
 }
 
