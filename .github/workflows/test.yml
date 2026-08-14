@@ -240,7 +240,7 @@ jobs:
           ls -la "$RUNNER_TEMP/signing-key.gpg"
           head -c 16 "$RUNNER_TEMP/signing-key.gpg" | od -c | head -2
 
-      - name: Publish android AAR + metadata to Maven Local
+      - name: Publish android AAR + metadata + androidNative klibs to Maven Local
         run: >
           ./gradlew --no-daemon --stacktrace
           -Psigning.keyId="${{ secrets.SIGNING_KEY_ID }}"
@@ -248,6 +248,21 @@ jobs:
           -Psigning.password="${{ secrets.SIGNING_PASSWORD }}"
           :imgui-kmp:publishKotlinMultiplatformPublicationToMavenLocal
           :imgui-kmp:publishAndroidPublicationToMavenLocal
+          :imgui-kmp:publishAndroidNativeArm64PublicationToMavenLocal
+          :imgui-kmp:publishAndroidNativeArm32PublicationToMavenLocal
+          :imgui-kmp:publishAndroidNativeX64PublicationToMavenLocal
+          :imgui-kmp:publishAndroidNativeX86PublicationToMavenLocal
 
       - name: Run Android host tests (JVM)
         run: ./gradlew --no-daemon :imgui-kmp:testAndroidHostTest
+
+      - name: Build android native examples (libmain.so per ABI)
+        # Kotlin/Native cross-compiles the androidNative targets on any host
+        # with the Android NDK; libmain.so carries the exported SDL_main
+        # entry point loaded by SDLActivity.
+        run: >
+          ./gradlew --no-daemon
+          :examples:linkMainDebugSharedAndroidNativeArm64
+          :examples:linkMainDebugSharedAndroidNativeArm32
+          :examples:linkMainDebugSharedAndroidNativeX64
+          :examples:linkMainDebugSharedAndroidNativeX86

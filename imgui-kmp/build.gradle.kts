@@ -38,6 +38,10 @@ fun canBuildNativeTarget(targetName: String): Boolean {
         hostOs.isMacOsX && targetName.startsWith("watchos") -> true
         hostOs.isLinux && targetName == "linuxX64" -> true
         hostOs.isLinux && targetName == "mingwX64" && hasMingwCrossToolchain() -> true
+        // androidNative targets cross-compile the C++ library with the Android
+        // NDK toolchain (MSVC hosts are excluded: the default CMake generator
+        // cannot drive the NDK toolchain).
+        targetName.startsWith("androidNative") && canBuildAndroidJni() && androidNdkToolchain?.isFile == true -> true
         else -> false
     }
 }
@@ -110,6 +114,13 @@ kotlin {
     linuxX64()
 
     mingwX64()
+
+    // Android native targets (the AAR's JVM API is separate; these are used
+    // by Kotlin/Native Android apps, e.g. via sdl-kmp's libmain.so).
+    androidNativeArm64()
+    androidNativeArm32()
+    androidNativeX64()
+    androidNativeX86()
 
     iosArm64()
     iosX64()
@@ -473,6 +484,28 @@ androidJniAbis.forEach { abi ->
     }
 
     buildAndroidJniLibs.configure { dependsOn(buildTask) }
+}
+
+// ==================== Android native (Kotlin/Native) static libraries ====================
+// Cross-compiled with the NDK toolchain for the androidNative targets; the
+// resulting libimgui.a is embedded into each target's cinterop klib.
+androidNdkToolchain?.takeIf { it.isFile && canBuildAndroidJni() }?.let { toolchain ->
+    listOf(
+        "androidNativeArm64" to "arm64-v8a",
+        "androidNativeArm32" to "armeabi-v7a",
+        "androidNativeX64" to "x86_64",
+        "androidNativeX86" to "x86",
+    ).forEach { (targetName, abi) ->
+        registerNativeBuildTasks(
+            targetName,
+            listOf(
+                "-DCMAKE_TOOLCHAIN_FILE=${toolchain.absolutePath}",
+                "-DANDROID_ABI=$abi",
+                "-DANDROID_PLATFORM=android-$androidApiLevel",
+                "-DANDROID_STL=c++_static",
+            ),
+        )
+    }
 }
 
 androidComponents {
