@@ -9,9 +9,11 @@ name: Test
 #
 #   macOS ARM64    -> :imgui-kmp (multiplatform module: metadata + jvm +
 #                     android + Apple klibs) + darwin JNI, JVM/native tests,
-#                     JVM + native examples (headless via SDL dummy driver)
+#                     JVM + native sdl_renderer example (headless via SDL
+#                     dummy driver)
 #   Linux x64      -> linux JNI (x86_64 + aarch64 cross), JVM + native tests,
-#                     linuxX64 example, mingwX64 klib with embedded lib
+#                     linuxX64 sdl_renderer example, mingwX64 klib with
+#                     embedded lib
 #   Windows x64    -> windows JNI (MinGW), JVM tests, mingwX64 klib
 #   Android        -> publish android AAR + metadata to Maven Local, android
 #                     host tests
@@ -67,16 +69,16 @@ jobs:
       - name: Run JVM renderer example (headless)
         run: >
           SDL_VIDEO_DRIVER=dummy
-          ./gradlew --no-daemon :examples:jvmRun
-          --args="--renderer --frames 120"
+          ./gradlew --no-daemon :examples:sdl_renderer:jvmRun
+          --args="--frames 120"
 
       - name: Build native renderer example
-        run: ./gradlew --no-daemon :examples:linkDebugExecutableMacosArm64
+        run: ./gradlew --no-daemon :examples:sdl_renderer:linkDebugExecutableMacosArm64
 
       - name: Run native renderer example (headless)
         run: >
           SDL_VIDEO_DRIVER=dummy IMGUI_KMP_FRAMES=120
-          ./examples/build/bin/macosArm64/debugExecutable/examples.kexe
+          ./examples/sdl_renderer/build/bin/macosArm64/debugExecutable/sdl_renderer.kexe
 
   test-linux:
     name: Test Linux x64
@@ -129,16 +131,16 @@ jobs:
       - name: Run JVM renderer example (headless)
         run: >
           SDL_VIDEO_DRIVER=dummy
-          ./gradlew --no-daemon :examples:jvmRun
-          --args="--renderer --frames 120"
+          ./gradlew --no-daemon :examples:sdl_renderer:jvmRun
+          --args="--frames 120"
 
       - name: Build native renderer example (linuxX64)
-        run: ./gradlew --no-daemon :examples:linkDebugExecutableLinuxX64
+        run: ./gradlew --no-daemon :examples:sdl_renderer:linkDebugExecutableLinuxX64
 
       - name: Run native renderer example (linuxX64, headless)
         run: >
           SDL_VIDEO_DRIVER=dummy IMGUI_KMP_FRAMES=120
-          ./examples/build/bin/linuxX64/debugExecutable/examples.kexe
+          ./examples/sdl_renderer/build/bin/linuxX64/debugExecutable/sdl_renderer.kexe
 
       - name: Compile mingwX64 klib with embedded static library
         # Cross-compiles libimgui.a with x86_64-w64-mingw32 and embeds it
@@ -260,7 +262,7 @@ jobs:
         # entry point loaded by SDLActivity.
         run: >
           ./gradlew --no-daemon
-          :examples:linkMainDebugSharedAndroidNativeArm64
-          :examples:linkMainDebugSharedAndroidNativeArm32
-          :examples:linkMainDebugSharedAndroidNativeX64
-          :examples:linkMainDebugSharedAndroidNativeX86
+          :examples:sdl_renderer:linkMainDebugSharedAndroidNativeArm64
+          :examples:sdl_renderer:linkMainDebugSharedAndroidNativeArm32
+          :examples:sdl_renderer:linkMainDebugSharedAndroidNativeX64
+          :examples:sdl_renderer:linkMainDebugSharedAndroidNativeX86

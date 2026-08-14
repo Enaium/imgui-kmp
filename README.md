@@ -84,25 +84,26 @@ fun main() {
 
 ### Renderer backends
 
-The draw data is plain vertex/index buffers (20 bytes per vertex: pos, uv, color), so it can be fed into any renderer. The `examples` module shows two complete backends written in Kotlin on top of [sdl-kmp](https://github.com/Enaium/sdl-kmp):
+The draw data is plain vertex/index buffers (20 bytes per vertex: pos, uv, color), so it can be fed into any renderer. The `examples` directory holds three submodules written in Kotlin on top of [sdl-kmp](https://github.com/Enaium/sdl-kmp):
 
-- **SDL renderer** (`ImGuiSdlRendererBackend`) — mirrors `imgui_impl_sdlrenderer3.cpp` using `SDL_RenderGeometry`.
-- **SDL GPU** (`ImGuiSdlGpuBackend`) — mirrors `imgui_impl_sdlgpu3.cpp` using the SDL3 GPU API with the precompiled SPIR-V/MSL shaders shipped with Dear ImGui.
+- `examples/common` — the shared demo UI (`DemoUi`) and the SDL platform backend (`ImGuiSdlBackend`) used by both backends.
+- `examples/sdl_renderer` — **SDL renderer** (`ImGuiSdlRendererBackend`), mirrors `imgui_impl_sdlrenderer3.cpp` using `SDL_RenderGeometry`.
+- `examples/sdl_gpu` — **SDL GPU** (`ImGuiSdlGpuBackend`), mirrors `imgui_impl_sdlgpu3.cpp` using the SDL3 GPU API with the precompiled SPIR-V/MSL shaders shipped with Dear ImGui.
 
 Run them headless or with a window:
 
 ```bash
 # JVM (SDL renderer)
-SDL_VIDEO_DRIVER=dummy ./gradlew :examples:jvmRun --args="--renderer --frames 120"
+SDL_VIDEO_DRIVER=dummy ./gradlew :examples:sdl_renderer:jvmRun --args="--frames 120"
 
 # JVM (SDL GPU, needs a real display)
-./gradlew :examples:jvmRun --args="--gpu --frames 120"
+./gradlew :examples:sdl_gpu:jvmRun --args="--frames 120"
 
 # Native macOS (headless)
-SDL_VIDEO_DRIVER=dummy IMGUI_KMP_FRAMES=120 ./examples/build/bin/macosArm64/debugExecutable/examples.kexe
+SDL_VIDEO_DRIVER=dummy IMGUI_KMP_FRAMES=120 ./examples/sdl_renderer/build/bin/macosArm64/debugExecutable/sdl_renderer.kexe
 ```
 
-The examples consume `cn.enaium.imgui:imgui-kmp:1.0.0` from Maven Local, so run `./gradlew :imgui-kmp:publishToMavenLocal` (and the `:jni-jvm-*` projects) before building them.
+The examples consume `:imgui-kmp` as a project dependency, so they always build against the local source. (Standalone consumers use `cn.enaium.imgui:imgui-kmp:1.0.0` from Maven Central or Maven Local.)
 
 ## API Overview
 
@@ -139,7 +140,7 @@ ImPlot.plotHistogram("distribution", values)
 ImPlot.pushColormap(ImPlotColormap.PLASMA)
 ```
 
-The complete demo UI (menu bar, tabs, tables, popups, plots, the built-in `showDemoWindow` / `ImPlot.showDemoWindow`) lives in `examples/src/commonMain/kotlin/cn/enaium/imgui/example/DemoUi.kt`.
+The complete demo UI (menu bar, tabs, tables, popups, plots, the built-in `showDemoWindow` / `ImPlot.showDemoWindow`) lives in `examples/common/src/commonMain/kotlin/cn/enaium/imgui/example/common/DemoUi.kt`.
 
 ## Building
 
@@ -152,7 +153,7 @@ git submodule update --init --recursive
 - `jni/` — CMake build of the static library (`libimgui.a`) and the JNI bridge, plus the per-OS/arch JVM JNI artifact projects.
 - `jni/c_api/` — the C API consumed by both the JNI bridge and the cinterop bindings.
 - `imgui-kmp/` — the multiplatform module (`cn.enaium.imgui` for ImGui, `cn.enaium.imgui.extensions.implot` for ImPlot).
-- `examples/` — the SDL renderer and SDL GPU demos shared across JVM, desktop native and Android native targets.
+- `examples/` — the shared demo UI (`examples/common`) plus the SDL renderer (`examples/sdl_renderer`) and SDL GPU (`examples/sdl_gpu`) demos, shared across JVM, desktop native and Android native targets.
 
 ```bash
 ./gradlew :imgui-kmp:jvmTest          # JVM tests (uses the host JNI artifact)

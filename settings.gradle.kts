@@ -22,7 +22,9 @@ dependencyResolutionManagement {
 rootProject.name = "imgui-kmp"
 
 include(":imgui-kmp")
-include(":examples")
+include(":examples:common")
+include(":examples:sdl_renderer")
+include(":examples:sdl_gpu")
 
 // Per-OS/arch JNI artifacts that bundle the prebuilt libimgui_jni shared
 // library as a classpath resource. NativeLoader extracts the matching one at

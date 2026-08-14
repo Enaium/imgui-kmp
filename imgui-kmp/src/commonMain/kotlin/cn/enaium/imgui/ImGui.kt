@@ -103,6 +103,17 @@ interface ImDrawList {
 
     /** Copies [count] 16-bit indices starting at [idxOffset] into an IntArray. */
     fun copyIdx(idxOffset: Int, count: Int): IntArray
+
+    // ==================== Draw primitives ====================
+    fun DrawLine(p1: ImVec2, p2: ImVec2, col: Int, thickness: Float = 1f)
+    fun DrawRect(pMin: ImVec2, pMax: ImVec2, col: Int, rounding: Float = 0f, flags: Int = 0, thickness: Float = 1f)
+    fun DrawRectFilled(pMin: ImVec2, pMax: ImVec2, col: Int, rounding: Float = 0f, flags: Int = 0)
+    fun DrawCircle(center: ImVec2, radius: Float, col: Int, numSegments: Int = 0, thickness: Float = 1f)
+    fun DrawCircleFilled(center: ImVec2, radius: Float, col: Int, numSegments: Int = 0)
+    fun DrawText(pos: ImVec2, text: String, col: Int = 0xFFFFFFFF.toInt())
+    fun DrawQuad(p1: ImVec2, p2: ImVec2, p3: ImVec2, p4: ImVec2, col: Int, thickness: Float = 1f)
+    fun DrawTriangle(p1: ImVec2, p2: ImVec2, p3: ImVec2, col: Int, thickness: Float = 1f)
+    fun DrawPolyline(points: Array<ImVec2>, col: Int, closed: Boolean = false, thickness: Float = 1f)
 }
 
 /** All draw data of a rendered frame, obtained after [ImGui.render]. */
@@ -176,6 +187,11 @@ expect object ImGui {
     fun getStyle(): ImGuiStyle
     fun getVersion(): String
     fun showDemoWindow(pOpen: BooleanArray? = null)
+    fun showAboutWindow(pOpen: BooleanArray? = null)
+    fun showMetricsWindow(pOpen: BooleanArray? = null)
+    fun showDebugLogWindow(pOpen: BooleanArray? = null)
+    fun showUserGuide()
+    fun showIDStackToolWindow(pOpen: BooleanArray? = null)
 
     // ==================== Windows ====================
     fun begin(name: String, pOpen: BooleanArray? = null, flags: Int = 0): Boolean
@@ -184,6 +200,7 @@ expect object ImGui {
     fun endChild()
     fun setNextWindowPos(pos: ImVec2, cond: Int = ImGuiCond.ALWAYS, pivot: ImVec2? = null)
     fun setNextWindowSize(size: ImVec2, cond: Int = ImGuiCond.ALWAYS)
+    fun setWindowSize(size: ImVec2, cond: Int = ImGuiCond.ALWAYS)
     fun setNextWindowBgAlpha(alpha: Float)
     fun beginDisabled(disabled: Boolean = true)
     fun endDisabled()
@@ -206,9 +223,82 @@ expect object ImGui {
     fun beginPopupModal(name: String, pOpen: BooleanArray? = null, flags: Int = 0): Boolean
     fun endPopup()
     fun closeCurrentPopup()
+    fun beginPopupContextItem(strId: String? = null, popupFlags: Int = ImGuiPopupFlags.MOUSE_BUTTON_RIGHT): Boolean
+    fun beginPopupContextWindow(strId: String? = null, popupFlags: Int = ImGuiPopupFlags.MOUSE_BUTTON_RIGHT): Boolean
+    fun beginItemTooltip(): Boolean
+    fun openPopupOnItemClick(strId: String? = null, popupFlags: Int = ImGuiPopupFlags.MOUSE_BUTTON_RIGHT)
+
+    // ==================== Drag and drop ====================
+    fun beginDragDropSource(flags: Int = 0): Boolean
+    fun setDragDropPayload(type: String, data: ByteArray, cond: Int = ImGuiCond.ONCE): Boolean
+    fun endDragDropSource()
+    fun beginDragDropTarget(): Boolean
+    fun acceptDragDropPayload(type: String, flags: Int = 0): ByteArray?
+    fun endDragDropTarget()
+    fun getDragDropPayload(): String?
+
+    // ==================== Images ====================
+    fun image(
+        texId: Long,
+        size: ImVec2,
+        uv0: ImVec2 = ImVec2(0f, 0f),
+        uv1: ImVec2 = ImVec2(1f, 1f),
+        tintColor: ImVec4 = ImVec4(1f, 1f, 1f, 1f),
+        borderColor: ImVec4 = ImVec4(0f, 0f, 0f, 0f),
+    )
+
+    fun imageWithBg(
+        texId: Long,
+        size: ImVec2,
+        bgColor: ImVec4,
+        uv0: ImVec2 = ImVec2(0f, 0f),
+        uv1: ImVec2 = ImVec2(1f, 1f),
+    )
+
+    fun imageButton(
+        texId: Long,
+        size: ImVec2,
+        uv0: ImVec2 = ImVec2(0f, 0f),
+        uv1: ImVec2 = ImVec2(1f, 1f),
+        framePadding: Int = -1,
+        bgColor: ImVec4 = ImVec4(0f, 0f, 0f, 0f),
+        tintColor: ImVec4 = ImVec4(1f, 1f, 1f, 1f),
+    ): Boolean
+
+    // ==================== ListBox ====================
+    fun beginListBox(label: String, size: ImVec2 = ImVec2(0f, 0f)): Boolean
+    fun endListBox()
+    fun listBox(label: String, currentItem: IntArray, items: Array<String>): Boolean
+
+    // ==================== MultiSelect ====================
+    fun beginMultiSelect(flags: Int, selectionSize: Int = -1, itemsCount: Int = -1): Long
+    fun endMultiSelect(): Long
+
+    // ==================== Logging ====================
+    fun logToClipboard(autoOpenDepth: Int = -1)
+    fun logToFile(autoOpenDepth: Int = -1, filename: String? = null)
+    fun logToTTY(autoOpenDepth: Int = -1)
+    fun logFinish()
+    fun logText(text: String)
+
+    // ==================== .ini settings ====================
+    fun saveIniSettingsToDisk(iniFilename: String? = null)
+    fun loadIniSettingsFromDisk(iniFilename: String? = null)
+    fun saveIniSettingsToMemory(): String?
+    fun loadIniSettingsFromMemory(iniData: String)
+
+    // ==================== Scissor rect / text wrapping ====================
+    fun pushClipRect(clipRectMin: ImVec2, clipRectMax: ImVec2, intersectWithCurrentClipRect: Boolean = false)
+    fun popClipRect()
+    fun pushTextWrapPos(wrapLocalPosX: Float = 0f)
+    fun popTextWrapPos()
 
     // ==================== Widgets ====================
     fun text(text: String)
+    fun textWrapped(text: String)
+    fun textUnformatted(text: String)
+    fun textLink(text: String): Boolean
+    fun textLinkOpenURL(label: String, url: String? = null): Boolean
     fun textColored(color: ImVec4, text: String)
     fun textDisabled(text: String)
     fun labelText(label: String, text: String)
@@ -224,21 +314,71 @@ expect object ImGui {
     fun unindent(indentW: Float = 0f)
     fun button(label: String, size: ImVec2 = ImVec2(0f, 0f)): Boolean
     fun smallButton(label: String): Boolean
+    fun arrowButton(strId: String, dir: Int): Boolean
     fun checkbox(label: String, v: BooleanArray): Boolean
+    fun checkboxFlags(label: String, flags: IntArray, flagsValue: Int): Boolean
+    fun pushItemFlag(flag: Int, enabled: Boolean)
+    fun popItemFlag()
+    fun shortcut(keyChord: Int, flags: Int = 0): Boolean
     fun sliderFloat(label: String, v: FloatArray, vMin: Float, vMax: Float, format: String = "%.3f"): Boolean
     fun sliderInt(label: String, v: IntArray, vMin: Int, vMax: Int, format: String = "%d"): Boolean
+    fun dragFloat(label: String, v: FloatArray, vSpeed: Float = 1f, vMin: Float = 0f, vMax: Float = 0f, format: String = "%.3f", flags: Int = 0): Boolean
+    fun dragFloat2(label: String, v: FloatArray, vSpeed: Float = 1f, vMin: Float = 0f, vMax: Float = 0f, format: String = "%.3f", flags: Int = 0): Boolean
+    fun dragFloat3(label: String, v: FloatArray, vSpeed: Float = 1f, vMin: Float = 0f, vMax: Float = 0f, format: String = "%.3f", flags: Int = 0): Boolean
+    fun dragFloat4(label: String, v: FloatArray, vSpeed: Float = 1f, vMin: Float = 0f, vMax: Float = 0f, format: String = "%.3f", flags: Int = 0): Boolean
+    fun dragFloatRange2(label: String, vCurrentMin: FloatArray, vCurrentMax: FloatArray, vSpeed: Float = 1f, vMin: Float = 0f, vMax: Float = 0f, format: String = "%.3f", formatMax: String? = null, flags: Int = 0): Boolean
+    fun dragInt(label: String, v: IntArray, vSpeed: Float = 1f, vMin: Int = 0, vMax: Int = 0, format: String = "%d", flags: Int = 0): Boolean
+    fun dragInt2(label: String, v: IntArray, vSpeed: Float = 1f, vMin: Int = 0, vMax: Int = 0, format: String = "%d", flags: Int = 0): Boolean
+    fun dragInt3(label: String, v: IntArray, vSpeed: Float = 1f, vMin: Int = 0, vMax: Int = 0, format: String = "%d", flags: Int = 0): Boolean
+    fun dragInt4(label: String, v: IntArray, vSpeed: Float = 1f, vMin: Int = 0, vMax: Int = 0, format: String = "%d", flags: Int = 0): Boolean
+    fun dragIntRange2(label: String, vCurrentMin: IntArray, vCurrentMax: IntArray, vSpeed: Float = 1f, vMin: Int = 0, vMax: Int = 0, format: String = "%d", formatMax: String? = null, flags: Int = 0): Boolean
+    fun sliderFloat2(label: String, v: FloatArray, vMin: Float, vMax: Float, format: String = "%.3f", flags: Int = 0): Boolean
+    fun sliderFloat3(label: String, v: FloatArray, vMin: Float, vMax: Float, format: String = "%.3f", flags: Int = 0): Boolean
+    fun sliderFloat4(label: String, v: FloatArray, vMin: Float, vMax: Float, format: String = "%.3f", flags: Int = 0): Boolean
+    fun sliderInt2(label: String, v: IntArray, vMin: Int, vMax: Int, format: String = "%d", flags: Int = 0): Boolean
+    fun sliderInt3(label: String, v: IntArray, vMin: Int, vMax: Int, format: String = "%d", flags: Int = 0): Boolean
+    fun sliderInt4(label: String, v: IntArray, vMin: Int, vMax: Int, format: String = "%d", flags: Int = 0): Boolean
+    fun sliderAngle(label: String, vRad: FloatArray, vDegreesMin: Float = -360f, vDegreesMax: Float = 360f, format: String = "%.0f deg", flags: Int = 0): Boolean
+    fun vSliderFloat(label: String, size: ImVec2, v: FloatArray, vMin: Float, vMax: Float, format: String = "%.3f", flags: Int = 0): Boolean
+    fun vSliderInt(label: String, size: ImVec2, v: IntArray, vMin: Int, vMax: Int, format: String = "%d", flags: Int = 0): Boolean
+    fun sliderScalar(label: String, dataType: Int, v: LongArray, vMin: LongArray, vMax: LongArray, format: String = "%f"): Boolean
+    fun dragScalar(label: String, dataType: Int, v: LongArray, vSpeed: Float, vMin: LongArray, vMax: LongArray, format: String = "%.3f"): Boolean
+    fun inputFloat(label: String, v: FloatArray, step: Float = 0f, stepFast: Float = 0f, format: String = "%.3f", flags: Int = 0): Boolean
+    fun inputFloat2(label: String, v: FloatArray, format: String = "%.3f", flags: Int = 0): Boolean
+    fun inputFloat3(label: String, v: FloatArray, format: String = "%.3f", flags: Int = 0): Boolean
+    fun inputFloat4(label: String, v: FloatArray, format: String = "%.3f", flags: Int = 0): Boolean
+    fun inputInt(label: String, v: IntArray, step: Int = 1, stepFast: Int = 100, flags: Int = 0): Boolean
+    fun inputInt2(label: String, v: IntArray, flags: Int = 0): Boolean
+    fun inputInt3(label: String, v: IntArray, flags: Int = 0): Boolean
+    fun inputInt4(label: String, v: IntArray, flags: Int = 0): Boolean
+    fun inputDouble(label: String, v: DoubleArray, step: Double = 0.0, stepFast: Double = 0.0, format: String = "%.6f", flags: Int = 0): Boolean
+    fun colorEdit3(label: String, col: FloatArray, flags: Int = 0): Boolean
+    fun colorEdit4(label: String, col: FloatArray, flags: Int = 0): Boolean
+    fun colorPicker3(label: String, col: FloatArray, flags: Int = 0): Boolean
+    fun colorPicker4(label: String, col: FloatArray, flags: Int = 0): Boolean
+    fun colorButton(descId: String, col: ImVec4, flags: Int = 0, size: ImVec2 = ImVec2(0f, 0f)): Boolean
+    fun setColorEditOptions(flags: Int)
+    fun colorConvertFloat4ToU32(`in`: ImVec4): Int
+    fun colorConvertU32ToFloat4(`in`: Int): ImVec4
+    fun colorConvertRGBtoHSV(r: Float, g: Float, b: Float, outH: FloatArray, outS: FloatArray, outV: FloatArray)
+    fun colorConvertHSVtoRGB(h: Float, s: Float, v: Float, outR: FloatArray, outG: FloatArray, outB: FloatArray)
 
     /**
      * Editable text field. Returns the current buffer content; compare it
      * against [buf] to detect edits.
      */
     fun inputText(label: String, buf: String, flags: Int = 0): String?
+    fun inputTextMultiline(label: String, buf: String, size: ImVec2 = ImVec2(0f, 0f), flags: Int = 0): String?
+    fun inputTextWithHint(label: String, hint: String, buf: String, flags: Int = 0): String?
     fun combo(label: String, currentItem: IntArray, items: Array<String>): Boolean
     fun selectable(label: String, selected: Boolean = false, flags: Int = 0, size: ImVec2 = ImVec2(0f, 0f)): Boolean
     fun radioButton(label: String, active: Boolean): Boolean
     fun progressBar(fraction: Float, size: ImVec2 = ImVec2(-1f, 0f), overlay: String? = null)
     fun collapsingHeader(label: String, flags: Int = 0): Boolean
     fun treeNode(label: String): Boolean
+    fun treeNodeEx(label: String, flags: Int = 0): Boolean
+    fun treeNodeGetOpen(label: String): Boolean
+    fun treePush(strId: String? = null)
     fun treePop()
     fun invisibleButton(id: String, size: ImVec2, flags: Int = 0): Boolean
     fun beginGroup()
@@ -253,8 +393,108 @@ expect object ImGui {
     fun isItemHovered(flags: Int = 0): Boolean
     fun isItemActive(): Boolean
     fun isItemClicked(mouseButton: Int = 0): Boolean
+    fun isItemFocused(): Boolean
+    fun isItemVisible(): Boolean
+    fun isItemEdited(): Boolean
+    fun isItemActivated(): Boolean
+    fun isItemDeactivated(): Boolean
+    fun isItemDeactivatedAfterEdit(): Boolean
+    fun isItemToggledOpen(): Boolean
+    fun isItemToggledSelection(): Boolean
+    fun isAnyItemHovered(): Boolean
+    fun isAnyItemActive(): Boolean
+    fun isAnyItemFocused(): Boolean
+    fun getItemID(): Int
+    fun getItemFlags(): Int
+    fun getItemRectMin(): ImVec2
+    fun getItemRectMax(): ImVec2
+    fun getItemRectSize(): ImVec2
+
+    // ==================== Window state ====================
     fun isWindowHovered(flags: Int = 0): Boolean
     fun isWindowFocused(flags: Int = 0): Boolean
+    fun isWindowAppearing(): Boolean
+    fun isWindowCollapsed(): Boolean
+    fun isRectVisible(size: ImVec2): Boolean
+    fun isPopupOpen(strId: String, flags: Int = 0): Boolean
+    fun getWindowPos(): ImVec2
+    fun getWindowSize(): ImVec2
+    fun getWindowWidth(): Float
+    fun getWindowHeight(): Float
+    fun getWindowContentRegionMax(): ImVec2
+    fun getWindowContentRegionMin(): ImVec2
+    fun getWindowDrawList(): ImDrawList
+    fun getForegroundDrawList(): ImDrawList
+    fun getBackgroundDrawList(): ImDrawList
+
+    // ==================== Keyboard / mouse ====================
+    fun isKeyDown(key: Int): Boolean
+    fun isKeyPressed(key: Int, repeat: Boolean = true): Boolean
+    fun isKeyReleased(key: Int): Boolean
+    fun isMouseDown(button: Int): Boolean
+    fun isMouseClicked(button: Int, repeat: Boolean = false): Boolean
+    fun isMouseReleased(button: Int): Boolean
+    fun isMouseDoubleClicked(button: Int): Boolean
+    fun isMouseDragging(button: Int = 0, lockThreshold: Float = -1f): Boolean
+    fun isAnyMouseDown(): Boolean
+    fun isMousePosValid(mousePos: ImVec2? = null): Boolean
+    fun getMousePos(): ImVec2
+    fun getMouseDragDelta(button: Int = 0, lockThreshold: Float = -1f): ImVec2
+    fun resetMouseDragDelta(button: Int = 0)
+    fun getMouseCursor(): Int
+    fun setMouseCursor(cursor: Int)
+    fun setKeyboardFocusHere(offset: Int = 0)
+    fun setNextFrameWantCaptureKeyboard(wantCaptureKeyboard: Boolean)
+    fun setNextFrameWantCaptureMouse(wantCaptureMouse: Boolean)
+    fun setClipboardText(text: String)
+    fun getClipboardText(): String?
+
+    // ==================== Cursor / scroll / layout ====================
+    fun getCursorPos(): ImVec2
+    fun getCursorScreenPos(): ImVec2
+    fun getCursorStartPos(): ImVec2
+    fun setCursorPosX(localX: Float)
+    fun setCursorScreenPos(pos: ImVec2)
+    fun getContentRegionAvail(): ImVec2
+    fun getScrollX(): Float
+    fun getScrollY(): Float
+    fun getScrollMaxX(): Float
+    fun getScrollMaxY(): Float
+    fun setScrollHereX(centerXRatio: Float = 0.5f)
+    fun setScrollHereY(centerYRatio: Float = 0.5f)
+    fun setScrollFromPosX(localX: Float, centerXRatio: Float = 0.5f)
+    fun setScrollFromPosY(localY: Float, centerYRatio: Float = 0.5f)
+    fun setScrollX(scrollX: Float)
+    fun setScrollY(scrollY: Float)
+
+    // ==================== Other queries ====================
+    fun getFrameCount(): Int
+    fun getFrameHeight(): Float
+    fun getFrameHeightWithSpacing(): Float
+    fun getFontSize(): Float
+    fun getFont(): Long
+    fun getMainViewport(): Long
+    fun getStyleColorVec4(idx: Int): ImVec4
+    fun getCursorPosX(): Float
+    fun getKeyName(key: Int): String
+    fun getTextLineHeight(): Float
+    fun getTextLineHeightWithSpacing(): Float
+    fun getID(strId: String): Int
+    fun getColorU32(idx: Int, alphaMul: Float = 1f): Int
+    fun getStyleColorName(idx: Int): String
+    fun calcTextSize(text: String, hideTextAfterDoubleHash: Boolean = false, wrapWidth: Float = -1f): ImVec2
+    fun calcItemWidth(): Float
+    fun getTime(): Double
+
+    // ==================== Columns (legacy multi-column layout) ====================
+    fun columns(count: Int = 1, id: String? = null, border: Boolean = true)
+    fun nextColumn()
+    fun getColumnIndex(): Int
+    fun getColumnOffset(columnIndex: Int = -1): Float
+    fun setColumnOffset(columnIndex: Int, offsetX: Float)
+    fun getColumnWidth(columnIndex: Int = -1): Float
+    fun setColumnWidth(columnIndex: Int, width: Float)
+    fun getColumnsCount(): Int
 
     // ==================== Tables ====================
     fun beginTable(id: String, column: Int, flags: Int = 0, outerSize: ImVec2 = ImVec2(0f, 0f), innerWidth: Float = 0f): Boolean
@@ -265,8 +505,24 @@ expect object ImGui {
     fun tableSetupColumn(label: String, flags: Int = 0, initWidthOrWeight: Float = 0f, userId: Int = 0)
     fun tableSetupScrollFreeze(cols: Int, rows: Int)
     fun tableHeadersRow()
+    fun tableHeader(label: String)
+    fun tableAngledHeadersRow()
+    fun tableGetColumnCount(): Int
+    fun tableGetColumnFlags(columnN: Int = -1): Int
+    fun tableGetColumnIndex(): Int
+    fun tableGetRowIndex(): Int
+    fun tableGetColumnName(columnN: Int = -1): String
+    fun tableGetSortSpecs(): Long
+    fun tableSetBgColor(target: Int, color: Int, columnN: Int = -1)
+    fun tabItemButton(label: String, flags: Int = 0): Boolean
 
     // ==================== Style ====================
+    fun styleColorsDark()
+    fun styleColorsLight()
+    fun styleColorsClassic()
+    fun showStyleSelector(label: String): Boolean
+    fun showFontSelector(label: String)
+    fun showStyleEditor()
     fun pushStyleColor(idx: Int, color: ImVec4)
     fun popStyleColor(count: Int = 1)
     fun pushStyleVarFloat(idx: Int, value: Float)
@@ -277,6 +533,20 @@ expect object ImGui {
     fun pushItemWidth(width: Float)
     fun popItemWidth()
     fun setNextItemWidth(width: Float)
+
+    // ==================== SetNext* layout / item state ====================
+    fun setNextItemOpen(isOpen: Boolean, cond: Int = ImGuiCond.ONCE)
+    fun setNextItemAllowOverlap()
+    fun setNextItemSelectionUserData(selectionUserData: Long)
+    fun setNextItemShortcut(keyChord: Int, flags: Int = 0)
+    fun setNextWindowCollapsed(collapsed: Boolean, cond: Int = ImGuiCond.ALWAYS)
+    fun setNextWindowContentSize(size: ImVec2)
+    fun setNextWindowFocus()
+    fun setNextWindowScroll(scroll: ImVec2)
+    fun setNextWindowSizeConstraints(sizeMin: ImVec2, sizeMax: ImVec2, customCallback: (() -> Unit)? = null)
+    fun setItemTooltip(text: String)
+    fun setItemDefaultFocus()
+    fun setTabItemClosed(tabOrDockedWindowLabel: String)
 }
 
 // =========================================================================
@@ -409,6 +679,14 @@ object ImGuiMouseButton {
     const val LEFT = 0
     const val RIGHT = 1
     const val MIDDLE = 2
+}
+
+object ImGuiDir {
+    const val NONE = -1
+    const val LEFT = 0
+    const val RIGHT = 1
+    const val UP = 2
+    const val DOWN = 3
 }
 
 object ImGuiKey {
@@ -689,4 +967,88 @@ object ImGuiSliderFlags {
     const val NO_ROUND_TO_FORMAT = 1 shl 6
     const val NO_INPUT = 1 shl 7
     const val WRAP_AROUND = 1 shl 10
+}
+
+object ImGuiDragDropFlags {
+    const val NONE = 0
+    const val SOURCE_NO_PREVIEW_TOOLTIP = 1 shl 0
+    const val SOURCE_NO_DISABLE_HOVER = 1 shl 1
+    const val SOURCE_NO_HOLD_TO_OPEN_OTHERS = 1 shl 2
+    const val SOURCE_ALLOW_NULL_ID = 1 shl 3
+    const val SOURCE_EXTERN = 1 shl 4
+    const val PAYLOAD_AUTO_EXPIRE = 1 shl 5
+    const val PAYLOAD_NO_CROSS_CONTEXT = 1 shl 6
+    const val PAYLOAD_NO_CROSS_PROCESS = 1 shl 7
+    const val ACCEPT_BEFORE_DELIVERY = 1 shl 10
+    const val ACCEPT_NO_DRAW_DEFAULT_RECT = 1 shl 11
+    const val ACCEPT_NO_PREVIEW_TOOLTIP = 1 shl 12
+    const val ACCEPT_DRAW_AS_HOVERED = 1 shl 13
+}
+
+object ImGuiMultiSelectFlags {
+    const val NONE = 0
+    const val SINGLE_SELECT = 1 shl 0
+    const val NO_SELECT_ALL = 1 shl 1
+    const val NO_RANGE_SELECT = 1 shl 2
+    const val NO_AUTO_SELECT = 1 shl 3
+    const val NO_AUTO_CLEAR = 1 shl 4
+    const val NO_AUTO_CLEAR_ON_RESELECT = 1 shl 5
+    const val BOX_SELECT_1D = 1 shl 6
+    const val BOX_SELECT_2D = 1 shl 7
+    const val BOX_SELECT_NO_SCROLL = 1 shl 8
+    const val CLEAR_ON_ESCAPE = 1 shl 9
+    const val CLEAR_ON_CLICK_VOID = 1 shl 10
+    const val SCOPE_WINDOW = 1 shl 11
+    const val SCOPE_RECT = 1 shl 12
+    const val SELECT_ON_AUTO = 1 shl 13
+    const val SELECT_ON_CLICK_ALWAYS = 1 shl 14
+    const val SELECT_ON_CLICK_RELEASE = 1 shl 15
+    const val NAV_WRAP_X = 1 shl 16
+    const val NO_SELECT_ON_RIGHT_CLICK = 1 shl 17
+}
+
+object ImDrawFlags {
+    const val NONE = 0
+    const val ROUND_CORNERS_TOP_LEFT = 1 shl 4
+    const val ROUND_CORNERS_TOP_RIGHT = 1 shl 5
+    const val ROUND_CORNERS_BOTTOM_LEFT = 1 shl 6
+    const val ROUND_CORNERS_BOTTOM_RIGHT = 1 shl 7
+    const val ROUND_CORNERS_NONE = 1 shl 8
+    const val ROUND_CORNERS_TOP = ROUND_CORNERS_TOP_LEFT or ROUND_CORNERS_TOP_RIGHT
+    const val ROUND_CORNERS_BOTTOM = ROUND_CORNERS_BOTTOM_LEFT or ROUND_CORNERS_BOTTOM_RIGHT
+    const val ROUND_CORNERS_LEFT = ROUND_CORNERS_BOTTOM_LEFT or ROUND_CORNERS_TOP_LEFT
+    const val ROUND_CORNERS_RIGHT = ROUND_CORNERS_BOTTOM_RIGHT or ROUND_CORNERS_TOP_RIGHT
+    const val ROUND_CORNERS_ALL = ROUND_CORNERS_TOP_LEFT or ROUND_CORNERS_TOP_RIGHT or ROUND_CORNERS_BOTTOM_LEFT or ROUND_CORNERS_BOTTOM_RIGHT
+    const val CLOSED = 1 shl 9
+}
+
+object ImGuiDataType {
+    const val S8 = 0
+    const val U8 = 1
+    const val S16 = 2
+    const val U16 = 3
+    const val S32 = 4
+    const val U32 = 5
+    const val S64 = 6
+    const val U64 = 7
+    const val FLOAT = 8
+    const val DOUBLE = 9
+}
+
+object ImGuiItemFlags {
+    const val NONE = 0
+    const val NO_TAB_STOP = 1 shl 0
+    const val NO_NAV = 1 shl 1
+    const val NO_NAV_DEFAULT_FOCUS = 1 shl 2
+    const val BUTTON_REPEAT = 1 shl 3
+    const val AUTO_CLOSE_POPUPS = 1 shl 4
+    const val ALLOW_DUPLICATE_ID = 1 shl 5
+    const val DISABLED = 1 shl 6
+}
+
+object ImGuiTableBgTarget {
+    const val NONE = 0
+    const val ROW_BG0 = 1
+    const val ROW_BG1 = 2
+    const val CELL_BG = 3
 }

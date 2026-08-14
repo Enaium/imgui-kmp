@@ -44,6 +44,7 @@ typedef struct imgui_draw_list imgui_draw_list;
 typedef struct imgui_draw_cmd imgui_draw_cmd;
 typedef struct imgui_font imgui_font;
 typedef struct imgui_font_atlas imgui_font_atlas;
+typedef struct imgui_viewport imgui_viewport;
 typedef struct imgui_plot_context imgui_plot_context;
 
 // Value types (layout-compatible with ImVec2/ImVec4/ImDrawVert)
@@ -70,6 +71,11 @@ void imgui_new_frame(void);
 void imgui_render(void);
 imgui_draw_data* imgui_get_draw_data(void);
 void imgui_show_demo_window(bool* p_open);
+void imgui_show_about_window(bool* p_open);
+void imgui_show_metrics_window(bool* p_open);
+void imgui_show_debug_log_window(bool* p_open);
+void imgui_show_user_guide(void);
+void imgui_show_id_stack_tool_window(bool* p_open);
 
 // =========================================================================
 // Windows
@@ -81,6 +87,7 @@ bool imgui_begin_child(const char* str_id, imgui_vec2 size, int child_flags, int
 void imgui_end_child(void);
 void imgui_set_next_window_pos(imgui_vec2 pos, int cond, imgui_vec2 pivot);
 void imgui_set_next_window_size(imgui_vec2 size, int cond);
+void imgui_set_window_size(imgui_vec2 size, int cond);
 void imgui_set_next_window_bg_alpha(float alpha);
 void imgui_begin_disabled(bool disabled);
 void imgui_end_disabled(void);
@@ -98,19 +105,90 @@ void imgui_end_tab_item(void);
 bool imgui_begin_tooltip(void);
 void imgui_end_tooltip(void);
 void imgui_set_tooltip(const char* text);
+bool imgui_begin_item_tooltip(void);
 void imgui_open_popup(const char* str_id, int popup_flags);
 bool imgui_begin_popup(const char* str_id, int flags);
 bool imgui_begin_popup_modal(const char* name, bool* p_open, int flags);
 void imgui_end_popup(void);
 void imgui_close_current_popup(void);
+bool imgui_begin_popup_context_item(const char* str_id, int popup_flags);
+bool imgui_begin_popup_context_window(const char* str_id, int popup_flags);
+bool imgui_open_popup_on_item_click(const char* str_id, int popup_flags);
 bool imgui_begin_combo(const char* label, const char* preview_value, int flags);
 void imgui_end_combo(void);
+
+// =========================================================================
+// Drag and drop
+// =========================================================================
+
+bool imgui_begin_drag_drop_source(int flags);
+bool imgui_set_drag_drop_payload(const char* type, const void* data, int size, int cond);
+void imgui_end_drag_drop_source(void);
+bool imgui_begin_drag_drop_target(void);
+const void* imgui_accept_drag_drop_payload(const char* type, int flags, int* out_size);
+void imgui_end_drag_drop_target(void);
+const char* imgui_get_drag_drop_payload_type(void);
+
+// =========================================================================
+// Images
+// =========================================================================
+
+void imgui_image(uint64_t tex_id, imgui_vec2 size, imgui_vec2 uv0, imgui_vec2 uv1, imgui_vec4 tint_color, imgui_vec4 border_color);
+bool imgui_image_button(uint64_t tex_id, imgui_vec2 size, imgui_vec2 uv0, imgui_vec2 uv1, int frame_padding, imgui_vec4 bg_color, imgui_vec4 tint_color);
+void imgui_image_with_bg(uint64_t tex_id, imgui_vec2 size, imgui_vec4 bg_color, imgui_vec2 uv0, imgui_vec2 uv1);
+
+// =========================================================================
+// List boxes
+// =========================================================================
+
+bool imgui_begin_list_box(const char* label, imgui_vec2 size);
+void imgui_end_list_box(void);
+bool imgui_list_box(const char* label, int* current_item, const char** items, int items_count);
+
+// =========================================================================
+// Multi select
+// =========================================================================
+
+void* imgui_begin_multi_select(int flags, int selection_size, int items_count);
+void* imgui_end_multi_select(void);
+
+// =========================================================================
+// Logging
+// =========================================================================
+
+void imgui_log_to_clipboard(int auto_open_depth);
+void imgui_log_to_file(int auto_open_depth, const char* filename);
+void imgui_log_to_tty(int auto_open_depth);
+void imgui_log_finish(void);
+void imgui_log_text(const char* text);
+
+// =========================================================================
+// .ini settings persistence
+// =========================================================================
+
+void imgui_save_ini_settings_to_disk(const char* ini_filename);
+void imgui_load_ini_settings_from_disk(const char* ini_filename);
+const char* imgui_save_ini_settings_to_memory(void);
+void imgui_load_ini_settings_from_memory(const char* ini_data);
+
+// =========================================================================
+// Scissor rect / text wrapping
+// =========================================================================
+
+void imgui_push_clip_rect(imgui_vec2 clip_rect_min, imgui_vec2 clip_rect_max, bool intersect_with_current_clip_rect);
+void imgui_pop_clip_rect(void);
+void imgui_push_text_wrap_pos(float wrap_local_pos_x);
+void imgui_pop_text_wrap_pos(void);
 
 // =========================================================================
 // Widgets
 // =========================================================================
 
 void imgui_text(const char* text);
+void imgui_text_wrapped(const char* text);
+void imgui_text_unformatted(const char* text);
+bool imgui_text_link(const char* text);
+bool imgui_text_link_open_url(const char* label, const char* url);
 void imgui_text_colored(imgui_vec4 color, const char* text);
 void imgui_text_disabled(const char* text);
 void imgui_label_text(const char* label, const char* text);
@@ -126,16 +204,66 @@ void imgui_indent(float indent_w);
 void imgui_unindent(float indent_w);
 bool imgui_button(const char* label, imgui_vec2 size);
 bool imgui_small_button(const char* label);
+bool imgui_arrow_button(const char* str_id, int dir);
 bool imgui_checkbox(const char* label, bool* v);
+bool imgui_checkbox_flags(const char* label, int* flags, int flags_value);
+void imgui_push_item_flag(int flag, bool enabled);
+void imgui_pop_item_flag(void);
+bool imgui_shortcut(int key_chord, int flags);
 bool imgui_slider_float(const char* label, float* v, float v_min, float v_max, const char* format);
 bool imgui_slider_int(const char* label, int* v, int v_min, int v_max, const char* format);
+bool imgui_drag_float(const char* label, float* v, float v_speed, float v_min, float v_max, const char* format, int flags);
+bool imgui_drag_float2(const char* label, float* v, float v_speed, float v_min, float v_max, const char* format, int flags);
+bool imgui_drag_float3(const char* label, float* v, float v_speed, float v_min, float v_max, const char* format, int flags);
+bool imgui_drag_float4(const char* label, float* v, float v_speed, float v_min, float v_max, const char* format, int flags);
+bool imgui_drag_float_range2(const char* label, float* v_current_min, float* v_current_max, float v_speed, float v_min, float v_max, const char* format, const char* format_max, int flags);
+bool imgui_drag_int(const char* label, int* v, float v_speed, int v_min, int v_max, const char* format, int flags);
+bool imgui_drag_int2(const char* label, int* v, float v_speed, int v_min, int v_max, const char* format, int flags);
+bool imgui_drag_int3(const char* label, int* v, float v_speed, int v_min, int v_max, const char* format, int flags);
+bool imgui_drag_int4(const char* label, int* v, float v_speed, int v_min, int v_max, const char* format, int flags);
+bool imgui_drag_int_range2(const char* label, int* v_current_min, int* v_current_max, float v_speed, int v_min, int v_max, const char* format, const char* format_max, int flags);
+bool imgui_slider_float2(const char* label, float* v, float v_min, float v_max, const char* format, int flags);
+bool imgui_slider_float3(const char* label, float* v, float v_min, float v_max, const char* format, int flags);
+bool imgui_slider_float4(const char* label, float* v, float v_min, float v_max, const char* format, int flags);
+bool imgui_slider_int2(const char* label, int* v, int v_min, int v_max, const char* format, int flags);
+bool imgui_slider_int3(const char* label, int* v, int v_min, int v_max, const char* format, int flags);
+bool imgui_slider_int4(const char* label, int* v, int v_min, int v_max, const char* format, int flags);
+bool imgui_slider_angle(const char* label, float* v_rad, float v_degrees_min, float v_degrees_max, const char* format, int flags);
+bool imgui_vslider_float(const char* label, imgui_vec2 size, float* v, float v_min, float v_max, const char* format, int flags);
+bool imgui_vslider_int(const char* label, imgui_vec2 size, int* v, int v_min, int v_max, const char* format, int flags);
+bool imgui_slider_scalar(const char* label, int data_type, int64_t* v, int64_t* v_min, int64_t* v_max, const char* format);
+bool imgui_drag_scalar(const char* label, int data_type, int64_t* v, float v_speed, int64_t* v_min, int64_t* v_max, const char* format);
+bool imgui_input_float(const char* label, float* v, float step, float step_fast, const char* format, int flags);
+bool imgui_input_float2(const char* label, float* v, const char* format, int flags);
+bool imgui_input_float3(const char* label, float* v, const char* format, int flags);
+bool imgui_input_float4(const char* label, float* v, const char* format, int flags);
+bool imgui_input_int(const char* label, int* v, int step, int step_fast, int flags);
+bool imgui_input_int2(const char* label, int* v, int flags);
+bool imgui_input_int3(const char* label, int* v, int flags);
+bool imgui_input_int4(const char* label, int* v, int flags);
+bool imgui_input_double(const char* label, double* v, double step, double step_fast, const char* format, int flags);
+bool imgui_color_edit3(const char* label, float* col, int flags);
+bool imgui_color_edit4(const char* label, float* col, int flags);
+bool imgui_color_picker3(const char* label, float* col, int flags);
+bool imgui_color_picker4(const char* label, float* col, int flags);
+bool imgui_color_button(const char* desc_id, imgui_vec4 col, int flags, imgui_vec2 size);
+void imgui_set_color_edit_options(int flags);
+uint32_t imgui_color_convert_float4_to_u32(imgui_vec4 in);
+imgui_vec4 imgui_color_convert_u32_to_float4(uint32_t in);
+void imgui_color_convert_rgb_to_hsv(float r, float g, float b, float* out_h, float* out_s, float* out_v);
+void imgui_color_convert_hsv_to_rgb(float h, float s, float v, float* out_r, float* out_g, float* out_b);
 bool imgui_input_text(const char* label, char* buf, int buf_size, int flags);
+bool imgui_input_text_multiline(const char* label, char* buf, int buf_size, imgui_vec2 size, int flags);
+bool imgui_input_text_with_hint(const char* label, const char* hint, char* buf, int buf_size, int flags);
 bool imgui_combo(const char* label, int* current_item, const char** items, int items_count);
 bool imgui_selectable(const char* label, bool selected, int flags, imgui_vec2 size);
 bool imgui_radio_button(const char* label, bool active);
 void imgui_progress_bar(float fraction, imgui_vec2 size, const char* overlay);
 bool imgui_collapsing_header(const char* label, int flags);
 bool imgui_tree_node(const char* label);
+bool imgui_tree_node_ex(const char* label, int flags);
+bool imgui_tree_node_get_open(const char* str_id);
+void imgui_tree_push(const char* str_id);
 void imgui_tree_pop(void);
 bool imgui_invisible_button(const char* str_id, imgui_vec2 size, int flags);
 void imgui_begin_group(void);
@@ -150,6 +278,106 @@ bool imgui_is_window_hovered(int flags);
 bool imgui_is_window_focused(int flags);
 
 // =========================================================================
+// State queries
+// =========================================================================
+
+bool imgui_is_item_focused(void);
+bool imgui_is_item_visible(void);
+bool imgui_is_item_edited(void);
+bool imgui_is_item_activated(void);
+bool imgui_is_item_deactivated(void);
+bool imgui_is_item_deactivated_after_edit(void);
+bool imgui_is_item_toggled_open(void);
+bool imgui_is_item_toggled_selection(void);
+bool imgui_is_any_item_hovered(void);
+bool imgui_is_any_item_active(void);
+bool imgui_is_any_item_focused(void);
+int imgui_get_item_id(void);
+int imgui_get_item_flags(void);
+imgui_vec2 imgui_get_item_rect_min(void);
+imgui_vec2 imgui_get_item_rect_max(void);
+imgui_vec2 imgui_get_item_rect_size(void);
+bool imgui_is_window_appearing(void);
+bool imgui_is_window_collapsed(void);
+bool imgui_is_rect_visible(imgui_vec2 size);
+bool imgui_is_popup_open(const char* str_id, int flags);
+imgui_vec2 imgui_get_window_pos(void);
+imgui_vec2 imgui_get_window_size(void);
+float imgui_get_window_width(void);
+float imgui_get_window_height(void);
+imgui_vec2 imgui_get_window_content_region_max(void);
+imgui_vec2 imgui_get_window_content_region_min(void);
+imgui_draw_list* imgui_get_window_draw_list(void);
+imgui_draw_list* imgui_get_foreground_draw_list(void);
+imgui_draw_list* imgui_get_background_draw_list(void);
+bool imgui_is_key_down(int key);
+bool imgui_is_key_pressed(int key, bool repeat);
+bool imgui_is_key_released(int key);
+bool imgui_is_mouse_down(int button);
+bool imgui_is_mouse_clicked(int button, bool repeat);
+bool imgui_is_mouse_released(int button);
+bool imgui_is_mouse_double_clicked(int button);
+bool imgui_is_mouse_dragging(int button, float lock_threshold);
+bool imgui_is_any_mouse_down(void);
+bool imgui_is_mouse_pos_valid(imgui_vec2* mouse_pos);
+imgui_vec2 imgui_get_mouse_pos(void);
+imgui_vec2 imgui_get_mouse_drag_delta(int button, float lock_threshold);
+void imgui_reset_mouse_drag_delta(int button);
+int imgui_get_mouse_cursor(void);
+void imgui_set_mouse_cursor(int cursor);
+void imgui_set_keyboard_focus_here(int offset);
+void imgui_set_next_frame_want_capture_keyboard(bool want_capture_keyboard);
+void imgui_set_next_frame_want_capture_mouse(bool want_capture_mouse);
+void imgui_set_clipboard_text(const char* text);
+const char* imgui_get_clipboard_text(void);
+double imgui_get_time(void);
+imgui_vec2 imgui_get_cursor_pos(void);
+imgui_vec2 imgui_get_cursor_screen_pos(void);
+imgui_vec2 imgui_get_cursor_start_pos(void);
+void imgui_set_cursor_pos_x(float local_x);
+void imgui_set_cursor_screen_pos(imgui_vec2 pos);
+imgui_vec2 imgui_get_content_region_avail(void);
+float imgui_get_scroll_x(void);
+float imgui_get_scroll_y(void);
+float imgui_get_scroll_max_x(void);
+float imgui_get_scroll_max_y(void);
+void imgui_set_scroll_here_x(float center_x_ratio);
+void imgui_set_scroll_here_y(float center_y_ratio);
+void imgui_set_scroll_from_pos_x(float local_x, float center_x_ratio);
+void imgui_set_scroll_from_pos_y(float local_y, float center_y_ratio);
+void imgui_set_scroll_x(float scroll_x);
+void imgui_set_scroll_y(float scroll_y);
+int imgui_get_frame_count(void);
+float imgui_get_frame_height(void);
+float imgui_get_frame_height_with_spacing(void);
+float imgui_get_font_size(void);
+imgui_font* imgui_get_font(void);
+imgui_viewport* imgui_get_main_viewport(void);
+imgui_vec4 imgui_get_style_color_vec4(int idx);
+float imgui_get_cursor_pos_x(void);
+const char* imgui_get_key_name(int key);
+float imgui_get_text_line_height(void);
+float imgui_get_text_line_height_with_spacing(void);
+int imgui_get_id(const char* str_id);
+int imgui_get_color_u32(int idx, float alpha_mul);
+const char* imgui_get_style_color_name(int idx);
+imgui_vec2 imgui_calc_text_size(const char* text, bool hide_text_after_double_hash, float wrap_width);
+float imgui_calc_item_width(void);
+
+// =========================================================================
+// Columns (legacy multi-column layout)
+// =========================================================================
+
+void imgui_columns(int count, const char* id, bool border);
+void imgui_next_column(void);
+int imgui_get_column_index(void);
+float imgui_get_column_offset(int column_index);
+void imgui_set_column_offset(int column_index, float offset_x);
+float imgui_get_column_width(int column_index);
+void imgui_set_column_width(int column_index, float width);
+int imgui_get_columns_count(void);
+
+// =========================================================================
 // Tables
 // =========================================================================
 
@@ -161,11 +389,27 @@ bool imgui_table_set_column_index(int column_n);
 void imgui_table_setup_column(const char* label, int flags, float init_width_or_weight, int user_id);
 void imgui_table_setup_scroll_freeze(int cols, int rows);
 void imgui_table_headers_row(void);
+void imgui_table_header(const char* label);
+void imgui_table_angled_headers_row(void);
+int imgui_table_get_column_count(void);
+int imgui_table_get_column_flags(int column_n);
+int imgui_table_get_column_index(void);
+int imgui_table_get_row_index(void);
+const char* imgui_table_get_column_name(int column_n);
+void* imgui_table_get_sort_specs(void);
+void imgui_table_set_bg_color(int target, uint32_t color, int column_n);
+bool imgui_tab_item_button(const char* label, int flags);
 
 // =========================================================================
 // Style
 // =========================================================================
 
+void imgui_style_colors_dark(void);
+void imgui_style_colors_light(void);
+void imgui_style_colors_classic(void);
+bool imgui_show_style_selector(const char* label);
+void imgui_show_font_selector(const char* label);
+void imgui_show_style_editor(void);
 void imgui_push_style_color_vec4(int idx, imgui_vec4 color);
 void imgui_push_style_color_u32(int idx, uint32_t color);
 void imgui_pop_style_color(int count);
@@ -177,6 +421,18 @@ void imgui_pop_font(void);
 void imgui_push_item_width(float item_width);
 void imgui_pop_item_width(void);
 void imgui_set_next_item_width(float item_width);
+void imgui_set_next_item_open(bool is_open, int cond);
+void imgui_set_next_item_allow_overlap(void);
+void imgui_set_next_item_selection_user_data(int64_t selection_user_data);
+void imgui_set_next_item_shortcut(int key_chord, int flags);
+void imgui_set_next_window_collapsed(bool collapsed, int cond);
+void imgui_set_next_window_content_size(imgui_vec2 size);
+void imgui_set_next_window_focus(void);
+void imgui_set_next_window_scroll(imgui_vec2 scroll);
+void imgui_set_next_window_size_constraints(imgui_vec2 size_min, imgui_vec2 size_max);
+void imgui_set_item_tooltip(const char* text);
+void imgui_set_item_default_focus(void);
+void imgui_set_tab_item_closed(const char* tab_or_docked_window_label);
 imgui_vec4 imgui_style_get_color(imgui_style* style, int idx);
 void imgui_style_set_color(imgui_style* style, int idx, imgui_vec4 color);
 
@@ -234,6 +490,17 @@ uint32_t imgui_draw_cmd_get_vtx_offset(imgui_draw_cmd* cmd);
 uint32_t imgui_draw_cmd_get_idx_offset(imgui_draw_cmd* cmd);
 uint32_t imgui_draw_cmd_get_elem_count(imgui_draw_cmd* cmd);
 bool imgui_draw_cmd_has_user_callback(imgui_draw_cmd* cmd);
+
+// Draw list primitives (mirror ImDrawList::AddLine/AddRect/...)
+void imgui_draw_list_add_line(imgui_draw_list* list, imgui_vec2 p1, imgui_vec2 p2, uint32_t col, float thickness);
+void imgui_draw_list_add_rect(imgui_draw_list* list, imgui_vec2 p_min, imgui_vec2 p_max, uint32_t col, float rounding, int flags, float thickness);
+void imgui_draw_list_add_rect_filled(imgui_draw_list* list, imgui_vec2 p_min, imgui_vec2 p_max, uint32_t col, float rounding, int flags);
+void imgui_draw_list_add_circle(imgui_draw_list* list, imgui_vec2 center, float radius, uint32_t col, int num_segments, float thickness);
+void imgui_draw_list_add_circle_filled(imgui_draw_list* list, imgui_vec2 center, float radius, uint32_t col, int num_segments);
+void imgui_draw_list_add_text(imgui_draw_list* list, imgui_vec2 pos, uint32_t col, const char* text);
+void imgui_draw_list_add_quad(imgui_draw_list* list, imgui_vec2 p1, imgui_vec2 p2, imgui_vec2 p3, imgui_vec2 p4, uint32_t col, float thickness);
+void imgui_draw_list_add_triangle(imgui_draw_list* list, imgui_vec2 p1, imgui_vec2 p2, imgui_vec2 p3, uint32_t col, float thickness);
+void imgui_draw_list_add_polyline(imgui_draw_list* list, const imgui_vec2* points, int points_count, uint32_t col, bool closed, float thickness);
 
 #ifdef __cplusplus
 }

@@ -22,6 +22,7 @@
 
 package cn.enaium.imgui.extensions.implot
 
+import cn.enaium.imgui.ImDrawList
 import cn.enaium.imgui.ImGuiContext
 import cn.enaium.imgui.ImVec2
 import cn.enaium.imgui.ImVec4
@@ -68,6 +69,15 @@ expect object ImPlot {
     fun setupLegend(location: Int, flags: Int = 0)
     fun setupFinish()
 
+    fun setupAxis(axis: Int, label: String? = null, flags: Int = 0)
+    fun setupAxisFormat(axis: Int, fmt: String)
+    fun setupAxisLimitsConstraints(axis: Int, vMin: Double, vMax: Double)
+    fun setupAxisZoomConstraints(axis: Int, zMin: Double, zMax: Double)
+    fun setupAxisLinks(axis: Int, linkMin: DoubleArray? = null, linkMax: DoubleArray? = null)
+    fun setupAxisScale(axis: Int, scale: Int)
+    fun setupAxisTicks(axis: Int, values: DoubleArray, labels: Array<String>? = null, tickCount: Int = -1, keepDefault: Boolean = false)
+    fun setupMouseText(location: Int, flags: Int = 0)
+
     // ==================== SetNext (before BeginPlot) ====================
     fun setNextAxesLimits(xMin: Double, xMax: Double, yMin: Double, yMax: Double, cond: Int = ImPlotCond.ONCE)
     fun setNextAxisLimits(axis: Int, vMin: Double, vMax: Double, cond: Int = ImPlotCond.ONCE)
@@ -94,15 +104,128 @@ expect object ImPlot {
     fun plotText(text: String, x: Double, y: Double, pixOffset: ImVec2 = ImVec2(0f, 0f))
     fun plotDummy(labelId: String, spec: ImPlotSpec = ImPlotSpec())
 
+    // ==================== Advanced plot items ====================
+    fun plotBarGroups(labels: Array<String>, values: FloatArray, itemCount: Int, groupCount: Int, groupSize: Double = 0.67, shift: Double = 0.0, spec: ImPlotSpec = ImPlotSpec())
+    fun plotErrorBars(labelId: String, xs: FloatArray, ys: FloatArray, neg: FloatArray, pos: FloatArray, spec: ImPlotSpec = ImPlotSpec())
+    fun plotStems(labelId: String, xs: FloatArray, ys: FloatArray, ref: Double = 0.0, spec: ImPlotSpec = ImPlotSpec())
+    fun plotHeatmap(
+        labelId: String,
+        values: FloatArray,
+        rows: Int,
+        cols: Int,
+        scaleMin: Double = 0.0,
+        scaleMax: Double = 0.0,
+        labelFormat: String = "%.1f",
+        boundsMinX: Double = 0.0,
+        boundsMinY: Double = 0.0,
+        boundsMaxX: Double = 1.0,
+        boundsMaxY: Double = 1.0,
+        spec: ImPlotSpec = ImPlotSpec(),
+    )
+    fun plotHistogram2D(
+        labelId: String,
+        xs: FloatArray,
+        ys: FloatArray,
+        xBins: Int = ImPlotBin.STURGES,
+        yBins: Int = ImPlotBin.STURGES,
+        rangeXMin: Double = 0.0,
+        rangeXMax: Double = 0.0,
+        rangeYMin: Double = 0.0,
+        rangeYMax: Double = 0.0,
+        spec: ImPlotSpec = ImPlotSpec(),
+    ): Double
+    fun plotDigital(labelId: String, xs: FloatArray, ys: FloatArray, spec: ImPlotSpec = ImPlotSpec())
+    fun plotPieChart(labels: Array<String>, values: FloatArray, x: Double, y: Double, radius: Double, labelFormat: String = "%.1f", angle0: Double = 90.0, spec: ImPlotSpec = ImPlotSpec())
+    fun plotBubbles(labelId: String, xs: FloatArray, ys: FloatArray, sizes: FloatArray, spec: ImPlotSpec = ImPlotSpec())
+    fun plotPolygon(labelId: String, xs: FloatArray, ys: FloatArray, spec: ImPlotSpec = ImPlotSpec())
+    fun plotImage(
+        labelId: String,
+        texId: Long,
+        xMin: Double,
+        yMin: Double,
+        xMax: Double,
+        yMax: Double,
+        uvMin: ImVec2 = ImVec2(0f, 0f),
+        uvMax: ImVec2 = ImVec2(1f, 1f),
+        tintCol: ImVec4 = ImVec4(1f, 1f, 1f, 1f),
+        spec: ImPlotSpec = ImPlotSpec(),
+    )
+
+    // ==================== Subplots ====================
+    fun beginSubplots(titleId: String, rows: Int, cols: Int, size: ImVec2, flags: Int = 0): Boolean
+    fun endSubplots()
+
+    // ==================== Drag tools / annotations / tags ====================
+    fun dragPoint(id: Int, x: DoubleArray, y: DoubleArray, col: ImVec4 = ImVec4(0f, 0f, 0f, 0f), size: Float = 4f, flags: Int = 0): Boolean
+    fun dragLineX(id: Int, x: DoubleArray, col: ImVec4 = ImVec4(0f, 0f, 0f, 0f), thickness: Float = 1f, flags: Int = 0): Boolean
+    fun dragLineY(id: Int, y: DoubleArray, col: ImVec4 = ImVec4(0f, 0f, 0f, 0f), thickness: Float = 1f, flags: Int = 0): Boolean
+    fun dragRect(id: Int, xMin: DoubleArray, yMin: DoubleArray, xMax: DoubleArray, yMax: DoubleArray, col: ImVec4 = ImVec4(0f, 0f, 0f, 0f), flags: Int = 0): Boolean
+    fun annotation(x: Double, y: Double, col: ImVec4, pixOffset: ImVec2 = ImVec2(0f, 0f), clamp: Boolean = false, round: Boolean = false, fmt: String? = null)
+    fun tagX(x: Double, col: ImVec4, round: Boolean = false, fmt: String? = null)
+    fun tagY(y: Double, col: ImVec4, round: Boolean = false, fmt: String? = null)
+
+    // ==================== Queries / coordinates ====================
+    fun getPlotLimits(): DoubleArray
+    fun getPlotMousePos(): DoubleArray
+    fun pixelsToPlot(pixX: Float, pixY: Float): DoubleArray
+    fun plotToPixels(x: Double, y: Double): ImVec2
+    fun getPlotDrawList(): ImDrawList
+    fun nextColormapColor(): ImVec4
+
     // ==================== Style ====================
     fun pushStyleColor(idx: Int, color: ImVec4)
     fun popStyleColor(count: Int = 1)
+    fun pushStyleVar(idx: Int, value: Float)
     fun pushStyleVarFloat(idx: Int, value: Float)
     fun pushStyleVarInt(idx: Int, value: Int)
     fun pushStyleVarVec2(idx: Int, value: ImVec2)
     fun popStyleVar(count: Int = 1)
     fun pushColormap(cmap: Int)
     fun popColormap(count: Int = 1)
+
+    // ==================== Colormap ====================
+    fun getColormapCount(): Int
+    fun getColormapName(idx: Int): String
+    fun getColormapColor(idx: Int, cmap: Int = ImPlotColormap.AUTO): ImVec4
+    fun sampleColormap(t: Float, cmap: Int = ImPlotColormap.AUTO): ImVec4
+    fun colormapButton(label: String, size: ImVec2 = ImVec2(0f, 0f), cmap: Int = ImPlotColormap.AUTO): Boolean
+    fun colormapScale(label: String, scaleMin: Double, scaleMax: Double, size: ImVec2 = ImVec2(0f, 0f), fmt: String = "%g", flags: Int = 0, cmap: Int = ImPlotColormap.AUTO)
+    fun colormapSlider(label: String, t: FloatArray, out: FloatArray? = null, fmt: String = "", cmap: Int = ImPlotColormap.AUTO): Boolean
+    fun colormapIcon(cmap: Int = ImPlotColormap.AUTO)
+
+    // ==================== Color maps (misc) ====================
+    fun addColormap(name: String, cols: FloatArray): Int
+    fun itemIcon(col: Int)
+    fun getLastItemColor(): Int
+
+    // ==================== Plot utils ====================
+    fun setAxis(axis: Int)
+    fun setAxes(xAxis: Int, yAxis: Int)
+    fun getPlotSelection(): DoubleArray
+    fun pushPlotClipRect(expand: Float = 0f)
+    fun popPlotClipRect()
+
+    // ==================== Drag and drop ====================
+    fun beginDragDropSourcePlot(flags: Int = 0): Boolean
+    fun beginDragDropSourceAxis(axis: Int, flags: Int = 0): Boolean
+    fun beginDragDropSourceItem(labelId: String, flags: Int = 0): Boolean
+    fun endDragDropSource()
+    fun beginDragDropTargetPlot(): Boolean
+    fun beginDragDropTargetAxis(axis: Int): Boolean
+    fun beginDragDropTargetLegend(): Boolean
+    fun endDragDropTarget()
+
+    // ==================== Legend popup ====================
+    fun beginLegendPopup(labelId: String, mouseButton: Int = 1): Boolean
+    fun endLegendPopup()
+
+    // ==================== Input mapping / tools ====================
+    fun getInputMap(): Long
+    fun showInputMapSelector(label: String): Boolean
+    fun showMetricsWindow(pOpen: BooleanArray? = null)
+    fun showStyleEditor()
+    fun showStyleSelector(label: String): Boolean
+    fun showColormapSelector(label: String): Boolean
 
     // ==================== Queries ====================
     fun isPlotHovered(): Boolean
@@ -204,6 +327,7 @@ object ImPlotMarker {
 }
 
 object ImPlotColormap {
+    const val AUTO = -1
     const val DEEP = 0
     const val DARK = 1
     const val PASTEL = 2
@@ -268,4 +392,48 @@ object ImPlotStyleVar {
     const val FIT_PADDING = 17
     const val DIGITAL_PADDING = 18
     const val DIGITAL_SPACING = 19
+}
+
+object ImPlotScale {
+    const val LINEAR = 0
+    const val TIME = 1
+    const val LOG10 = 2
+    const val SYMLOG = 3
+}
+
+object ImPlotSubplotFlags {
+    const val NONE = 0
+    const val NO_TITLE = 1 shl 0
+    const val NO_LEGEND = 1 shl 1
+    const val NO_MENUS = 1 shl 2
+    const val NO_RESIZE = 1 shl 3
+    const val NO_ALIGN = 1 shl 4
+    const val SHARE_ITEMS = 1 shl 5
+    const val LINK_ROWS = 1 shl 6
+    const val LINK_COLS = 1 shl 7
+    const val LINK_ALL_X = 1 shl 8
+    const val LINK_ALL_Y = 1 shl 9
+    const val COL_MAJOR = 1 shl 10
+}
+
+object ImPlotDragToolFlags {
+    const val NONE = 0
+    const val NO_CURSORS = 1 shl 0
+    const val NO_FIT = 1 shl 1
+    const val NO_INPUTS = 1 shl 2
+    const val DELAYED = 1 shl 3
+}
+
+object ImPlotMouseTextFlags {
+    const val NONE = 0
+    const val NO_AUX_AXES = 1 shl 0
+    const val NO_FORMAT = 1 shl 1
+    const val SHOW_ALWAYS = 1 shl 2
+}
+
+object ImPlotColormapScaleFlags {
+    const val NONE = 0
+    const val NO_LABEL = 1 shl 0
+    const val OPPOSITE = 1 shl 1
+    const val INVERT = 1 shl 2
 }
