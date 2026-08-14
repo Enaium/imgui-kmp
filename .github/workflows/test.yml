@@ -1,10 +1,8 @@
 name: Test
 
+# Manual trigger only (Actions tab -> Test -> Run workflow).
 "on":
   workflow_dispatch:
-  push:
-    branches: [main]
-  pull_request:
 
 # Builds and tests each platform on the runner that can build it. Each matrix
 # entry covers the artifacts that its runner can build:
