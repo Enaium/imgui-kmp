@@ -119,9 +119,22 @@ extern "C" __attribute__((weak)) int __isoc23_fprintf(FILE* stream, const char* 
     return result;
 }
 
-extern "C" __attribute__((weak)) int __isoc23_vfprintf(FILE* stream, const char* fmt, va_list ap) {
-    return imgui_kmp_vfprintf(stream, fmt, ap);
+// glibc 2.32+ exports `__libc_single_threaded` and GCC 9+ libstdc++ exports
+// `std::__throw_bad_array_new_length`. Code compiled by a modern host
+// toolchain (Ubuntu 24.04 g++ 12, glibc 2.39) references both, but
+// Kotlin/Native's bundled Linux toolchain (glibc 2.19, GCC 8.3) provides
+// neither, so linking linuxX64 binaries fails. Provide weak definitions:
+// the real glibc/libstdc++ strong symbols win when present, and the shims
+// keep old toolchains linking.
+extern "C" __attribute__((weak)) int __libc_single_threaded = 1;
+
+namespace std {
+__attribute__((weak)) void __throw_bad_array_new_length() {
+    __builtin_abort();
 }
+}  // namespace std
+
+#endif // __GLIBC__
 
 #endif // __GLIBC__
 
