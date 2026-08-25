@@ -136,9 +136,6 @@ __attribute__((weak)) void __throw_bad_array_new_length() {
 
 #endif // __GLIBC__
 
-#endif // __GLIBC__
-
-// The opaque C handles are only ever passed as pointers; the implementation
 // casts them to the real imgui types (both sides are incomplete types, so
 // no definition is required here).
 
