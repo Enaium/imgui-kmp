@@ -380,8 +380,12 @@ fun registerNativeBuildTasks(targetName: String, cmakeFlags: List<String> = empt
         // The cinterop task's up-to-date check only watches headers and the
         // .def file; register the static library as an input so a rebuild of
         // libimgui.a re-embeds it (otherwise stale archives leak into the
-        // published klib on incremental builds).
-        inputs.file(outputDir.resolve("libimgui.a"))
+        // published klib on incremental builds). Only when the library is
+        // actually built on this host (canBuild=false targets ship bindings
+        // only and never produce libimgui.a).
+        if (canBuildNativeTarget(targetName)) {
+            inputs.file(outputDir.resolve("libimgui.a"))
+        }
     }
 }
 
