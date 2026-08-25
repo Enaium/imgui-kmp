@@ -102,6 +102,9 @@ val buildJniLibrary = tasks.register<Exec>("buildJniLibrary") {
     inputs.dir(rootProject.file("jni/c_api"))
     inputs.dir(rootProject.file("includes/imgui"))
     inputs.dir(rootProject.file("includes/implot"))
+    inputs.dir(rootProject.file("includes/imgui-node-editor"))
+    inputs.dir(rootProject.file("includes/ImGuiFileDialog"))
+    inputs.dir(rootProject.file("includes/imgui_club"))
     outputs.file(resourceOutputDir.map { it.file(libFile) })
 }
 

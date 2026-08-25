@@ -4,3 +4,12 @@
 [submodule "includes/implot"]
 	path = includes/implot
 	url = git@github.com:epezent/implot.git
+[submodule "includes/imgui-node-editor"]
+	path = includes/imgui-node-editor
+	url = git@github.com:thedmd/imgui-node-editor.git
+[submodule "includes/imgui_club"]
+	path = includes/imgui_club
+	url = git@github.com:ocornut/imgui_club.git
+[submodule "includes/ImGuiFileDialog"]
+	path = includes/ImGuiFileDialog
+	url = git@github.com:aiekick/ImGuiFileDialog.git

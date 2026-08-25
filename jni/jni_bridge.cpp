@@ -3311,3 +3311,1071 @@ extern "C" JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_implot_Jni
     std::string label_str = jstring_to_string(env, label);
     return implot_show_colormap_selector(label_str.c_str()) ? JNI_TRUE : JNI_FALSE;
 }
+
+// =========================================================================
+// Node editor (ax::NodeEditor)
+// =========================================================================
+
+#include "node_editor_c.h"
+#include "file_dialog_c.h"
+#include "memory_editor_c.h"
+#include "multi_context_compositor_c.h"
+#include "threaded_rendering_c.h"
+
+static std::vector<int64_t> jlong_to_id_vector(JNIEnv* env, jlongArray arr) {
+    std::vector<int64_t> out;
+    if (arr != nullptr) {
+        jsize len = env->GetArrayLength(arr);
+        jlong* elems = env->GetLongArrayElements(arr, nullptr);
+        out.assign(elems, elems + len);
+        env->ReleaseLongArrayElements(arr, elems, JNI_ABORT);
+    }
+    return out;
+}
+
+static void write_id_back(JNIEnv* env, jlongArray arr, int64_t value) {
+    if (arr == nullptr) {
+        return;
+    }
+    jlong elem = static_cast<jlong>(value);
+    env->SetLongArrayRegion(arr, 0, 1, &elem);
+}
+
+static void set_float_array(JNIEnv* env, jfloatArray arr, const float* values, int count) {
+    if (arr != nullptr) {
+        env->SetFloatArrayRegion(arr, 0, count, values);
+    }
+}
+
+extern "C" {
+
+// ---- Context ----
+
+JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_createEditor(JNIEnv*, jclass) {
+    return reinterpret_cast<jlong>(ne_create_editor());
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_destroyEditor(JNIEnv*, jclass, jlong ctx) {
+    ne_destroy_editor(reinterpret_cast<ne_context*>(ctx));
+}
+
+JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_getCurrentEditor(JNIEnv*, jclass) {
+    return reinterpret_cast<jlong>(ne_get_current_editor());
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_setCurrentEditor(JNIEnv*, jclass, jlong ctx) {
+    ne_set_current_editor(reinterpret_cast<ne_context*>(ctx));
+}
+
+// ---- Begin/End ----
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_begin(JNIEnv* env, jclass, jstring id, jfloat size_x, jfloat size_y) {
+    std::string s = jstring_to_string(env, id);
+    ne_begin(s.c_str(), size_x, size_y);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_end(JNIEnv*, jclass) {
+    ne_end();
+}
+
+// ---- Nodes and pins ----
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_beginNode(JNIEnv*, jclass, jlong id) {
+    ne_begin_node(static_cast<int64_t>(id));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_beginPin(JNIEnv*, jclass, jlong id, jint kind) {
+    ne_begin_pin(static_cast<int64_t>(id), kind);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_pinRect(JNIEnv*, jclass, jfloat a_x, jfloat a_y, jfloat b_x, jfloat b_y) {
+    ne_pin_rect(a_x, a_y, b_x, b_y);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_pinPivotRect(JNIEnv*, jclass, jfloat a_x, jfloat a_y, jfloat b_x, jfloat b_y) {
+    ne_pin_pivot_rect(a_x, a_y, b_x, b_y);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_pinPivotSize(JNIEnv*, jclass, jfloat w, jfloat h) {
+    ne_pin_pivot_size(w, h);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_pinPivotScale(JNIEnv*, jclass, jfloat sx, jfloat sy) {
+    ne_pin_pivot_scale(sx, sy);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_pinPivotAlignment(JNIEnv*, jclass, jfloat ax, jfloat ay) {
+    ne_pin_pivot_alignment(ax, ay);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_endPin(JNIEnv*, jclass) {
+    ne_end_pin();
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_group(JNIEnv*, jclass, jfloat size_x, jfloat size_y) {
+    ne_group(size_x, size_y);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_endNode(JNIEnv*, jclass) {
+    ne_end_node();
+}
+
+// ---- Group hints ----
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_beginGroupHint(JNIEnv*, jclass, jlong node_id) {
+    return ne_begin_group_hint(static_cast<int64_t>(node_id)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jfloatArray JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_getGroupMin(JNIEnv* env, jclass) {
+    imgui_vec2 v = ne_get_group_min();
+    float vals[2] = {v.x, v.y};
+    jfloatArray out = env->NewFloatArray(2);
+    set_float_array(env, out, vals, 2);
+    return out;
+}
+
+JNIEXPORT jfloatArray JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_getGroupMax(JNIEnv* env, jclass) {
+    imgui_vec2 v = ne_get_group_max();
+    float vals[2] = {v.x, v.y};
+    jfloatArray out = env->NewFloatArray(2);
+    set_float_array(env, out, vals, 2);
+    return out;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_endGroupHint(JNIEnv*, jclass) {
+    ne_end_group_hint();
+}
+
+JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_getNodeBackgroundDrawList(JNIEnv*, jclass, jlong node_id) {
+    return reinterpret_cast<jlong>(ne_get_node_background_draw_list(static_cast<int64_t>(node_id)));
+}
+
+// ---- Links ----
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_link(JNIEnv*, jclass, jlong id, jlong start_pin_id, jlong end_pin_id, jfloat r, jfloat g, jfloat b, jfloat a, jfloat thickness) {
+    imgui_vec4 color{r, g, b, a};
+    return ne_link(static_cast<int64_t>(id), static_cast<int64_t>(start_pin_id), static_cast<int64_t>(end_pin_id), color, thickness) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_flow(JNIEnv*, jclass, jlong link_id, jint direction) {
+    ne_flow(static_cast<int64_t>(link_id), direction);
+}
+
+// ---- Create new link / node ----
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_beginCreate(JNIEnv*, jclass, jfloat r, jfloat g, jfloat b, jfloat a, jfloat thickness) {
+    imgui_vec4 color{r, g, b, a};
+    return ne_begin_create(color, thickness) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_queryNewLink(JNIEnv* env, jclass, jlongArray start_pin_id, jlongArray end_pin_id, jfloat r, jfloat g, jfloat b, jfloat a, jfloat thickness) {
+    int64_t start = 0;
+    int64_t end = 0;
+    imgui_vec4 color{r, g, b, a};
+    bool ok = ne_query_new_link_styled(&start, &end, color, thickness);
+    write_id_back(env, start_pin_id, start);
+    write_id_back(env, end_pin_id, end);
+    return ok ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_queryNewNode(JNIEnv* env, jclass, jlongArray pin_id, jfloat r, jfloat g, jfloat b, jfloat a, jfloat thickness) {
+    int64_t pin = 0;
+    imgui_vec4 color{r, g, b, a};
+    bool ok = ne_query_new_node_styled(&pin, color, thickness);
+    write_id_back(env, pin_id, pin);
+    return ok ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_acceptNewItem(JNIEnv*, jclass, jfloat r, jfloat g, jfloat b, jfloat a, jfloat thickness) {
+    imgui_vec4 color{r, g, b, a};
+    return ne_accept_new_item_ex(color, thickness) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_rejectNewItem(JNIEnv*, jclass, jfloat r, jfloat g, jfloat b, jfloat a, jfloat thickness) {
+    imgui_vec4 color{r, g, b, a};
+    ne_reject_new_item_ex(color, thickness);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_endCreate(JNIEnv*, jclass) {
+    ne_end_create();
+}
+
+// ---- Delete nodes / links ----
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_beginDelete(JNIEnv*, jclass) {
+    return ne_begin_delete() ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_queryDeletedLink(JNIEnv* env, jclass, jlongArray link_id, jlongArray start_pin_id, jlongArray end_pin_id) {
+    int64_t link = 0;
+    int64_t start = 0;
+    int64_t end = 0;
+    bool ok = ne_query_deleted_link(&link, &start, &end);
+    write_id_back(env, link_id, link);
+    // Optional pin arrays: only written when the query succeeded and the
+    // caller provided them.
+    if (ok) {
+        if (start_pin_id != nullptr && env->GetArrayLength(start_pin_id) > 0) {
+            write_id_back(env, start_pin_id, start);
+        }
+        if (end_pin_id != nullptr && env->GetArrayLength(end_pin_id) > 0) {
+            write_id_back(env, end_pin_id, end);
+        }
+    }
+    return ok ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_queryDeletedNode(JNIEnv* env, jclass, jlongArray node_id) {
+    int64_t node = 0;
+    bool ok = ne_query_deleted_node(&node);
+    write_id_back(env, node_id, node);
+    return ok ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_acceptDeletedItem(JNIEnv*, jclass, jboolean delete_dependencies) {
+    ne_accept_deleted_item(delete_dependencies == JNI_TRUE);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_rejectDeletedItem(JNIEnv*, jclass) {
+    ne_reject_deleted_item();
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_endDelete(JNIEnv*, jclass) {
+    ne_end_delete();
+}
+
+// ---- Node / group geometry ----
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_setNodePosition(JNIEnv*, jclass, jlong node_id, jfloat x, jfloat y) {
+    ne_set_node_position(static_cast<int64_t>(node_id), x, y);
+}
+
+JNIEXPORT jfloatArray JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_getNodePosition(JNIEnv* env, jclass, jlong node_id) {
+    imgui_vec2 v = ne_get_node_position(static_cast<int64_t>(node_id));
+    float vals[2] = {v.x, v.y};
+    jfloatArray out = env->NewFloatArray(2);
+    set_float_array(env, out, vals, 2);
+    return out;
+}
+
+JNIEXPORT jfloatArray JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_getNodeSize(JNIEnv* env, jclass, jlong node_id) {
+    imgui_vec2 v = ne_get_node_size(static_cast<int64_t>(node_id));
+    float vals[2] = {v.x, v.y};
+    jfloatArray out = env->NewFloatArray(2);
+    set_float_array(env, out, vals, 2);
+    return out;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_setGroupSize(JNIEnv*, jclass, jlong node_id, jfloat x, jfloat y) {
+    ne_set_group_size(static_cast<int64_t>(node_id), x, y);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_centerNodeOnScreen(JNIEnv*, jclass, jlong node_id) {
+    ne_center_node_on_screen(static_cast<int64_t>(node_id));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_setNodeZPosition(JNIEnv*, jclass, jlong node_id, jfloat z) {
+    ne_set_node_z_position(static_cast<int64_t>(node_id), z);
+}
+
+JNIEXPORT jfloat JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_getNodeZPosition(JNIEnv*, jclass, jlong node_id) {
+    return ne_get_node_z_position(static_cast<int64_t>(node_id));
+}
+
+// ---- Suspend / resume ----
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_suspend(JNIEnv*, jclass) {
+    ne_suspend();
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_resume(JNIEnv*, jclass) {
+    ne_resume();
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_isSuspended(JNIEnv*, jclass) {
+    return ne_is_suspended() ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_isActive(JNIEnv*, jclass) {
+    return ne_is_active() ? JNI_TRUE : JNI_FALSE;
+}
+
+// ---- Selection ----
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_hasSelectionChanged(JNIEnv*, jclass) {
+    return ne_has_selection_changed() ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jint JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_getSelectedObjectCount(JNIEnv*, jclass) {
+    return ne_get_selected_object_count();
+}
+
+static jlongArray fill_id_array(JNIEnv* env, int capacity, int (*fill)(int64_t*, int, int*)) {
+    if (capacity <= 0) {
+        return env->NewLongArray(0);
+    }
+    std::vector<int64_t> ids(capacity, 0);
+    int count = 0;
+    fill(ids.data(), capacity, &count);
+    if (count < 0) {
+        count = 0;
+    }
+    if (count > capacity) {
+        count = capacity;
+    }
+    jlongArray out = env->NewLongArray(count);
+    if (count > 0) {
+        env->SetLongArrayRegion(out, 0, count, reinterpret_cast<const jlong*>(ids.data()));
+    }
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_getSelectedNodes(JNIEnv* env, jclass, jint size) {
+    return fill_id_array(env, size, +[](int64_t* ids, int cap, int* count) -> int {
+        ne_get_selected_nodes(ids, cap, count);
+        return *count;
+    });
+}
+
+JNIEXPORT jlongArray JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_getSelectedLinks(JNIEnv* env, jclass, jint size) {
+    return fill_id_array(env, size, +[](int64_t* ids, int cap, int* count) -> int {
+        ne_get_selected_links(ids, cap, count);
+        return *count;
+    });
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_isNodeSelected(JNIEnv*, jclass, jlong node_id) {
+    return ne_is_node_selected(static_cast<int64_t>(node_id)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_isLinkSelected(JNIEnv*, jclass, jlong link_id) {
+    return ne_is_link_selected(static_cast<int64_t>(link_id)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_clearSelection(JNIEnv*, jclass) {
+    ne_clear_selection();
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_selectNode(JNIEnv*, jclass, jlong node_id, jboolean append) {
+    ne_select_node(static_cast<int64_t>(node_id), append == JNI_TRUE);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_selectLink(JNIEnv*, jclass, jlong link_id, jboolean append) {
+    ne_select_link(static_cast<int64_t>(link_id), append == JNI_TRUE);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_deselectNode(JNIEnv*, jclass, jlong node_id) {
+    ne_deselect_node(static_cast<int64_t>(node_id));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_deselectLink(JNIEnv*, jclass, jlong link_id) {
+    ne_deselect_link(static_cast<int64_t>(link_id));
+}
+
+// ---- Deletion requests ----
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_deleteNode(JNIEnv*, jclass, jlong node_id) {
+    return ne_delete_node(static_cast<int64_t>(node_id)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_deleteLink(JNIEnv*, jclass, jlong link_id) {
+    return ne_delete_link(static_cast<int64_t>(link_id)) ? JNI_TRUE : JNI_FALSE;
+}
+
+// ---- Links queries ----
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_hasAnyLinks(JNIEnv*, jclass, jlong id) {
+    return ne_has_any_links(static_cast<int64_t>(id)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jint JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_breakLinks(JNIEnv*, jclass, jlong id) {
+    return ne_break_links(static_cast<int64_t>(id));
+}
+
+// ---- Navigation ----
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_navigateToContent(JNIEnv*, jclass, jfloat duration) {
+    ne_navigate_to_content(duration);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_navigateToSelection(JNIEnv*, jclass, jboolean zoom_in, jfloat duration) {
+    ne_navigate_to_selection(zoom_in == JNI_TRUE, duration);
+}
+
+// ---- Context menus ----
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_showNodeContextMenu(JNIEnv* env, jclass, jlongArray node_id) {
+    auto ids = jlong_to_id_vector(env, node_id);
+    if (ids.empty()) {
+        return JNI_FALSE;
+    }
+    bool ok = ne_show_node_context_menu(&ids[0]);
+    write_id_back(env, node_id, ids[0]);
+    return ok ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_showPinContextMenu(JNIEnv* env, jclass, jlongArray pin_id) {
+    auto ids = jlong_to_id_vector(env, pin_id);
+    if (ids.empty()) {
+        return JNI_FALSE;
+    }
+    bool ok = ne_show_pin_context_menu(&ids[0]);
+    write_id_back(env, pin_id, ids[0]);
+    return ok ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_showLinkContextMenu(JNIEnv* env, jclass, jlongArray link_id) {
+    auto ids = jlong_to_id_vector(env, link_id);
+    if (ids.empty()) {
+        return JNI_FALSE;
+    }
+    bool ok = ne_show_link_context_menu(&ids[0]);
+    write_id_back(env, link_id, ids[0]);
+    return ok ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_showBackgroundContextMenu(JNIEnv*, jclass) {
+    return ne_show_background_context_menu() ? JNI_TRUE : JNI_FALSE;
+}
+
+// ---- Shortcuts ----
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_enableShortcuts(JNIEnv*, jclass, jboolean enable) {
+    ne_enable_shortcuts(enable == JNI_TRUE);
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_areShortcutsEnabled(JNIEnv*, jclass) {
+    return ne_are_shortcuts_enabled() ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_beginShortcut(JNIEnv*, jclass) {
+    return ne_begin_shortcut() ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_acceptCut(JNIEnv*, jclass) {
+    return ne_accept_cut() ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_acceptCopy(JNIEnv*, jclass) {
+    return ne_accept_copy() ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_acceptPaste(JNIEnv*, jclass) {
+    return ne_accept_paste() ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_acceptDuplicate(JNIEnv*, jclass) {
+    return ne_accept_duplicate() ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_acceptCreateNode(JNIEnv*, jclass) {
+    return ne_accept_create_node() ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jint JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_getActionContextSize(JNIEnv*, jclass) {
+    return ne_get_action_context_size();
+}
+
+JNIEXPORT jlongArray JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_getActionContextNodes(JNIEnv* env, jclass, jint size) {
+    return fill_id_array(env, size, +[](int64_t* ids, int cap, int* count) -> int {
+        ne_get_action_context_nodes(ids, cap, count);
+        return *count;
+    });
+}
+
+JNIEXPORT jlongArray JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_getActionContextLinks(JNIEnv* env, jclass, jint size) {
+    return fill_id_array(env, size, +[](int64_t* ids, int cap, int* count) -> int {
+        ne_get_action_context_links(ids, cap, count);
+        return *count;
+    });
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_endShortcut(JNIEnv*, jclass) {
+    ne_end_shortcut();
+}
+
+JNIEXPORT jfloat JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_getCurrentZoom(JNIEnv*, jclass) {
+    return ne_get_current_zoom();
+}
+
+// ---- Hover / click queries ----
+
+JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_getHoveredNode(JNIEnv*, jclass) {
+    return static_cast<jlong>(ne_get_hovered_node());
+}
+
+JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_getHoveredPin(JNIEnv*, jclass) {
+    return static_cast<jlong>(ne_get_hovered_pin());
+}
+
+JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_getHoveredLink(JNIEnv*, jclass) {
+    return static_cast<jlong>(ne_get_hovered_link());
+}
+
+JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_getDoubleClickedNode(JNIEnv*, jclass) {
+    return static_cast<jlong>(ne_get_double_clicked_node());
+}
+
+JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_getDoubleClickedPin(JNIEnv*, jclass) {
+    return static_cast<jlong>(ne_get_double_clicked_pin());
+}
+
+JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_getDoubleClickedLink(JNIEnv*, jclass) {
+    return static_cast<jlong>(ne_get_double_clicked_link());
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_isBackgroundClicked(JNIEnv*, jclass) {
+    return ne_is_background_clicked() ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_isBackgroundDoubleClicked(JNIEnv*, jclass) {
+    return ne_is_background_double_clicked() ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jint JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_getBackgroundClickButtonIndex(JNIEnv*, jclass) {
+    return ne_get_background_click_button_index();
+}
+
+JNIEXPORT jint JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_getBackgroundDoubleClickButtonIndex(JNIEnv*, jclass) {
+    return ne_get_background_double_click_button_index();
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_getLinkPins(JNIEnv* env, jclass, jlong link_id, jlongArray start_pin_id, jlongArray end_pin_id) {
+    int64_t start = 0;
+    int64_t end = 0;
+    bool ok = ne_get_link_pins(static_cast<int64_t>(link_id), &start, &end);
+    if (ok) {
+        if (start_pin_id != nullptr && env->GetArrayLength(start_pin_id) > 0) {
+            write_id_back(env, start_pin_id, start);
+        }
+        if (end_pin_id != nullptr && env->GetArrayLength(end_pin_id) > 0) {
+            write_id_back(env, end_pin_id, end);
+        }
+    }
+    return ok ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_pinHadAnyLinks(JNIEnv*, jclass, jlong pin_id) {
+    return ne_pin_had_any_links(static_cast<int64_t>(pin_id)) ? JNI_TRUE : JNI_FALSE;
+}
+
+// ---- Coordinates ----
+
+JNIEXPORT jfloatArray JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_getScreenSize(JNIEnv* env, jclass) {
+    imgui_vec2 v = ne_get_screen_size();
+    float vals[2] = {v.x, v.y};
+    jfloatArray out = env->NewFloatArray(2);
+    set_float_array(env, out, vals, 2);
+    return out;
+}
+
+JNIEXPORT jfloatArray JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_screenToCanvas(JNIEnv* env, jclass, jfloat x, jfloat y) {
+    imgui_vec2 v = ne_screen_to_canvas(x, y);
+    float vals[2] = {v.x, v.y};
+    jfloatArray out = env->NewFloatArray(2);
+    set_float_array(env, out, vals, 2);
+    return out;
+}
+
+JNIEXPORT jfloatArray JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_canvasToScreen(JNIEnv* env, jclass, jfloat x, jfloat y) {
+    imgui_vec2 v = ne_canvas_to_screen(x, y);
+    float vals[2] = {v.x, v.y};
+    jfloatArray out = env->NewFloatArray(2);
+    set_float_array(env, out, vals, 2);
+    return out;
+}
+
+// ---- Ordered node ids ----
+
+JNIEXPORT jint JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_getNodeCount(JNIEnv*, jclass) {
+    return ne_get_node_count();
+}
+
+JNIEXPORT jlongArray JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_getOrderedNodeIds(JNIEnv* env, jclass, jint size) {
+    return fill_id_array(env, size, +[](int64_t* ids, int cap, int* count) -> int {
+        ne_get_ordered_node_ids(ids, cap, count);
+        return *count;
+    });
+}
+
+// ---- Style ----
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_pushStyleColor(JNIEnv*, jclass, jint idx, jfloat r, jfloat g, jfloat b, jfloat a) {
+    imgui_vec4 color{r, g, b, a};
+    ne_push_style_color(idx, color);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_popStyleColor(JNIEnv*, jclass, jint count) {
+    ne_pop_style_color(count);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_pushStyleVarFloat(JNIEnv*, jclass, jint idx, jfloat value) {
+    ne_push_style_var_float(idx, value);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_pushStyleVarVec2(JNIEnv*, jclass, jint idx, jfloat x, jfloat y) {
+    ne_push_style_var_vec2(idx, x, y);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_pushStyleVarVec4(JNIEnv*, jclass, jint idx, jfloat x, jfloat y, jfloat z, jfloat w) {
+    ne_push_style_var_vec4(idx, x, y, z, w);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_nodeeditor_Jni_popStyleVar(JNIEnv*, jclass, jint count) {
+    ne_pop_style_var(count);
+}
+
+// =========================================================================
+// File dialog (ImGuiFileDialog)
+// =========================================================================
+
+JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_extensions_filedialog_Jni_create(JNIEnv*, jclass) {
+    return reinterpret_cast<jlong>(igfd_create());
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_filedialog_Jni_destroy(JNIEnv*, jclass, jlong ptr) {
+    igfd_destroy(reinterpret_cast<igfd_dialog*>(ptr));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_filedialog_Jni_openDialog(JNIEnv* env, jclass, jlong ptr, jstring key, jstring title, jstring filters, jstring path, jstring file_name, jstring file_path_name, jint count_selection_max, jint flags) {
+    std::string key_s = jstring_to_string(env, key);
+    std::string title_s = jstring_to_string(env, title);
+    std::string filters_s = jstring_to_string(env, filters);
+    std::string path_s = jstring_to_string(env, path);
+    std::string file_name_s = jstring_to_string(env, file_name);
+    std::string file_path_name_s = jstring_to_string(env, file_path_name);
+    igfd_open_dialog(
+        reinterpret_cast<igfd_dialog*>(ptr),
+        key_s.c_str(),
+        title_s.c_str(),
+        filters_s.empty() ? nullptr : filters_s.c_str(),
+        path_s.c_str(),
+        file_name_s.c_str(),
+        file_path_name_s.c_str(),
+        count_selection_max,
+        flags);
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_filedialog_Jni_displayDialog(JNIEnv* env, jclass, jlong ptr, jstring key, jint window_flags, jfloat min_x, jfloat min_y, jfloat max_x, jfloat max_y) {
+    std::string key_s = jstring_to_string(env, key);
+    imgui_vec2 min_size{min_x, min_y};
+    imgui_vec2 max_size{max_x, max_y};
+    return igfd_display_dialog(reinterpret_cast<igfd_dialog*>(ptr), key_s.c_str(), window_flags, min_size, max_size) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_filedialog_Jni_closeDialog(JNIEnv* env, jclass, jlong ptr, jstring key) {
+    std::string key_s = jstring_to_string(env, key);
+    igfd_close_dialog(reinterpret_cast<igfd_dialog*>(ptr), key_s.c_str());
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_filedialog_Jni_isOk(JNIEnv*, jclass, jlong ptr) {
+    return igfd_is_ok(reinterpret_cast<igfd_dialog*>(ptr)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_filedialog_Jni_wasKeyOpenedThisFrame(JNIEnv* env, jclass, jlong ptr, jstring key) {
+    std::string key_s = jstring_to_string(env, key);
+    return igfd_was_key_opened_this_frame(reinterpret_cast<igfd_dialog*>(ptr), key_s.c_str()) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_filedialog_Jni_wasOpenedThisFrame(JNIEnv*, jclass, jlong ptr) {
+    return igfd_was_opened_this_frame(reinterpret_cast<igfd_dialog*>(ptr)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_filedialog_Jni_isKeyOpened(JNIEnv* env, jclass, jlong ptr, jstring key) {
+    std::string key_s = jstring_to_string(env, key);
+    return igfd_is_key_opened(reinterpret_cast<igfd_dialog*>(ptr), key_s.c_str()) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_filedialog_Jni_isOpened(JNIEnv*, jclass, jlong ptr) {
+    return igfd_is_opened(reinterpret_cast<igfd_dialog*>(ptr)) ? JNI_TRUE : JNI_FALSE;
+}
+
+static jstring string_or_null_to_jstring(JNIEnv* env, char* str) {
+    if (str == nullptr) {
+        return nullptr;
+    }
+    jstring out = env->NewStringUTF(str);
+    igfd_string_free(str);
+    return out;
+}
+
+JNIEXPORT jstring JNICALL Java_cn_enaium_imgui_extensions_filedialog_Jni_getFilePathName(JNIEnv* env, jclass, jlong ptr, jint mode) {
+    return string_or_null_to_jstring(env, igfd_get_file_path_name(reinterpret_cast<igfd_dialog*>(ptr), mode));
+}
+
+JNIEXPORT jstring JNICALL Java_cn_enaium_imgui_extensions_filedialog_Jni_getCurrentFileName(JNIEnv* env, jclass, jlong ptr, jint mode) {
+    return string_or_null_to_jstring(env, igfd_get_current_file_name(reinterpret_cast<igfd_dialog*>(ptr), mode));
+}
+
+
+JNIEXPORT jstring JNICALL Java_cn_enaium_imgui_extensions_filedialog_Jni_getCurrentPath(JNIEnv* env, jclass, jlong ptr) {
+    return string_or_null_to_jstring(env, igfd_get_current_path(reinterpret_cast<igfd_dialog*>(ptr)));
+}
+
+JNIEXPORT jstring JNICALL Java_cn_enaium_imgui_extensions_filedialog_Jni_getCurrentFilter(JNIEnv* env, jclass, jlong ptr) {
+    return string_or_null_to_jstring(env, igfd_get_current_filter(reinterpret_cast<igfd_dialog*>(ptr)));
+}
+
+JNIEXPORT jobjectArray JNICALL Java_cn_enaium_imgui_extensions_filedialog_Jni_getSelection(JNIEnv* env, jclass, jlong ptr, jint mode) {
+    size_t count = 0;
+    char** flat = igfd_get_selection(reinterpret_cast<igfd_dialog*>(ptr), mode, &count);
+    if (flat == nullptr || count == 0) {
+        igfd_selection_free(flat, count);
+        return nullptr;
+    }
+    jclass string_class = env->FindClass("java/lang/String");
+    jobjectArray out = env->NewObjectArray(static_cast<jsize>(count * 2), string_class, nullptr);
+    for (size_t i = 0; i < count * 2; i++) {
+        jstring item = flat[i] != nullptr ? env->NewStringUTF(flat[i]) : nullptr;
+        if (item != nullptr) {
+            env->DeleteLocalRef(item);
+        }
+    }
+    igfd_selection_free(flat, count);
+    return out;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_filedialog_Jni_setFileStyle(JNIEnv* env, jclass, jlong ptr, jint flags, jstring filter, jfloat r, jfloat g, jfloat b, jfloat a, jstring icon) {
+    std::string filter_s = jstring_to_string(env, filter);
+    std::string icon_s = jstring_to_string(env, icon);
+    igfd_set_file_style(
+        reinterpret_cast<igfd_dialog*>(ptr),
+        static_cast<unsigned int>(flags),
+        filter_s.empty() ? nullptr : filter_s.c_str(),
+        r, g, b, a,
+        icon_s.empty() ? nullptr : icon_s.c_str());
+}
+
+JNIEXPORT jstring JNICALL Java_cn_enaium_imgui_extensions_filedialog_Jni_getFileStyle(JNIEnv* env, jclass, jlong ptr, jint flags, jstring filter, jfloatArray out_color) {
+    std::string filter_s = jstring_to_string(env, filter);
+    float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    char* icon = nullptr;
+    if (!igfd_get_file_style(reinterpret_cast<igfd_dialog*>(ptr), static_cast<unsigned int>(flags), filter_s.empty() ? nullptr : filter_s.c_str(), color, &icon)) {
+        if (icon != nullptr) {
+            igfd_string_free(icon);
+        }
+        return nullptr;
+    }
+    if (out_color != nullptr) {
+        set_float_array(env, out_color, color, 4);
+    }
+    jstring icon_str = icon != nullptr ? env->NewStringUTF(icon) : nullptr;
+    if (icon != nullptr) {
+        igfd_string_free(icon);
+    }
+    return icon_str;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_filedialog_Jni_clearFilesStyle(JNIEnv*, jclass, jlong ptr) {
+    igfd_clear_files_style(reinterpret_cast<igfd_dialog*>(ptr));
+}
+
+// =========================================================================
+// Memory editor (imgui_club)
+// =========================================================================
+
+JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_create(JNIEnv*, jclass) {
+    return reinterpret_cast<jlong>(me_create());
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_destroy(JNIEnv*, jclass, jlong ptr) {
+    me_destroy(reinterpret_cast<me_editor*>(ptr));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_drawWindow(JNIEnv* env, jclass, jlong ptr, jstring title, jbyteArray data, jint size, jlong base_addr) {
+    std::string title_s = jstring_to_string(env, title);
+    jbyte* bytes = data != nullptr ? env->GetByteArrayElements(data, nullptr) : nullptr;
+    me_draw_window(
+        reinterpret_cast<me_editor*>(ptr),
+        title_s.c_str(),
+        bytes,
+        static_cast<size_t>(size),
+        static_cast<uint64_t>(base_addr));
+    if (bytes != nullptr) {
+        env->ReleaseByteArrayElements(data, bytes, JNI_ABORT);
+    }
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_drawContents(JNIEnv* env, jclass, jlong ptr, jbyteArray data, jint size, jlong base_addr) {
+    jbyte* bytes = data != nullptr ? env->GetByteArrayElements(data, nullptr) : nullptr;
+    me_draw_contents(
+        reinterpret_cast<me_editor*>(ptr),
+        bytes,
+        static_cast<size_t>(size),
+        static_cast<uint64_t>(base_addr));
+    if (bytes != nullptr) {
+        env->ReleaseByteArrayElements(data, bytes, JNI_ABORT);
+    }
+}
+
+static me_editor* to_me(JNIEnv*, jlong ptr) {
+    return reinterpret_cast<me_editor*>(ptr);
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_isOpen(JNIEnv*, jclass, jlong e) {
+    return me_is_open(to_me(nullptr, e)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_setOpen(JNIEnv*, jclass, jlong e, jboolean value) {
+    me_set_open(to_me(nullptr, e), value == JNI_TRUE);
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_isReadOnly(JNIEnv*, jclass, jlong e) {
+    return me_is_read_only(to_me(nullptr, e)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_setReadOnly(JNIEnv*, jclass, jlong e, jboolean value) {
+    me_set_read_only(to_me(nullptr, e), value == JNI_TRUE);
+}
+
+JNIEXPORT jint JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_getCols(JNIEnv*, jclass, jlong e) {
+    return me_get_cols(to_me(nullptr, e));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_setCols(JNIEnv*, jclass, jlong e, jint value) {
+    me_set_cols(to_me(nullptr, e), value);
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_isOptShowOptions(JNIEnv*, jclass, jlong e) {
+    return me_is_opt_show_options(to_me(nullptr, e)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_setOptShowOptions(JNIEnv*, jclass, jlong e, jboolean value) {
+    me_set_opt_show_options(to_me(nullptr, e), value == JNI_TRUE);
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_isOptShowDataPreview(JNIEnv*, jclass, jlong e) {
+    return me_is_opt_show_data_preview(to_me(nullptr, e)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_setOptShowDataPreview(JNIEnv*, jclass, jlong e, jboolean value) {
+    me_set_opt_show_data_preview(to_me(nullptr, e), value == JNI_TRUE);
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_isOptShowHexII(JNIEnv*, jclass, jlong e) {
+    return me_is_opt_show_hex_ii(to_me(nullptr, e)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_setOptShowHexII(JNIEnv*, jclass, jlong e, jboolean value) {
+    me_set_opt_show_hex_ii(to_me(nullptr, e), value == JNI_TRUE);
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_isOptShowAscii(JNIEnv*, jclass, jlong e) {
+    return me_is_opt_show_ascii(to_me(nullptr, e)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_setOptShowAscii(JNIEnv*, jclass, jlong e, jboolean value) {
+    me_set_opt_show_ascii(to_me(nullptr, e), value == JNI_TRUE);
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_isOptGreyOutZeroes(JNIEnv*, jclass, jlong e) {
+    return me_is_opt_grey_out_zeroes(to_me(nullptr, e)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_setOptGreyOutZeroes(JNIEnv*, jclass, jlong e, jboolean value) {
+    me_set_opt_grey_out_zeroes(to_me(nullptr, e), value == JNI_TRUE);
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_isOptUpperCaseHex(JNIEnv*, jclass, jlong e) {
+    return me_is_opt_upper_case_hex(to_me(nullptr, e)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_setOptUpperCaseHex(JNIEnv*, jclass, jlong e, jboolean value) {
+    me_set_opt_upper_case_hex(to_me(nullptr, e), value == JNI_TRUE);
+}
+
+JNIEXPORT jint JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_getOptMidColsCount(JNIEnv*, jclass, jlong e) {
+    return me_get_opt_mid_cols_count(to_me(nullptr, e));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_setOptMidColsCount(JNIEnv*, jclass, jlong e, jint value) {
+    me_set_opt_mid_cols_count(to_me(nullptr, e), value);
+}
+
+JNIEXPORT jint JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_getOptAddrDigitsCount(JNIEnv*, jclass, jlong e) {
+    return me_get_opt_addr_digits_count(to_me(nullptr, e));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_setOptAddrDigitsCount(JNIEnv*, jclass, jlong e, jint value) {
+    me_set_opt_addr_digits_count(to_me(nullptr, e), value);
+}
+
+JNIEXPORT jfloat JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_getOptFooterExtraHeight(JNIEnv*, jclass, jlong e) {
+    return me_get_opt_footer_extra_height(to_me(nullptr, e));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_setOptFooterExtraHeight(JNIEnv*, jclass, jlong e, jfloat value) {
+    me_set_opt_footer_extra_height(to_me(nullptr, e), value);
+}
+
+JNIEXPORT jint JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_getHighlightColor(JNIEnv*, jclass, jlong e) {
+    return static_cast<jint>(me_get_highlight_color(to_me(nullptr, e)));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_setHighlightColor(JNIEnv*, jclass, jlong e, jint value) {
+    me_set_highlight_color(to_me(nullptr, e), static_cast<uint32_t>(value));
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_isMouseHovered(JNIEnv*, jclass, jlong e) {
+    return me_is_mouse_hovered(to_me(nullptr, e)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_mouseHoveredAddr(JNIEnv*, jclass, jlong e) {
+    return static_cast<jlong>(me_mouse_hovered_addr(to_me(nullptr, e)));
+}
+
+} // extern "C" (node editor / file dialog / memory editor additions)
+
+// =========================================================================
+// Multi-context compositor (imgui_club)
+// =========================================================================
+
+JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_extensions_mcc_Jni_create(JNIEnv*, jclass) {
+    return reinterpret_cast<jlong>(mcc_create());
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_mcc_Jni_destroy(JNIEnv*, jclass, jlong ptr) {
+    mcc_destroy(reinterpret_cast<mcc_compositor*>(ptr));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_mcc_Jni_addContext(JNIEnv*, jclass, jlong ptr, jlong ctx) {
+    mcc_add_context(reinterpret_cast<mcc_compositor*>(ptr), reinterpret_cast<imgui_context*>(ctx));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_mcc_Jni_removeContext(JNIEnv*, jclass, jlong ptr, jlong ctx) {
+    mcc_remove_context(reinterpret_cast<mcc_compositor*>(ptr), reinterpret_cast<imgui_context*>(ctx));
+}
+
+JNIEXPORT jint JNICALL Java_cn_enaium_imgui_extensions_mcc_Jni_getContextCount(JNIEnv*, jclass, jlong ptr) {
+    return mcc_get_context_count(reinterpret_cast<mcc_compositor*>(ptr));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_mcc_Jni_preNewFrameUpdateAll(JNIEnv*, jclass, jlong ptr) {
+    mcc_pre_new_frame_update_all(reinterpret_cast<mcc_compositor*>(ptr));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_mcc_Jni_postNewFrameUpdateOne(JNIEnv*, jclass, jlong ptr, jlong ctx) {
+    mcc_post_new_frame_update_one(reinterpret_cast<mcc_compositor*>(ptr), reinterpret_cast<imgui_context*>(ctx));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_mcc_Jni_postEndFrameUpdateAll(JNIEnv*, jclass, jlong ptr) {
+    mcc_post_end_frame_update_all(reinterpret_cast<mcc_compositor*>(ptr));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_mcc_Jni_showDebugWindow(JNIEnv*, jclass, jlong ptr) {
+    mcc_show_debug_window(reinterpret_cast<mcc_compositor*>(ptr));
+}
+
+// =========================================================================
+// Threaded rendering (imgui_club): ImDrawDataSnapshot
+// =========================================================================
+
+JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_extensions_threadedrendering_Jni_snapshotCreate(JNIEnv*, jclass) {
+    return reinterpret_cast<jlong>(trs_snapshot_create());
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_threadedrendering_Jni_snapshotDestroy(JNIEnv*, jclass, jlong ptr) {
+    trs_snapshot_destroy(reinterpret_cast<trs_snapshot*>(ptr));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_threadedrendering_Jni_snapUsingSwap(JNIEnv*, jclass, jlong ptr, jlong src, jdouble current_time) {
+    trs_snapshot_snap_using_swap(reinterpret_cast<trs_snapshot*>(ptr), reinterpret_cast<imgui_draw_data*>(src), current_time);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_threadedrendering_Jni_snapshotClear(JNIEnv*, jclass, jlong ptr) {
+    trs_snapshot_clear(reinterpret_cast<trs_snapshot*>(ptr));
+}
+
+JNIEXPORT jfloat JNICALL Java_cn_enaium_imgui_extensions_threadedrendering_Jni_getMemoryCompactTimer(JNIEnv*, jclass, jlong ptr) {
+    return trs_snapshot_get_memory_compact_timer(reinterpret_cast<trs_snapshot*>(ptr));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_threadedrendering_Jni_setMemoryCompactTimer(JNIEnv*, jclass, jlong ptr, jfloat seconds) {
+    trs_snapshot_set_memory_compact_timer(reinterpret_cast<trs_snapshot*>(ptr), seconds);
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_threadedrendering_Jni_isValid(JNIEnv*, jclass, jlong ptr) {
+    return trs_snapshot_is_valid(reinterpret_cast<trs_snapshot*>(ptr)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jint JNICALL Java_cn_enaium_imgui_extensions_threadedrendering_Jni_getFrameCount(JNIEnv*, jclass, jlong ptr) {
+    return trs_snapshot_get_frame_count(reinterpret_cast<trs_snapshot*>(ptr));
+}
+
+JNIEXPORT jint JNICALL Java_cn_enaium_imgui_extensions_threadedrendering_Jni_getTotalIdxCount(JNIEnv*, jclass, jlong ptr) {
+    return trs_snapshot_get_total_idx_count(reinterpret_cast<trs_snapshot*>(ptr));
+}
+
+JNIEXPORT jint JNICALL Java_cn_enaium_imgui_extensions_threadedrendering_Jni_getTotalVtxCount(JNIEnv*, jclass, jlong ptr) {
+    return trs_snapshot_get_total_vtx_count(reinterpret_cast<trs_snapshot*>(ptr));
+}
+
+
+JNIEXPORT jfloatArray JNICALL Java_cn_enaium_imgui_extensions_threadedrendering_Jni_getDisplayPos(JNIEnv* env, jclass, jlong ptr) {
+    imgui_vec2 v = trs_snapshot_get_display_pos(reinterpret_cast<trs_snapshot*>(ptr));
+    float vals[2] = {v.x, v.y};
+    jfloatArray out = env->NewFloatArray(2);
+    set_float_array(env, out, vals, 2);
+    return out;
+}
+
+JNIEXPORT jfloatArray JNICALL Java_cn_enaium_imgui_extensions_threadedrendering_Jni_getDisplaySize(JNIEnv* env, jclass, jlong ptr) {
+    imgui_vec2 v = trs_snapshot_get_display_size(reinterpret_cast<trs_snapshot*>(ptr));
+    float vals[2] = {v.x, v.y};
+    jfloatArray out = env->NewFloatArray(2);
+    set_float_array(env, out, vals, 2);
+    return out;
+}
+
+JNIEXPORT jfloatArray JNICALL Java_cn_enaium_imgui_extensions_threadedrendering_Jni_getFramebufferScale(JNIEnv* env, jclass, jlong ptr) {
+    imgui_vec2 v = trs_snapshot_get_framebuffer_scale(reinterpret_cast<trs_snapshot*>(ptr));
+    float vals[2] = {v.x, v.y};
+    jfloatArray out = env->NewFloatArray(2);
+    set_float_array(env, out, vals, 2);
+    return out;
+}
+
+JNIEXPORT jint JNICALL Java_cn_enaium_imgui_extensions_threadedrendering_Jni_getCmdListsCount(JNIEnv*, jclass, jlong ptr) {
+    return trs_snapshot_get_cmd_lists_count(reinterpret_cast<trs_snapshot*>(ptr));
+}
+
+JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_extensions_threadedrendering_Jni_getCmdList(JNIEnv*, jclass, jlong ptr, jint index) {
+    return reinterpret_cast<jlong>(trs_snapshot_get_cmd_list(reinterpret_cast<trs_snapshot*>(ptr), index));
+}
+
+// =========================================================================
+// Threaded rendering (imgui_club): ImTextureQueue
+// =========================================================================
+
+JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_extensions_threadedrendering_Jni_queueCreate(JNIEnv*, jclass) {
+    return reinterpret_cast<jlong>(trs_texture_queue_create());
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_threadedrendering_Jni_queueDestroy(JNIEnv*, jclass, jlong ptr) {
+    trs_texture_queue_destroy(reinterpret_cast<trs_texture_queue*>(ptr));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_threadedrendering_Jni_setInFlightFrames(JNIEnv*, jclass, jlong ptr, jint frames) {
+    trs_texture_queue_set_in_flight_frames(reinterpret_cast<trs_texture_queue*>(ptr), frames);
+}
+
+
+JNIEXPORT jint JNICALL Java_cn_enaium_imgui_extensions_threadedrendering_Jni_getInFlightFrames(JNIEnv*, jclass, jlong ptr) {
+    return trs_texture_queue_get_in_flight_frames(reinterpret_cast<trs_texture_queue*>(ptr));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_threadedrendering_Jni_preNewFrame(JNIEnv*, jclass, jlong ptr) {
+    trs_texture_queue_pre_new_frame(reinterpret_cast<trs_texture_queue*>(ptr));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_threadedrendering_Jni_queueRequests(JNIEnv*, jclass, jlong ptr, jlong draw_data) {
+    trs_texture_queue_queue_requests(reinterpret_cast<trs_texture_queue*>(ptr), reinterpret_cast<imgui_draw_data*>(draw_data));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_threadedrendering_Jni_processRequests(JNIEnv*, jclass, jlong ptr, jlong draw_data) {
+    trs_texture_queue_process_requests(reinterpret_cast<trs_texture_queue*>(ptr), reinterpret_cast<imgui_draw_data*>(draw_data));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_threadedrendering_Jni_shutdown(JNIEnv*, jclass, jlong ptr) {
+    trs_texture_queue_shutdown(reinterpret_cast<trs_texture_queue*>(ptr));
+}

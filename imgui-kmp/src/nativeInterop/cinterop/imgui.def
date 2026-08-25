@@ -1,2 +1,2 @@
-headers = imgui_c.h implot_c.h cinterop_helpers.h
+headers = imgui_c.h implot_c.h node_editor_c.h file_dialog_c.h memory_editor_c.h multi_context_compositor_c.h threaded_rendering_c.h cinterop_helpers.h
 compilerOpts = -std=c11

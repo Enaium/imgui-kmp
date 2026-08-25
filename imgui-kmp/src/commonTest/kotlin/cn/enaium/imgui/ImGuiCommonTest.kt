@@ -27,8 +27,14 @@ import cn.enaium.imgui.extensions.implot.ImPlotAxis
 import cn.enaium.imgui.extensions.implot.ImPlotCond
 import cn.enaium.imgui.extensions.implot.ImPlotMarker
 import cn.enaium.imgui.extensions.implot.ImPlotSpec
+import cn.enaium.imgui.extensions.filedialog.FileDialog
+import cn.enaium.imgui.extensions.filedialog.FileDialogConfig
+import cn.enaium.imgui.extensions.memoryeditor.MemoryEditor
+import cn.enaium.imgui.extensions.nodeeditor.NePinKind
+import cn.enaium.imgui.extensions.nodeeditor.NodeEditor
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -201,6 +207,87 @@ class ImGuiCommonTest {
             ImGui.end()
             ImGui.render()
             ImPlot.destroyContext(plotContext)
+        } finally {
+            ImGui.destroyContext(context)
+        }
+    }
+
+    @Test
+    fun nodeEditorFrame() {
+        val context = ImGui.createContext()
+        try {
+            val io = ImGui.getIO()
+            io.displaySize = ImVec2(800f, 600f)
+            io.deltaTime = 1f / 60f
+            io.backendFlags = ImGuiBackendFlags.RENDERER_HAS_TEXTURES
+
+            val editor = NodeEditor.createEditor()
+            NodeEditor.setCurrentEditor(editor)
+            try {
+                ImGui.newFrame()
+                if (ImGui.begin("Node Window")) {
+                    NodeEditor.begin("editor", ImVec2(-1f, -1f))
+                    NodeEditor.beginNode(1)
+                    ImGui.text("node")
+                    NodeEditor.beginPin(10, NePinKind.INPUT)
+                    ImGui.text("in")
+                    NodeEditor.endPin()
+                    NodeEditor.beginPin(11, NePinKind.OUTPUT)
+                    ImGui.text("out")
+                    NodeEditor.endPin()
+                    NodeEditor.endNode()
+                    assertTrue(NodeEditor.link(100, 10, 11))
+                    NodeEditor.end()
+                    assertEquals(1, NodeEditor.getNodeCount())
+                    assertFalse(NodeEditor.isLinkSelected(100))
+                }
+                ImGui.end()
+                ImGui.render()
+            } finally {
+                NodeEditor.destroyEditor(editor)
+            }
+        } finally {
+            ImGui.destroyContext(context)
+        }
+    }
+
+    @Test
+    fun fileDialogLifecycle() {
+        val context = ImGui.createContext()
+        try {
+            val dialog = FileDialog.create()
+            try {
+                FileDialog.openDialog(
+                    dialog,
+                    key = "test",
+                    title = "Open",
+                    filters = "*.txt",
+                    config = FileDialogConfig(path = ".", countSelectionMax = 1),
+                )
+                assertTrue(FileDialog.isOpened(dialog))
+                assertTrue(FileDialog.isKeyOpened(dialog, "test"))
+            } finally {
+                FileDialog.destroy(dialog)
+            }
+        } finally {
+            ImGui.destroyContext(context)
+        }
+    }
+
+    @Test
+    fun memoryEditorSettings() {
+        val context = ImGui.createContext()
+        try {
+            val editor = MemoryEditor.create()
+            try {
+                MemoryEditor.setCols(editor, 8)
+                assertEquals(8, MemoryEditor.getCols(editor))
+                MemoryEditor.setReadOnly(editor, true)
+                assertTrue(MemoryEditor.isReadOnly(editor))
+                MemoryEditor.setReadOnly(editor, false)
+            } finally {
+                MemoryEditor.destroy(editor)
+            }
         } finally {
             ImGui.destroyContext(context)
         }

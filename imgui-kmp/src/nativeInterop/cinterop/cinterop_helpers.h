@@ -32,6 +32,11 @@
 
 #include "imgui_c.h"
 #include "implot_c.h"
+#include "node_editor_c.h"
+#include "file_dialog_c.h"
+#include "memory_editor_c.h"
+#include "multi_context_compositor_c.h"
+#include "threaded_rendering_c.h"
 
 /* Dummy struct definitions for cinterop type generation */
 struct imgui_context { void* impl; };
@@ -43,5 +48,11 @@ struct imgui_draw_cmd { void* impl; };
 struct imgui_font { void* impl; };
 struct imgui_font_atlas { void* impl; };
 struct implot_context { void* impl; };
+struct ne_context { void* impl; };
+struct igfd_dialog { void* impl; };
+struct me_editor { void* impl; };
+struct mcc_compositor { void* impl; };
+struct trs_snapshot { void* impl; };
+struct trs_texture_queue { void* impl; };
 
 #endif /* CINTEROP_HELPERS_H_ */

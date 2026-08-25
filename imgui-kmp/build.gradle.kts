@@ -139,6 +139,10 @@ kotlin {
                         rootProject.file("jni/c_api"),
                         rootProject.file("includes/imgui"),
                         rootProject.file("includes/implot"),
+                        rootProject.file("includes/imgui-node-editor"),
+                        rootProject.file("includes/ImGuiFileDialog"),
+                        rootProject.file("includes/imgui_club/imgui_memory_editor"),
+                        rootProject.file("includes/imgui_club"),
                     )
                     if (canBuild) {
                         // Embed the per-target static library into the produced
