@@ -4017,7 +4017,7 @@ JNIEXPORT jstring JNICALL Java_cn_enaium_imgui_extensions_filedialog_Jni_getCurr
 }
 
 JNIEXPORT jobjectArray JNICALL Java_cn_enaium_imgui_extensions_filedialog_Jni_getSelection(JNIEnv* env, jclass, jlong ptr, jint mode) {
-    size_t count = 0;
+    int count = 0;
     char** flat = igfd_get_selection(reinterpret_cast<igfd_dialog*>(ptr), mode, &count);
     if (flat == nullptr || count == 0) {
         igfd_selection_free(flat, count);
@@ -4025,7 +4025,7 @@ JNIEXPORT jobjectArray JNICALL Java_cn_enaium_imgui_extensions_filedialog_Jni_ge
     }
     jclass string_class = env->FindClass("java/lang/String");
     jobjectArray out = env->NewObjectArray(static_cast<jsize>(count * 2), string_class, nullptr);
-    for (size_t i = 0; i < count * 2; i++) {
+    for (int i = 0; i < count * 2; i++) {
         jstring item = flat[i] != nullptr ? env->NewStringUTF(flat[i]) : nullptr;
         if (item != nullptr) {
             env->DeleteLocalRef(item);

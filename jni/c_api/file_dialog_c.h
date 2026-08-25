@@ -90,8 +90,8 @@ char* igfd_get_current_path(igfd_dialog* dialog);
 char* igfd_get_current_filter(igfd_dialog* dialog);
 
 // Returns a flat array of 2*count strings: [name0, pathName0, name1, ...].
-char** igfd_get_selection(igfd_dialog* dialog, int result_mode, size_t* out_count);
-void igfd_selection_free(char** selection, size_t count);
+char** igfd_get_selection(igfd_dialog* dialog, int result_mode, int* out_count);
+void igfd_selection_free(char** selection, int count);
 void igfd_string_free(char* str);
 
 // =========================================================================

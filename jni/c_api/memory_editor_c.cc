@@ -35,11 +35,11 @@ void me_destroy(me_editor* editor) {
     delete reinterpret_cast<MemoryEditor*>(editor);
 }
 
-void me_draw_window(me_editor* editor, const char* title, void* data, size_t size, uint64_t base_display_addr) {
+void me_draw_window(me_editor* editor, const char* title, void* data, uint32_t size, uint64_t base_display_addr) {
     reinterpret_cast<MemoryEditor*>(editor)->DrawWindow(title, data, size, static_cast<size_t>(base_display_addr));
 }
 
-void me_draw_contents(me_editor* editor, void* data, size_t size, uint64_t base_display_addr) {
+void me_draw_contents(me_editor* editor, void* data, uint32_t size, uint64_t base_display_addr) {
     reinterpret_cast<MemoryEditor*>(editor)->DrawContents(data, size, static_cast<size_t>(base_display_addr));
 }
 

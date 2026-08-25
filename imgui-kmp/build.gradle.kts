@@ -72,6 +72,53 @@ fun resolveCmakeExecutable(): String {
 
 val cmakeExecutable: String by lazy { resolveCmakeExecutable() }
 
+// ==================== Android NDK resolution ====================
+// Resolved before the `kotlin {}` block so cinterop's `canBuild` checks (and
+// the -staticLibrary embedding for androidNative targets) see the toolchain.
+val androidApiLevel = 21
+
+val pinnedAndroidNdkVersion = "27.0.12077973"
+
+// Windows hosts default CMake to the MSVC generator which is incompatible
+// with the NDK toolchain; the Android JNI libs are built on macOS/Linux.
+fun canBuildAndroidJni(): Boolean = !OperatingSystem.current().isWindows
+
+fun resolveAndroidSdkDir(): java.io.File? {
+    listOf("ANDROID_HOME", "ANDROID_SDK_ROOT").forEach { key ->
+        System.getenv(key)?.takeIf { it.isNotBlank() }?.let {
+            val f = file(it)
+            if (f.isDirectory) return f
+        }
+    }
+    val localProps = rootProject.file("local.properties")
+    if (localProps.isFile) {
+        val props = Properties().apply { localProps.inputStream().use { load(it) } }
+        props.getProperty("sdk.dir")?.takeIf { it.isNotBlank() }?.let {
+            val f = file(it)
+            if (f.isDirectory) return f
+        }
+    }
+    return null
+}
+
+fun resolveAndroidNdkDir(): java.io.File? {
+    listOf("ANDROID_NDK_HOME", "ANDROID_NDK_ROOT", "NDK_HOME").forEach { key ->
+        System.getenv(key)?.takeIf { it.isNotBlank() }?.let {
+            val f = file(it)
+            if (f.isDirectory) return f
+        }
+    }
+    val sdk = resolveAndroidSdkDir() ?: return null
+    val ndkParent = sdk.resolve("ndk")
+    if (!ndkParent.isDirectory) return null
+    val pinned = ndkParent.resolve(pinnedAndroidNdkVersion)
+    if (pinned.isDirectory) return pinned
+    return ndkParent.listFiles()?.filter { it.isDirectory }?.maxByOrNull { it.name }
+}
+
+val resolvedAndroidNdk = resolveAndroidNdkDir()
+val androidNdkToolchain = resolvedAndroidNdk?.resolve("build/cmake/android.toolchain.cmake")
+
 kotlin {
     // ==================== JVM ====================
     jvm {
@@ -130,6 +177,7 @@ kotlin {
     targets.withType<KotlinNativeTarget> {
         val targetName = this.name
         val canBuild = canBuildNativeTarget(targetName)
+
         compilations.getByName("main") {
             cinterops {
                 create("imgui") {
@@ -329,6 +377,11 @@ fun registerNativeBuildTasks(targetName: String, cmakeFlags: List<String> = empt
             it.name.endsWith(targetName.replaceFirstChar { c -> c.uppercase() })
     }.configureEach {
         dependsOn(buildTask)
+        // The cinterop task's up-to-date check only watches headers and the
+        // .def file; register the static library as an input so a rebuild of
+        // libimgui.a re-embeds it (otherwise stale archives leak into the
+        // published klib on incremental builds).
+        inputs.file(outputDir.resolve("libimgui.a"))
     }
 }
 
@@ -447,50 +500,8 @@ if (hostOs.isMacOsX) {
 
 // ==================== Android: build JNI shared library per ABI ====================
 val androidJniAbis = listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
-val androidApiLevel = 21
-
-val pinnedAndroidNdkVersion = "27.0.12077973"
-
-// Windows hosts default CMake to the MSVC generator which is incompatible
-// with the NDK toolchain; the Android JNI libs are built on macOS/Linux.
-fun canBuildAndroidJni(): Boolean = !OperatingSystem.current().isWindows
-
-fun resolveAndroidSdkDir(): java.io.File? {
-    listOf("ANDROID_HOME", "ANDROID_SDK_ROOT").forEach { key ->
-        System.getenv(key)?.takeIf { it.isNotBlank() }?.let {
-            val f = file(it)
-            if (f.isDirectory) return f
-        }
-    }
-    val localProps = rootProject.file("local.properties")
-    if (localProps.isFile) {
-        val props = Properties().apply { localProps.inputStream().use { load(it) } }
-        props.getProperty("sdk.dir")?.takeIf { it.isNotBlank() }?.let {
-            val f = file(it)
-            if (f.isDirectory) return f
-        }
-    }
-    return null
-}
-
-fun resolveAndroidNdkDir(): java.io.File? {
-    listOf("ANDROID_NDK_HOME", "ANDROID_NDK_ROOT", "NDK_HOME").forEach { key ->
-        System.getenv(key)?.takeIf { it.isNotBlank() }?.let {
-            val f = file(it)
-            if (f.isDirectory) return f
-        }
-    }
-    val sdk = resolveAndroidSdkDir() ?: return null
-    val ndkParent = sdk.resolve("ndk")
-    if (!ndkParent.isDirectory) return null
-    val pinned = ndkParent.resolve(pinnedAndroidNdkVersion)
-    if (pinned.isDirectory) return pinned
-    return ndkParent.listFiles()?.filter { it.isDirectory }?.maxByOrNull { it.name }
-}
 
 val androidJniLibsDir = layout.buildDirectory.dir("jniLibs")
-val resolvedAndroidNdk = resolveAndroidNdkDir()
-val androidNdkToolchain = resolvedAndroidNdk?.resolve("build/cmake/android.toolchain.cmake")
 
 val buildAndroidJniLibs by tasks.registering {
     group = "build"
@@ -544,7 +555,11 @@ androidNdkToolchain?.takeIf { it.isFile && canBuildAndroidJni() }?.let { toolcha
                 "-DCMAKE_TOOLCHAIN_FILE=${toolchain.absolutePath}",
                 "-DANDROID_ABI=$abi",
                 "-DANDROID_PLATFORM=android-$androidApiLevel",
-                "-DANDROID_STL=c++_static",
+                // `libc++_shared.so` (shipped with the platform since API 24),
+                // which avoids embedding NDK's static libc++ into the K/N-linked
+                // `libmain.so` and the resulting dead-code elimination that
+                // strips `~basic_string` before dlopen can resolve it.
+                "-DANDROID_STL=c++_shared",
             ),
         )
     }

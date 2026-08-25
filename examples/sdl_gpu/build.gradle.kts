@@ -51,31 +51,74 @@ kotlin {
     // compiler-rt builtins embedded in the sdl-kmp klib overlap with K/N's
     // bundled libgcc on some ABIs (e.g. __sync_* on armv7); allow duplicates
     // so the first (K/N's) definition wins.
+    // The imgui-kmp c_api wraps ImGui::Shortcut in `imgui_shortcut`. The
+    // cinterop stub is emitted unconditionally, but the underlying c_api
+    // definition lives in `libimgui.a` and K/N's per-symbol dead-code
+    // elimination drops it from libmain.so when the example doesn't call
+    // `ImGui.shortcut` directly. Worse, the Android cinterop klib ships
+    // with an empty `default/targets/.../included/` (the macOS one does
+    // embed libimgui.a), so the symbol isn't reachable through the klib
+    // at all. Workaround: link libimgui.a directly and use
+    // `-Wl,-u,imgui_shortcut` to force the linker to pull it in. libimgui.a
+    // is compiled with `-DANDROID_STL=c++_shared` so it has no static
+    // C++ runtime to embed; the matching `libc++_shared.so` is bundled
+    // The K/N toolchain ships its own libc++_shared.so under
+    // `$KONAN_DATA_DIR/.../sysroot/usr/lib/<triple>/`. Linking that exact file
+    // (rather than passing `-lc++_shared` and hoping the sysroot resolves it)
+    // makes K/N add it to libmain.so's DT_NEEDED, so the Android loader picks
+    // it up at dlopen time. The matching shared lib is what K/N's own runtime
+    // was built against, which keeps the basic_string ABI in lock-step with
+    // the references inside libmain.so.
+    val knanCxxShared = mapOf(
+        "androidNativeArm64" to "/Users/enaium/.konan/dependencies/target-toolchain-2-osx-android_ndk/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so",
+        "androidNativeArm32" to "/Users/enaium/.konan/dependencies/target-toolchain-2-osx-android_ndk/sysroot/usr/lib/arm-linux-androideabi/libc++_shared.so",
+        "androidNativeX64" to "/Users/enaium/.konan/dependencies/target-toolchain-2-osx-android_ndk/sysroot/usr/lib/x86_64-linux-android/libc++_shared.so",
+        "androidNativeX86" to "/Users/enaium/.konan/dependencies/target-toolchain-2-osx-android_ndk/sysroot/usr/lib/i686-linux-android/libc++_shared.so",
+    )
     androidNativeArm64 {
         binaries.sharedLib("main") {
             konanAndroidLibDir("arm64-v8a")?.let { linkerOpts("-L$it") }
             linkerOpts("-Wl,--allow-multiple-definition")
+            linkerOpts("-Wl,-u,imgui_shortcut")
+            linkerOpts(knanCxxShared.getValue("androidNativeArm64"))
+            rootProject.file("imgui-kmp/build/native/androidNativeArm64/libimgui.a").takeIf { it.exists() }?.let {
+                linkerOpts(it.absolutePath)
+            }
         }
     }
     androidNativeArm32 {
         binaries.sharedLib("main") {
             konanAndroidLibDir("armeabi-v7a")?.let { linkerOpts("-L$it") }
             linkerOpts("-Wl,--allow-multiple-definition")
+            linkerOpts("-Wl,-u,imgui_shortcut")
+            linkerOpts(knanCxxShared.getValue("androidNativeArm32"))
+            rootProject.file("imgui-kmp/build/native/androidNativeArm32/libimgui.a").takeIf { it.exists() }?.let {
+                linkerOpts(it.absolutePath)
+            }
         }
     }
     androidNativeX64 {
         binaries.sharedLib("main") {
             konanAndroidLibDir("x86_64")?.let { linkerOpts("-L$it") }
             linkerOpts("-Wl,--allow-multiple-definition")
+            linkerOpts("-Wl,-u,imgui_shortcut")
+            linkerOpts(knanCxxShared.getValue("androidNativeX64"))
+            rootProject.file("imgui-kmp/build/native/androidNativeX64/libimgui.a").takeIf { it.exists() }?.let {
+                linkerOpts(it.absolutePath)
+            }
         }
     }
     androidNativeX86 {
         binaries.sharedLib("main") {
             konanAndroidLibDir("x86")?.let { linkerOpts("-L$it") }
             linkerOpts("-Wl,--allow-multiple-definition")
+            linkerOpts("-Wl,-u,imgui_shortcut")
+            linkerOpts(knanCxxShared.getValue("androidNativeX86"))
+            rootProject.file("imgui-kmp/build/native/androidNativeX86/libimgui.a").takeIf { it.exists() }?.let {
+                linkerOpts(it.absolutePath)
+            }
         }
     }
-
     sourceSets {
         commonMain {
             dependencies {

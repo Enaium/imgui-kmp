@@ -22,8 +22,7 @@
 
 #include "ImGuiFileDialog.h"
 
-#include <cstring>
-
+#include <climits>
 #include "file_dialog_c.h"
 
 static ImVec2 to_vec2(imgui_vec2 v) {
@@ -117,7 +116,7 @@ char* igfd_get_current_filter(igfd_dialog* dialog) {
     return IGFD_GetCurrentFilter(reinterpret_cast<ImGuiFileDialog*>(dialog));
 }
 
-char** igfd_get_selection(igfd_dialog* dialog, int result_mode, size_t* out_count) {
+char** igfd_get_selection(igfd_dialog* dialog, int result_mode, int* out_count) {
     IGFD_Selection selection = IGFD_GetSelection(reinterpret_cast<ImGuiFileDialog*>(dialog), result_mode);
     if (selection.count == 0 || selection.table == nullptr) {
         IGFD_Selection_DestroyContent(&selection);
@@ -125,7 +124,8 @@ char** igfd_get_selection(igfd_dialog* dialog, int result_mode, size_t* out_coun
         return nullptr;
     }
     // Flatten into one malloc'd buffer of 2*count string pointers (name, pathName, ...).
-    const size_t count = selection.count;
+    // Selection counts are tiny; clamp to INT_MAX so the int ABI is lossless.
+    const size_t count = selection.count > static_cast<size_t>(INT_MAX) ? INT_MAX : selection.count;
     char** flat = static_cast<char**>(malloc(sizeof(char*) * count * 2));
     if (flat == nullptr) {
         IGFD_Selection_DestroyContent(&selection);
@@ -136,12 +136,12 @@ char** igfd_get_selection(igfd_dialog* dialog, int result_mode, size_t* out_coun
         flat[i * 2 + 0] = selection.table[i].fileName ? strdup(selection.table[i].fileName) : nullptr;
         flat[i * 2 + 1] = selection.table[i].filePathName ? strdup(selection.table[i].filePathName) : nullptr;
     }
-    *out_count = count;
+    *out_count = static_cast<int>(count);
     IGFD_Selection_DestroyContent(&selection);
     return flat;
 }
 
-void igfd_selection_free(char** selection, size_t count) {
+void igfd_selection_free(char** selection, int count) {
     if (selection == nullptr) {
         return;
     }

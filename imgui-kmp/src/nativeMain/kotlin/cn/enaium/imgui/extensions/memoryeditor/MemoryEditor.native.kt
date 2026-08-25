@@ -33,12 +33,12 @@ import imgui.*
 // =========================================================================
 // Native (cinterop) actual implementations
 // =========================================================================
-
 internal class NativeMemoryEditorInstance(internal val ptr: CPointer<me_editor>?) : MemoryEditorInstance {
     override fun close() {
         me_destroy(ptr)
     }
 }
+
 
 /**
  * Pins [data] for the duration of [block] and passes a pointer to its first byte plus its
@@ -48,7 +48,7 @@ private inline fun <T> withData(
     data: ByteArray,
     block: (CPointer<UByteVar>?, ULong) -> T,
 ): T {
-    if (data.isEmpty()) return block(null, 0u)
+    if (data.isEmpty()) return block(null, 0uL)
     return data.usePinned { pinned ->
         block(pinned.addressOf(0).reinterpret<UByteVar>(), data.size.toULong())
     }
@@ -68,12 +68,12 @@ actual object MemoryEditor {
 
     actual fun drawWindow(e: MemoryEditorInstance, title: String, data: ByteArray, baseAddr: Long) =
         withData(data) { ptr, size ->
-            me_draw_window((e as NativeMemoryEditorInstance).ptr, title, ptr, size, baseAddr.toULong())
+            me_draw_window((e as NativeMemoryEditorInstance).ptr, title, ptr, size.toUInt(), baseAddr.toULong())
         }
 
     actual fun drawContents(e: MemoryEditorInstance, data: ByteArray, baseAddr: Long) =
         withData(data) { ptr, size ->
-            me_draw_contents((e as NativeMemoryEditorInstance).ptr, ptr, size, baseAddr.toULong())
+            me_draw_contents((e as NativeMemoryEditorInstance).ptr, ptr, size.toUInt(), baseAddr.toULong())
         }
 
     actual fun isOpen(e: MemoryEditorInstance): Boolean =
@@ -160,3 +160,4 @@ actual object MemoryEditor {
     actual fun mouseHoveredAddr(e: MemoryEditorInstance): Long =
         me_mouse_hovered_addr((e as NativeMemoryEditorInstance).ptr).toLong()
 }
+

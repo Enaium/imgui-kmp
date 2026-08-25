@@ -25,6 +25,8 @@ include(":imgui-kmp")
 include(":examples:common")
 include(":examples:sdl_renderer")
 include(":examples:sdl_gpu")
+include(":examples:sdl_renderer:android")
+include(":examples:sdl_gpu:android")
 
 // Per-OS/arch JNI artifacts that bundle the prebuilt libimgui_jni shared
 // library as a classpath resource. NativeLoader extracts the matching one at

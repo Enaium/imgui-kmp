@@ -1,0 +1,38 @@
+diff --git a/ImGuiFileDialog.cpp b/ImGuiFileDialog.cpp
+index 6cfa67e..1c5bca6 100644
+--- a/ImGuiFileDialog.cpp
++++ b/ImGuiFileDialog.cpp
+@@ -46,9 +46,9 @@ SOFTWARE.
+ #include <exception>
+ #endif  // USE_STD_FILESYSTEM
+ 
+-#ifdef __EMSCRIPTEN__
+-#include <emscripten.h>
+-#endif  // __EMSCRIPTEN__
++#if defined(__APPLE__)
++#include <TargetConditionals.h>
++#endif  // __APPLE__
+ 
+ // for print messages
+ #ifndef IGFD_COUT
+@@ -94,6 +94,11 @@ SOFTWARE.
+ #define _IGFD_UNIX_
+ #define stricmp strcasecmp
+ #include <sys/types.h>
++
++#if defined(__APPLE__) && defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
++// iOS forbids std::system(); exclude its dir-create shell branch below.
++#define _IGFD_IOS_
++#endif  // _IGFD_IOS_
+ // this option need c++17
+ #ifndef USE_STD_FILESYSTEM
+ #include <dirent.h>
+@@ -714,7 +719,7 @@ public:
+                 std::string str = std::string("FS.mkdir('") + vName + "');";
+                 emscripten_run_script(str.c_str());
+                 res = true;
+-#elif defined(_IGFD_UNIX_)
++#elif defined(_IGFD_UNIX_) && !defined(_IGFD_IOS_)
+                 char buffer[PATH_MAX] = {};
+                 snprintf(buffer, PATH_MAX, "mkdir -p \"%s\"", vName.c_str());
+                 const int dir_err = std::system(buffer);

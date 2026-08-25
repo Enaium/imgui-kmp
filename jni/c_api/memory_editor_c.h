@@ -50,8 +50,8 @@ void me_destroy(me_editor* editor);
 // Drawing (data must stay valid for the duration of the call only)
 // =========================================================================
 
-void me_draw_window(me_editor* editor, const char* title, void* data, size_t size, uint64_t base_display_addr);
-void me_draw_contents(me_editor* editor, void* data, size_t size, uint64_t base_display_addr);
+void me_draw_window(me_editor* editor, const char* title, void* data, uint32_t size, uint64_t base_display_addr);
+void me_draw_contents(me_editor* editor, void* data, uint32_t size, uint64_t base_display_addr);
 
 // =========================================================================
 // Settings

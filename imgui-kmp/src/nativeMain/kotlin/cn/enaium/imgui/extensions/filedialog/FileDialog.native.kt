@@ -32,8 +32,6 @@ import cn.enaium.imgui.ImVec4
 import imgui.*
 import kotlinx.cinterop.*
 import platform.posix.free
-import platform.posix.size_tVar
-
 // =========================================================================
 // Native (cinterop) actual implementations
 // =========================================================================
@@ -120,10 +118,10 @@ actual object FileDialog {
     actual fun isOpened(dialog: FileDialogInstance): Boolean = igfd_is_opened(dialog.ptr)
 
     actual fun getSelection(dialog: FileDialogInstance, mode: Int): List<Pair<String, String>> = memScoped {
-        val countVar = alloc<size_tVar>()
+        val countVar = alloc<IntVar>()
         val table = igfd_get_selection(dialog.ptr, mode, countVar.ptr)
             ?: return@memScoped emptyList()
-        val count = countVar.value.toInt()
+        val count = countVar.value
         try {
             val result = ArrayList<Pair<String, String>>(count)
             for (i in 0 until count) {

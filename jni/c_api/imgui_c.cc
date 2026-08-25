@@ -130,8 +130,10 @@ extern "C" __attribute__((weak)) int __isoc23_vfprintf(FILE* stream, const char*
 // no definition is required here).
 
 // ImGui keeps the io.IniFilename pointer; store the string somewhere stable.
-static thread_local std::string g_ini_filename;
-
+// C++'s std::string would drag the C++ runtime into every consumer of
+// libimgui.a, so use a fixed-size char buffer instead. Filenames longer
+// than this are silently truncated, which is fine for an ini path.
+static thread_local char g_ini_filename[4096];
 extern "C" {
 
 // =========================================================================
@@ -1627,11 +1629,12 @@ void imgui_io_set_backend_flags(imgui_io* io, int flags) {
 
 void imgui_io_set_ini_filename(imgui_io* io, const char* path) {
     if (path == nullptr) {
-        g_ini_filename.clear();
+        g_ini_filename[0] = '\0';
         ((ImGuiIO*)io)->IniFilename = nullptr;
     } else {
-        g_ini_filename = path;
-        ((ImGuiIO*)io)->IniFilename = g_ini_filename.c_str();
+        strncpy(g_ini_filename, path, sizeof(g_ini_filename) - 1);
+        g_ini_filename[sizeof(g_ini_filename) - 1] = '\0';
+        ((ImGuiIO*)io)->IniFilename = g_ini_filename;
     }
 }
 

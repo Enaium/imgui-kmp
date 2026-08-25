@@ -29,3 +29,4 @@ compose-material3 = { module = "androidx.compose.material3:material3" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 android-kmp-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "maven-publish" }
+android-application = { id = "com.android.application", version.ref = "agp" }
