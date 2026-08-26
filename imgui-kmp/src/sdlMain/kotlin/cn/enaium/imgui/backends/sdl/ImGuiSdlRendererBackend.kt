@@ -79,12 +79,23 @@ class ImGuiSdlRendererBackend(private val renderer: SDLRenderer) {
 
     /** Issues the actual draw calls for the frame. */
     fun renderDrawData(drawData: ImDrawData) {
-        // SDL3's renderer works in logical coordinates and maps them to the
-        // physical framebuffer itself (Retina et al.), so vertices are passed
-        // unscaled; only the framebuffer size and clip rects are in pixels.
-        // The scale comes from the renderer's actual output size vs the
-        // logical display size, not from drawData.framebufferScale (which may
-        // be stale/wrong on some SDL builds).
+        // ImGui draws in LOGICAL units where `io.displaySize` == the SDL
+        // window's logical size (e.g. 1280x720). SDL3's 2D renderer does NOT
+        // automatically map those to the physical framebuffer for
+        // `SDL_RenderGeometry`: geometry is scaled only by the renderer's
+        // `SDL_RenderSetScale` value (default 1.0), NOT by its internal
+        // dpi_scale. So on a high-DPI display (Retina, or any display where
+        // `window.sizeInPixels` > `window.size`) ImGui's logical vertices
+        // must be explicitly projected to framebuffer pixels, otherwise the
+        // UI renders at 1/scale size in the top-left corner and the cursor
+        // (hit-tested in logical space) no longer lines up with the widgets.
+        //
+        // The projection factor is physical render output / logical display
+        // size (== drawData.framebufferScale when the backend sets it
+        // correctly; deriving it from the renderer's own output size keeps it
+        // from drifting). The same factor is applied to the vertices below
+        // and to the clip rects, so both live in framebuffer-pixel space and
+        // SDL renders the whole frame 1:1.
         val scaleX = outputSize.x.toFloat() / drawData.displaySize.x
         val scaleY = outputSize.y.toFloat() / drawData.displaySize.y
         val displayW = outputSize.x
@@ -122,9 +133,11 @@ class ImGuiSdlRendererBackend(private val renderer: SDLRenderer) {
                     val color = verts.colors[vtxOffset + i]
                     vertexList.add(
                         SDLVertex(
+                            // Project the ImGui logical vertex position into
+                            // framebuffer pixels (same factor as the clip rect).
                             position = SDLFloatPoint(
-                                x = verts.positions[(vtxOffset + i) * 2] - drawData.displayPos.x,
-                                y = verts.positions[(vtxOffset + i) * 2 + 1] - drawData.displayPos.y,
+                                x = (verts.positions[(vtxOffset + i) * 2] - drawData.displayPos.x) * scaleX,
+                                y = (verts.positions[(vtxOffset + i) * 2 + 1] - drawData.displayPos.y) * scaleY,
                             ),
                             color = SDLColor(
                                 // ImDrawVert::col is packed as 0xAABBGGRR

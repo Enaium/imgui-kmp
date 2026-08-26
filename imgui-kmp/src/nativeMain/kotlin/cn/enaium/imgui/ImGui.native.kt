@@ -125,6 +125,28 @@ internal class NativeImFontAtlas(internal val ptr: CPointer<imgui_font_atlas>?) 
     override fun addFontDefault(): ImFont =
         NativeImFont(imgui_font_atlas_add_font_default(ptr))
 
+    override fun addFontDefault(config: ImFontConfig): ImFont =
+        NativeImFont(
+            imgui_font_atlas_add_font_default_cfg(
+                ptr, config.name, config.mergeMode, config.pixelSnapH,
+                config.oversampleH, config.oversampleV,
+                config.sizePixels, config.glyphOffsetX, config.glyphOffsetY,
+                config.glyphMinAdvanceX, config.glyphMaxAdvanceX,
+                config.rasterizerMultiply, config.rasterizerDensity, config.extraSizeScale,
+            ),
+        )
+
+    override fun addFontFromFileTTF(path: String, config: ImFontConfig): ImFont =
+        NativeImFont(
+            imgui_font_atlas_add_font_from_file_ttf_cfg(
+                ptr, path, config.name, config.mergeMode, config.pixelSnapH,
+                config.oversampleH, config.oversampleV,
+                config.sizePixels, config.glyphOffsetX, config.glyphOffsetY,
+                config.glyphMinAdvanceX, config.glyphMaxAdvanceX,
+                config.rasterizerMultiply, config.rasterizerDensity, config.extraSizeScale,
+            ),
+        )
+
     override fun build(): Boolean = imgui_font_atlas_build(ptr)
 
     override fun getTexDataAsRGBA32(): FontTexData = memScoped {

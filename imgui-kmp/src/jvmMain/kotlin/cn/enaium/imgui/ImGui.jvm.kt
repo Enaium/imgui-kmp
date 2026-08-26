@@ -394,6 +394,18 @@ internal object Jni {
 
     // ---- Fonts ----
     external fun fontsAddFontFromFileTTF(atlas: Long, path: String, sizePx: Float): Long
+    external fun fontsAddFontDefaultConfig(
+        atlas: Long, name: String?, mergeMode: Boolean, pixelSnapH: Boolean,
+        oversampleH: Int, oversampleV: Int, sizePixels: Float,
+        glyphOffsetX: Float, glyphOffsetY: Float, glyphMinAdvanceX: Float, glyphMaxAdvanceX: Float,
+        rasterizerMultiply: Float, rasterizerDensity: Float, extraSizeScale: Float,
+    ): Long
+    external fun fontsAddFontFromFileTTFConfig(
+        atlas: Long, path: String, name: String?, mergeMode: Boolean, pixelSnapH: Boolean,
+        oversampleH: Int, oversampleV: Int, sizePixels: Float,
+        glyphOffsetX: Float, glyphOffsetY: Float, glyphMinAdvanceX: Float, glyphMaxAdvanceX: Float,
+        rasterizerMultiply: Float, rasterizerDensity: Float, extraSizeScale: Float,
+    ): Long
     external fun fontsAddFontDefault(atlas: Long): Long
     external fun fontsBuild(atlas: Long): Boolean
     external fun fontsGetTexDataAsRGBA32(atlas: Long, outDims: IntArray): ByteArray
@@ -526,6 +538,26 @@ internal class JvmImFontAtlas(internal val ptr: Long) : ImFontAtlas {
 
     override fun addFontDefault(): ImFont =
         JvmImFont(Jni.fontsAddFontDefault(ptr))
+
+    override fun addFontDefault(config: ImFontConfig): ImFont =
+        JvmImFont(
+            Jni.fontsAddFontDefaultConfig(
+                ptr, config.name, config.mergeMode, config.pixelSnapH,
+                config.oversampleH, config.oversampleV, config.sizePixels,
+                config.glyphOffsetX, config.glyphOffsetY, config.glyphMinAdvanceX, config.glyphMaxAdvanceX,
+                config.rasterizerMultiply, config.rasterizerDensity, config.extraSizeScale,
+            ),
+        )
+
+    override fun addFontFromFileTTF(path: String, config: ImFontConfig): ImFont =
+        JvmImFont(
+            Jni.fontsAddFontFromFileTTFConfig(
+                ptr, path, config.name, config.mergeMode, config.pixelSnapH,
+                config.oversampleH, config.oversampleV, config.sizePixels,
+                config.glyphOffsetX, config.glyphOffsetY, config.glyphMinAdvanceX, config.glyphMaxAdvanceX,
+                config.rasterizerMultiply, config.rasterizerDensity, config.extraSizeScale,
+            ),
+        )
 
     override fun build(): Boolean = Jni.fontsBuild(ptr)
 

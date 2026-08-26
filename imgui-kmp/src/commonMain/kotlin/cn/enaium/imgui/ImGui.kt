@@ -129,10 +129,68 @@ interface ImDrawData {
 /** A font loaded into the font atlas. */
 interface ImFont
 
-/** The font atlas owned by [ImGuiIO]; holds all fonts and the shared texture. */
+/**
+ * Configuration for adding a font to an [ImFontAtlas]. Mirrors the
+ * relevant fields of Dear ImGui's `ImFontConfig`. Defaults match the
+ * C++ struct (0 / false / 1.0), with [sizePixels] <= 0 meaning "use the
+ * font's default" (13f for the built-in default font).
+ */
+class ImFontConfig(
+    /** Font name, mainly for debugging; null lets imgui pick one. */
+    var name: String? = null,
+    /** Merge into the previous font (combine multiple sources in one font). */
+    var mergeMode: Boolean = false,
+    /** Align every glyph advance to pixel boundaries. */
+    var pixelSnapH: Boolean = false,
+    /** Rasterization oversampling (0 = auto). */
+    var oversampleH: Int = 0,
+    var oversampleV: Int = 0,
+    /** Output size in logical pixels; <= 0 uses the font default (13f). */
+    var sizePixels: Float = 0f,
+    /** Offset (px) applied to all glyphs of this source. */
+    var glyphOffsetX: Float = 0f,
+    var glyphOffsetY: Float = 0f,
+    /** Minimum / maximum advance (px); set both for a monospace font. */
+    var glyphMinAdvanceX: Float = 0f,
+    var glyphMaxAdvanceX: Float = Float.MAX_VALUE,
+    /** Linearly brighten (>1) or darken (<1) the rasterized output. */
+    var rasterizerMultiply: Float = 1f,
+    /** DPI density multiplier for rasterization: the atlas is baked at
+     *  `sizePixels * rasterizerDensity` physical px while the logical
+     *  metrics stay [sizePixels] (keeps text crisp on high-DPI displays). */
+    var rasterizerDensity: Float = 1f,
+    /** Extra rasterizer scale over [sizePixels]. */
+    var extraSizeScale: Float = 1f,
+)
+
 interface ImFontAtlas {
-    fun addFontFromFileTTF(path: String, sizePx: Float): ImFont
-    fun addFontDefault(): ImFont
+    /**
+     * Adds the embedded default font (ProggyClean) with default config.
+     * See [addFontDefault] for the config-driven variant.
+     */
+    fun addFontDefault(): ImFont = addFontDefault(ImFontConfig())
+
+    /**
+     * Adds the embedded default font using [config]. Pass
+     * `config.sizePixels = 13f * dpi, config.rasterizerDensity = 2f` to
+     * bake a crisp high-DPI atlas without shipping a TTF.
+     */
+    fun addFontDefault(config: ImFontConfig): ImFont
+
+    /** Convenience for [addFontFromFileTTF] with rasterizer density 1.0. */
+    fun addFontFromFileTTF(path: String, sizePx: Float): ImFont =
+        addFontFromFileTTF(path, ImFontConfig().apply { sizePixels = sizePx })
+
+    /** Convenience: [addFontFromFileTTF] with only size + density set. */
+    fun addFontFromFileTTF(path: String, sizePx: Float, rasterizerDensity: Float): ImFont =
+        addFontFromFileTTF(path, ImFontConfig().apply {
+            this.sizePixels = sizePx
+            this.rasterizerDensity = rasterizerDensity
+        })
+
+    /** Loads [path] with the full [ImFontConfig]. */
+    fun addFontFromFileTTF(path: String, config: ImFontConfig): ImFont
+
     fun build(): Boolean
     fun getTexDataAsRGBA32(): FontTexData
     fun setTexID(id: Long)

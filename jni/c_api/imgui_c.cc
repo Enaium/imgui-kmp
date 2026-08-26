@@ -1726,6 +1726,54 @@ imgui_font* imgui_font_atlas_add_font_from_file_ttf(imgui_font_atlas* atlas, con
     return (imgui_font*)((ImFontAtlas*)atlas)->AddFontFromFileTTF(path, size_px);
 }
 
+// Builds an ImFontConfig from the flattened C params.
+static ImFontConfig imgui_font_config_from(const char* name, bool merge_mode, bool pixel_snap_h, int oversample_h, int oversample_v,
+    float size_pixels, float glyph_offset_x, float glyph_offset_y,
+    float glyph_min_advance_x, float glyph_max_advance_x,
+    float rasterizer_multiply, float rasterizer_density, float extra_size_scale) {
+    ImFontConfig cfg;
+    cfg.MergeMode = merge_mode;
+    cfg.PixelSnapH = pixel_snap_h;
+    cfg.OversampleH = (ImS8)oversample_h;
+    cfg.OversampleV = (ImS8)oversample_v;
+    cfg.SizePixels = size_pixels;
+    cfg.GlyphOffset.x = glyph_offset_x;
+    cfg.GlyphOffset.y = glyph_offset_y;
+    cfg.GlyphMinAdvanceX = glyph_min_advance_x;
+    cfg.GlyphMaxAdvanceX = glyph_max_advance_x;
+    cfg.RasterizerMultiply = rasterizer_multiply;
+    cfg.RasterizerDensity = rasterizer_density;
+    cfg.ExtraSizeScale = extra_size_scale;
+    if (name && name[0]) {
+        ImStrncpy(cfg.Name, name, IM_COUNTOF(cfg.Name));
+    }
+    return cfg;
+}
+
+imgui_font* imgui_font_atlas_add_font_default_cfg(imgui_font_atlas* atlas,
+    const char* name, bool merge_mode, bool pixel_snap_h,
+    int oversample_h, int oversample_v,
+    float size_pixels, float glyph_offset_x, float glyph_offset_y,
+    float glyph_min_advance_x, float glyph_max_advance_x,
+    float rasterizer_multiply, float rasterizer_density, float extra_size_scale) {
+    ImFontConfig cfg = imgui_font_config_from(name, merge_mode, pixel_snap_h, oversample_h, oversample_v,
+        size_pixels, glyph_offset_x, glyph_offset_y, glyph_min_advance_x, glyph_max_advance_x,
+        rasterizer_multiply, rasterizer_density, extra_size_scale);
+    return (imgui_font*)((ImFontAtlas*)atlas)->AddFontDefault(&cfg);
+}
+
+imgui_font* imgui_font_atlas_add_font_from_file_ttf_cfg(imgui_font_atlas* atlas, const char* path,
+    const char* name, bool merge_mode, bool pixel_snap_h,
+    int oversample_h, int oversample_v,
+    float size_pixels, float glyph_offset_x, float glyph_offset_y,
+    float glyph_min_advance_x, float glyph_max_advance_x,
+    float rasterizer_multiply, float rasterizer_density, float extra_size_scale) {
+    ImFontConfig cfg = imgui_font_config_from(name, merge_mode, pixel_snap_h, oversample_h, oversample_v,
+        size_pixels, glyph_offset_x, glyph_offset_y, glyph_min_advance_x, glyph_max_advance_x,
+        rasterizer_multiply, rasterizer_density, extra_size_scale);
+    return (imgui_font*)((ImFontAtlas*)atlas)->AddFontFromFileTTF(path, cfg.SizePixels, &cfg);
+}
+
 imgui_font* imgui_font_atlas_add_font_default(imgui_font_atlas* atlas) {
     return (imgui_font*)((ImFontAtlas*)atlas)->AddFontDefault();
 }

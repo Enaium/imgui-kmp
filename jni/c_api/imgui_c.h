@@ -471,6 +471,23 @@ imgui_font_atlas* imgui_io_get_fonts(imgui_io* io);
 
 imgui_font* imgui_font_atlas_add_font_from_file_ttf(imgui_font_atlas* atlas, const char* path, float size_px);
 imgui_font* imgui_font_atlas_add_font_default(imgui_font_atlas* atlas);
+
+// Config-driven font loading (full ImFontConfig surface). Fields use the
+// same defaults as ImFontConfig: name may be NULL, oversample 0 == auto,
+// size_pixels <= 0 uses the default (13f), rasterizer_density 1.0.
+imgui_font* imgui_font_atlas_add_font_default_cfg(imgui_font_atlas* atlas,
+    const char* name, bool merge_mode, bool pixel_snap_h,
+    int oversample_h, int oversample_v,
+    float size_pixels, float glyph_offset_x, float glyph_offset_y,
+    float glyph_min_advance_x, float glyph_max_advance_x,
+    float rasterizer_multiply, float rasterizer_density, float extra_size_scale);
+imgui_font* imgui_font_atlas_add_font_from_file_ttf_cfg(imgui_font_atlas* atlas, const char* path,
+    const char* name, bool merge_mode, bool pixel_snap_h,
+    int oversample_h, int oversample_v,
+    float size_pixels, float glyph_offset_x, float glyph_offset_y,
+    float glyph_min_advance_x, float glyph_max_advance_x,
+    float rasterizer_multiply, float rasterizer_density, float extra_size_scale);
+
 bool imgui_font_atlas_build(imgui_font_atlas* atlas);
 void imgui_font_atlas_get_tex_data_as_rgba32(imgui_font_atlas* atlas, const unsigned char** out_pixels, int* out_width, int* out_height, int* out_bpp);
 void imgui_font_atlas_set_tex_id(imgui_font_atlas* atlas, uint64_t tex_id);
