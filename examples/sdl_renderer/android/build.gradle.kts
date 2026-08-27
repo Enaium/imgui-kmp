@@ -120,10 +120,11 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    // The org.libsdl.app SDLActivity sources are vendored under
-    // src/main/java/org/libsdl/app so the Java side matches the statically
-    // linked SDL3 in the sdl-kmp klib. (The upstream sdl-kmp examples
-    // point at a ../../../SDL/ submodule; imgui-kmp doesn't ship one.)
+    // The org.libsdl.app SDLActivity sources live in the shared
+    // :examples:android-sdl library (one copy for all example apps), so the
+    // Java side matches the statically linked SDL3 in the sdl-kmp klib. (The
+    // upstream sdl-kmp examples point at a ../../../SDL/ submodule;
+    // imgui-kmp doesn't ship one.)
 }
 
 // Register the generated libmain.so directory with AGP's Variant API.
@@ -134,4 +135,5 @@ androidComponents {
 }
 
 dependencies {
+    implementation(project(":examples:android-sdl"))
 }

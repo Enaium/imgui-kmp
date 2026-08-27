@@ -238,6 +238,7 @@ expect object ImGui {
     fun createContext(): ImGuiContext
     fun destroyContext(context: ImGuiContext? = null)
     fun getCurrentContext(): ImGuiContext?
+    fun setCurrentContext(context: ImGuiContext)
     fun newFrame()
     fun render()
     fun getDrawData(): ImDrawData

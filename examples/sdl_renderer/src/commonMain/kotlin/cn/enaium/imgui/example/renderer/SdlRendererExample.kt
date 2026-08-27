@@ -23,95 +23,35 @@
 package cn.enaium.imgui.example.renderer
 
 import cn.enaium.imgui.ImGui
-import cn.enaium.imgui.backends.sdl.ImGuiSdlBackend
-import cn.enaium.imgui.backends.sdl.ImGuiSdlRendererBackend
 import cn.enaium.imgui.example.common.DemoUi
-import cn.enaium.sdl.SDL
-import cn.enaium.sdl.SDLColor
-import cn.enaium.sdl.SDLInitFlags
-import cn.enaium.sdl.SDLWindowFlags
+import cn.enaium.imgui.example.common.SdlRendererApp
+import cn.enaium.imgui.extensions.implot.ImPlot
+import cn.enaium.imgui.extensions.implot.ImPlotContext
 
 /**
  * Dear ImGui + ImPlot rendered through the SDL3 2D renderer.
  *
- * Run with `./gradlew :examples:run` (JVM) or the per-target native binaries.
- * Pass `--frames N` to exit after N frames (useful for headless CI runs).
+ * Run with `./gradlew :examples:sdl_renderer:jvmRun` (JVM) or the per-target
+ * native binaries. Pass `--frames N` to exit after N frames (useful for
+ * headless CI runs). The SDL bootstrap lives in [SdlRendererApp].
  */
 fun runSdlRendererExample(frames: Int = Int.MAX_VALUE) {
-    SDL.setMainReady()
-    // Fall back to the dummy video driver (headless CI runners, SSH
-    // sessions) like sdl-kmp's own examples do.
-    if (!SDL.init(SDLInitFlags.VIDEO or SDLInitFlags.EVENTS)) {
-        SDL.setHint("SDL_VIDEO_DRIVER", "dummy")
-        if (SDL.init(SDLInitFlags.VIDEO or SDLInitFlags.EVENTS)) {
-            println("video init fell back to the dummy driver — running headless")
-        } else {
-            error("SDL_Init failed: ${SDL.error()}")
-        }
-    }
-    println("SDL ${SDL.version()} (${SDL.revision()})")
-    println("Video driver: ${SDL.getCurrentVideoDriver()}")
-
-    SDL.createWindow(
+    var demoUi: DemoUi? = null
+    var plotContext: ImPlotContext? = null
+    SdlRendererApp.run(
         title = "imgui-kmp renderer example",
-        width = 1280,
-        height = 800,
-        flags = SDLWindowFlags.RESIZABLE,
-    ).use { window ->
-        SDL.createRenderer(window).use { renderer ->
-            val context = ImGui.createContext()
-            try {
-                val imgui = ImGuiSdlBackend(window)
-                val backend = ImGuiSdlRendererBackend(renderer)
-                imgui.init()
-
-                // Build the font atlas, then create the renderer texture from
-                // the resulting pixels and hand the texture id to imgui.
-                val fonts = ImGui.getIO().fonts
-                fonts.addFontDefault()
-                check(fonts.build()) { "font atlas build failed" }
-                val texData = fonts.getTexDataAsRGBA32()
-                val fontTextureId = backend.uploadFontTexture(texData.pixels, texData.width, texData.height)
-                fonts.setTexID(fontTextureId)
-
-                val plotContext = cn.enaium.imgui.extensions.implot.ImPlot.createContext()
-                cn.enaium.imgui.extensions.implot.ImPlot.setImGuiContext(context)
-                val demoUi = DemoUi().apply {
-                    this.fontTextureId = fontTextureId
-                }
-
-                var running = true
-                var frameCount = 0
-                while (running && frameCount < frames) {
-                    // ---- events ----
-                    while (true) {
-                        val event = SDL.pollEvent() ?: break
-                        when (event) {
-                            is cn.enaium.sdl.SDLEvent.Quit -> running = false
-                            is cn.enaium.sdl.SDLEvent.Window ->
-                                if (event.type == cn.enaium.sdl.SDLWindowEventType.CLOSE_REQUESTED) running = false
-                            else -> imgui.processEvent(event)
-                        }
-                    }
-
-                    imgui.newFrame()
-                    demoUi.draw(frameCount)
-                    ImGui.render()
-
-                    renderer.drawColor = SDLColor(18, 18, 24, 255)
-                    renderer.clear()
-                    backend.renderDrawData(ImGui.getDrawData())
-                    renderer.present()
-                    frameCount++
-                }
-
-                demoUi.close()
-                cn.enaium.imgui.extensions.implot.ImPlot.destroyContext(plotContext)
-                backend.close()
-            } finally {
-                ImGui.destroyContext(context)
+        frames = frames,
+        init = { fontTextureId ->
+            demoUi = DemoUi().apply {
+                this.fontTextureId = fontTextureId
             }
-        }
-    }
-    SDL.quit()
+            plotContext = ImPlot.createContext()
+            ImPlot.setImGuiContext(ImGui.getCurrentContext() ?: error("no imgui context"))
+        },
+        draw = { frame -> demoUi?.draw(frame) },
+        close = {
+            demoUi?.close()
+            plotContext?.let { ImPlot.destroyContext(it) }
+        },
+    )
 }

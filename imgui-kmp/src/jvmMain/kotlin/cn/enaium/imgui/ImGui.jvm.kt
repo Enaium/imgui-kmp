@@ -35,6 +35,7 @@ internal object Jni {
     external fun createContext(): Long
     external fun destroyContext(ptr: Long)
     external fun getCurrentContext(): Long
+    external fun setCurrentContext(ptr: Long)
     external fun getIO(): Long
     external fun getStyle(): Long
     external fun newFrame()
@@ -713,6 +714,9 @@ actual object ImGui {
         val ptr = Jni.getCurrentContext()
         return if (ptr != 0L) JvmImGuiContext(ptr) else null
     }
+
+    actual fun setCurrentContext(context: ImGuiContext) =
+        Jni.setCurrentContext((context as JvmImGuiContext).ptr)
 
     actual fun newFrame() = Jni.newFrame()
     actual fun render() = Jni.render()

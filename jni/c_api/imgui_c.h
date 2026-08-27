@@ -64,6 +64,7 @@ typedef struct imgui_draw_vert {
 imgui_context* imgui_create_context(void);
 void imgui_destroy_context(imgui_context* ctx);
 imgui_context* imgui_get_current_context(void);
+void imgui_set_current_context(imgui_context* ctx);
 imgui_io* imgui_get_io(void);
 imgui_style* imgui_get_style(void);
 const char* imgui_get_version(void);

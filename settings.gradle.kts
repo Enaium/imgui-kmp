@@ -23,10 +23,15 @@ rootProject.name = "imgui-kmp"
 
 include(":imgui-kmp")
 include(":examples:common")
+include(":examples:android-sdl")
 include(":examples:sdl_renderer")
 include(":examples:sdl_gpu")
 include(":examples:sdl_renderer:android")
 include(":examples:sdl_gpu:android")
+include(":examples:node_editor")
+include(":examples:club")
+include(":examples:node_editor:android")
+include(":examples:club:android")
 
 // Per-OS/arch JNI artifacts that bundle the prebuilt libimgui_jni shared
 // library as a classpath resource. NativeLoader extracts the matching one at

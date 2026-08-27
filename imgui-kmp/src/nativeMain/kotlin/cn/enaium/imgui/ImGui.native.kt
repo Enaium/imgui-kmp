@@ -387,6 +387,10 @@ actual object ImGui {
         return if (ptr != null) NativeImGuiContext(ptr) else null
     }
 
+    actual fun setCurrentContext(context: ImGuiContext) {
+        imgui_set_current_context((context as NativeImGuiContext).ptr)
+    }
+
     actual fun newFrame() = imgui_new_frame()
     actual fun render() = imgui_render()
     actual fun getDrawData(): ImDrawData = NativeImDrawData(imgui_get_draw_data())

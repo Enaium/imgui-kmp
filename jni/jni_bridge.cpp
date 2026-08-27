@@ -88,6 +88,10 @@ extern "C" JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_Jni_getCurrentContext(JN
     return reinterpret_cast<jlong>(imgui_get_current_context());
 }
 
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_setCurrentContext(JNIEnv*, jclass, jlong ctx) {
+    imgui_set_current_context(reinterpret_cast<imgui_context*>(ctx));
+}
+
 extern "C" JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_Jni_getIO(JNIEnv*, jclass) {
     return reinterpret_cast<jlong>(imgui_get_io());
 }
@@ -4258,6 +4262,8 @@ JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_extensions_memoryeditor_Jni_mouseHo
 
 } // extern "C" (node editor / file dialog / memory editor additions)
 
+extern "C" {
+
 // =========================================================================
 // Multi-context compositor (imgui_club)
 // =========================================================================
@@ -4411,3 +4417,5 @@ JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_threadedrendering_Jni_pro
 JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_threadedrendering_Jni_shutdown(JNIEnv*, jclass, jlong ptr) {
     trs_texture_queue_shutdown(reinterpret_cast<trs_texture_queue*>(ptr));
 }
+
+} // extern "C" (multi-context compositor / threaded rendering additions)

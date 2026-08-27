@@ -162,6 +162,10 @@ imgui_context* imgui_get_current_context(void) {
     return (imgui_context*)ImGui::GetCurrentContext();
 }
 
+void imgui_set_current_context(imgui_context* ctx) {
+    ImGui::SetCurrentContext((ImGuiContext*)ctx);
+}
+
 imgui_io* imgui_get_io(void) {
     return (imgui_io*)&ImGui::GetIO();
 }
