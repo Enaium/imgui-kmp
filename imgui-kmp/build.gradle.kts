@@ -37,6 +37,7 @@ fun canBuildNativeTarget(targetName: String): Boolean {
         hostOs.isMacOsX && targetName.startsWith("tvos") -> true
         hostOs.isMacOsX && targetName.startsWith("watchos") -> true
         hostOs.isLinux && targetName == "linuxX64" -> true
+        hostOs.isLinux && targetName == "linuxArm64" -> true
         hostOs.isLinux && targetName == "mingwX64" && hasMingwCrossToolchain() -> true
         // androidNative targets cross-compile the C++ library with the Android
         // NDK toolchain (MSVC hosts are excluded: the default CMake generator
@@ -153,6 +154,8 @@ kotlin {
 
     linuxX64()
 
+    linuxArm64()
+
     mingwX64()
 
     // Android native targets (the AAR's JVM API is separate; these are used
@@ -248,6 +251,7 @@ kotlin {
             "macosArm64",
             "macosX64",
             "linuxX64",
+            "linuxArm64",
             "mingwX64",
             "androidNativeArm64",
             "androidNativeArm32",
@@ -486,6 +490,21 @@ if (hostOs.isMacOsX) {
     )
 } else if (hostOs.isLinux) {
     registerNativeBuildTasks("linuxX64")
+    // linuxArm64: Kotlin/Native cross-compiles the target from any Linux
+    // host. On an x86_64 host the C++ static library is cross-compiled with
+    // aarch64-linux-gnu; on a native aarch64 host the default compiler
+    // already targets arm64. Install the cross-compiler with
+    // `sudo apt-get install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu`.
+    val isAarch64Host = hostArch == "aarch64" || hostArch == "arm64"
+    registerNativeBuildTasks(
+        "linuxArm64",
+        if (isAarch64Host) emptyList() else listOf(
+            "-DCMAKE_SYSTEM_NAME=Linux",
+            "-DCMAKE_SYSTEM_PROCESSOR=aarch64",
+            "-DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc",
+            "-DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++",
+        ),
+    )
     // mingwX64 is cross-compiled with MinGW-w64; install it with
     // `sudo apt-get install gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64`.
     // CMAKE_SYSTEM_NAME=Windows makes CMake treat this as a Windows

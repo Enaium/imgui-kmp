@@ -12,8 +12,8 @@ name: Publish
 #                    target klibs (macos/ios/tvos/watchos) + androidNative
 #                    klibs (the macOS image ships the Android NDK) and
 #                    :jni-jvm-darwin-aarch64, :jni-jvm-darwin-x86_64
-#   ubuntu-latest -> :imgui-kmp linuxX64 + mingwX64 klibs (with the
-#                    embedded static library, cross-compiled), and
+#   ubuntu-latest -> :imgui-kmp linuxX64 + linuxArm64 + mingwX64 klibs (with
+#                    the embedded static library, cross-compiled), and
 #                    :jni-jvm-linux-x86_64, :jni-jvm-linux-aarch64
 #   windows-latest -> :jni-jvm-windows-x86_64 (via MinGW)
 #
@@ -84,7 +84,7 @@ jobs:
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
 
   publish-linux:
-    name: Publish Linux (linuxX64/mingwX64 klibs + linux JNI)
+    name: Publish Linux (linuxX64/linuxArm64/mingwX64 klibs + linux JNI)
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -112,13 +112,14 @@ jobs:
           ls -la "$RUNNER_TEMP/signing-key.gpg"
           head -c 16 "$RUNNER_TEMP/signing-key.gpg" | od -c | head -2
 
-      - name: Publish linuxX64/mingwX64 klibs and linux JNI
+      - name: Publish linuxX64/linuxArm64/mingwX64 klibs and linux JNI
         run: >
           ./gradlew --no-daemon --stacktrace
           -Psigning.keyId="${{ secrets.SIGNING_KEY_ID }}"
           -Psigning.secretKeyRingFile="${{ runner.temp }}/signing-key.gpg"
           -Psigning.password="${{ secrets.SIGNING_PASSWORD }}"
           :imgui-kmp:publishLinuxX64PublicationToMavenCentralRepository
+          :imgui-kmp:publishLinuxArm64PublicationToMavenCentralRepository
           :imgui-kmp:publishMingwX64PublicationToMavenCentralRepository
           :jni-jvm-linux-x86_64:publishToMavenCentral
           :jni-jvm-linux-aarch64:publishToMavenCentral

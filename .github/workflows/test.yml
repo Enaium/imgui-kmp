@@ -11,9 +11,8 @@ name: Test
 #                     android + Apple klibs) + darwin JNI, JVM/native tests,
 #                     JVM + native sdl_renderer example (headless via SDL
 #                     dummy driver)
-#   Linux x64      -> linux JNI (x86_64 + aarch64 cross), JVM + native tests,
-#                     linuxX64 sdl_renderer example, mingwX64 klib with
-#                     embedded lib
+#                     linuxX64 sdl_renderer example, mingwX64 + linuxArm64
+#                     klibs with embedded lib
 #   Windows x64    -> windows JNI (MinGW), JVM tests, mingwX64 klib
 #   Android        -> publish android AAR + metadata to Maven Local, android
 #                     host tests
@@ -146,6 +145,11 @@ jobs:
         # Cross-compiles libimgui.a with x86_64-w64-mingw32 and embeds it
         # into the mingwX64 cinterop klib (same as the publish-linux job).
         run: ./gradlew --no-daemon :imgui-kmp:compileKotlinMingwX64
+
+      - name: Compile linuxArm64 klib with embedded static library
+        # Cross-compiles libimgui.a with aarch64-linux-gnu and embeds it
+        # into the linuxArm64 cinterop klib (same as the publish-linux job).
+        run: ./gradlew --no-daemon :imgui-kmp:compileKotlinLinuxArm64
 
   test-windows:
     name: Test Windows x64

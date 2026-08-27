@@ -40,6 +40,10 @@ kotlin {
         binaries.executable()
     }
 
+    linuxArm64 {
+        binaries.executable()
+    }
+
     mingwX64 {
         binaries.executable()
     }

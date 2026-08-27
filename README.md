@@ -16,7 +16,7 @@ Kotlin Multiplatform bindings for [Dear ImGui](https://github.com/ocornut/imgui)
 | **Android native** | arm64-v8a, armeabi-v7a, x86_64, x86 (Kotlin/Native API)  | cinterop (static library, NDK cross-compiled) |
 | **iOS**        | arm64, x64, simulatorArm64                                   | Kotlin/Native cinterop (static library)    |
 | **macOS**      | arm64, x86_64                                                | Kotlin/Native cinterop (static library)    |
-| **Linux**      | x86_64                                                       | Kotlin/Native cinterop (static library)    |
+| **Linux**      | x86_64, aarch64                                                       | Kotlin/Native cinterop (static library)    |
 | **Windows**    | mingwX64                                                     | Kotlin/Native cinterop (static library)    |
 | **tvOS**       | arm64, simulatorArm64                                        | Kotlin/Native cinterop (static library)    |
 | **watchOS**    | arm64, simulatorArm64, deviceArm64                           | Kotlin/Native cinterop (static library)    |
