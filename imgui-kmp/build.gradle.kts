@@ -30,6 +30,19 @@ fun hasMingwCrossToolchain(): Boolean {
     }
 }
 
+// linuxArm64 builds on a native aarch64 host with the default compiler; an
+// x86_64 host needs the aarch64-linux-gnu cross-compiler (matches
+// Kotlin/Native's own linker targets for linuxArm64).
+fun hasAarch64CrossToolchain(): Boolean {
+    val name = "aarch64-linux-gnu-gcc"
+    return System.getenv("PATH")?.split(File.pathSeparator).orEmpty().any { dir ->
+        val f = File(dir, name)
+        f.isFile && f.canExecute()
+    }
+}
+
+fun isAarch64Host(): Boolean = hostArch == "aarch64" || hostArch == "arm64"
+
 fun canBuildNativeTarget(targetName: String): Boolean {
     return when {
         hostOs.isMacOsX && targetName.startsWith("macos") -> true
@@ -37,7 +50,7 @@ fun canBuildNativeTarget(targetName: String): Boolean {
         hostOs.isMacOsX && targetName.startsWith("tvos") -> true
         hostOs.isMacOsX && targetName.startsWith("watchos") -> true
         hostOs.isLinux && targetName == "linuxX64" -> true
-        hostOs.isLinux && targetName == "linuxArm64" -> true
+        hostOs.isLinux && targetName == "linuxArm64" -> isAarch64Host() || hasAarch64CrossToolchain()
         hostOs.isLinux && targetName == "mingwX64" && hasMingwCrossToolchain() -> true
         // androidNative targets cross-compile the C++ library with the Android
         // NDK toolchain (MSVC hosts are excluded: the default CMake generator
@@ -490,15 +503,15 @@ if (hostOs.isMacOsX) {
     )
 } else if (hostOs.isLinux) {
     registerNativeBuildTasks("linuxX64")
-    // linuxArm64: Kotlin/Native cross-compiles the target from any Linux
-    // host. On an x86_64 host the C++ static library is cross-compiled with
-    // aarch64-linux-gnu; on a native aarch64 host the default compiler
-    // already targets arm64. Install the cross-compiler with
-    // `sudo apt-get install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu`.
-    val isAarch64Host = hostArch == "aarch64" || hostArch == "arm64"
+    // linuxArm64: builds only when the toolchain is present (native aarch64
+    // host, or x86_64 host with the aarch64-linux-gnu cross-compiler installed
+    // via `sudo apt-get install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu`);
+    // otherwise the target ships bindings-only klibs, so the C++ static
+    // library is never attempted on runners that lack the cross-compiler
+    // (e.g. the Android CI job).
     registerNativeBuildTasks(
         "linuxArm64",
-        if (isAarch64Host) emptyList() else listOf(
+        if (isAarch64Host()) emptyList() else listOf(
             "-DCMAKE_SYSTEM_NAME=Linux",
             "-DCMAKE_SYSTEM_PROCESSOR=aarch64",
             "-DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc",
