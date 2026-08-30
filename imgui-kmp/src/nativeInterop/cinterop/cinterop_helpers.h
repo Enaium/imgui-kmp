@@ -35,6 +35,9 @@
 #include "implot3d_c.h"
 #include "node_editor_c.h"
 #include "file_dialog_c.h"
+#include "text_editor_c.h"
+#include "text_editor_extras_c.h"
+#include "text_editor_events_c.h"
 #include "memory_editor_c.h"
 #include "multi_context_compositor_c.h"
 #include "threaded_rendering_c.h"
@@ -52,6 +55,9 @@ struct implot_context { void* impl; };
 struct implot3d_context { void* impl; };
 struct ne_context { void* impl; };
 struct igfd_dialog { void* impl; };
+struct te_editor { void* impl; };
+struct te_autocomplete { void* impl; };
+struct te_notifications { void* impl; };
 struct me_editor { void* impl; };
 struct mcc_compositor { void* impl; };
 struct trs_snapshot { void* impl; };

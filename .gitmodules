@@ -16,3 +16,6 @@
 [submodule "includes/implot3d"]
 	path = includes/implot3d
 	url = git@github.com:brenocq/implot3d.git
+[submodule "includes/ImGuiColorTextEdit"]
+	path = includes/ImGuiColorTextEdit
+	url = git@github.com:goossens/ImGuiColorTextEdit.git

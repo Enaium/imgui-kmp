@@ -32,6 +32,9 @@
 #include "imgui_c.h"
 #include "implot_c.h"
 #include "implot3d_c.h"
+#include "text_editor_c.h"
+#include "text_editor_extras_c.h"
+#include "text_editor_events_c.h"
 
 // =========================================================================
 // Helpers
@@ -5224,3 +5227,664 @@ JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_quatEq(J
 }
 
 } // extern "C" (ImPlot3D additions)
+
+// =========================================================================
+// ColorTextEdit additions
+// =========================================================================
+
+static jstring te_string_to_jstring(JNIEnv* env, char* str) {
+    if (str == nullptr) {
+        return nullptr;
+    }
+    jstring out = env->NewStringUTF(str);
+    te_string_free(str);
+    return out;
+}
+
+extern "C" {
+
+// ---- Lifecycle ----
+
+JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_create(JNIEnv*, jclass) {
+    return reinterpret_cast<jlong>(te_create());
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_destroy(JNIEnv*, jclass, jlong ptr) {
+    te_destroy(reinterpret_cast<te_editor*>(ptr));
+}
+
+// ---- Text ----
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setText(JNIEnv* env, jclass, jlong ptr, jstring text) {
+    std::string text_s = jstring_to_string(env, text);
+    te_set_text(reinterpret_cast<te_editor*>(ptr), text_s.c_str());
+}
+
+JNIEXPORT jstring JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_getText(JNIEnv* env, jclass, jlong ptr) {
+    return te_string_to_jstring(env, te_get_text(reinterpret_cast<te_editor*>(ptr)));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_clearText(JNIEnv*, jclass, jlong ptr) {
+    te_clear_text(reinterpret_cast<te_editor*>(ptr));
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_isEmpty(JNIEnv*, jclass, jlong ptr) {
+    return te_is_empty(reinterpret_cast<te_editor*>(ptr)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_getLineCount(JNIEnv*, jclass, jlong ptr) {
+    return static_cast<jlong>(te_get_line_count(reinterpret_cast<te_editor*>(ptr)));
+}
+
+JNIEXPORT jstring JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_getLineText(JNIEnv* env, jclass, jlong ptr, jlong line) {
+    return te_string_to_jstring(env, te_get_line_text(reinterpret_cast<te_editor*>(ptr), static_cast<size_t>(line)));
+}
+
+// ---- Rendering ----
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_render(JNIEnv* env, jclass, jlong ptr, jstring title, jfloat size_x, jfloat size_y, jint child_flags, jint window_flags) {
+    std::string title_s = jstring_to_string(env, title);
+    return te_render(reinterpret_cast<te_editor*>(ptr), title_s.c_str(), size_x, size_y, child_flags, window_flags) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setFocus(JNIEnv*, jclass, jlong ptr) {
+    te_set_focus(reinterpret_cast<te_editor*>(ptr));
+}
+
+// ---- Configuration ----
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setTabSize(JNIEnv*, jclass, jlong ptr, jlong value) {
+    te_set_tab_size(reinterpret_cast<te_editor*>(ptr), static_cast<size_t>(value));
+}
+
+JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_getTabSize(JNIEnv*, jclass, jlong ptr) {
+    return static_cast<jlong>(te_get_tab_size(reinterpret_cast<te_editor*>(ptr)));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setInsertSpacesOnTabs(JNIEnv*, jclass, jlong ptr, jboolean value) {
+    te_set_insert_spaces_on_tabs(reinterpret_cast<te_editor*>(ptr), value == JNI_TRUE);
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_isInsertSpacesOnTabs(JNIEnv*, jclass, jlong ptr) {
+    return te_is_insert_spaces_on_tabs(reinterpret_cast<te_editor*>(ptr)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setLineSpacing(JNIEnv*, jclass, jlong ptr, jfloat value) {
+    te_set_line_spacing(reinterpret_cast<te_editor*>(ptr), value);
+}
+
+JNIEXPORT jfloat JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_getLineSpacing(JNIEnv*, jclass, jlong ptr) {
+    return te_get_line_spacing(reinterpret_cast<te_editor*>(ptr));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setWordWrapEnabled(JNIEnv*, jclass, jlong ptr, jboolean value) {
+    te_set_word_wrap_enabled(reinterpret_cast<te_editor*>(ptr), value == JNI_TRUE);
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_isWordWrapEnabled(JNIEnv*, jclass, jlong ptr) {
+    return te_is_word_wrap_enabled(reinterpret_cast<te_editor*>(ptr)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setReadOnlyEnabled(JNIEnv*, jclass, jlong ptr, jboolean value) {
+    te_set_read_only_enabled(reinterpret_cast<te_editor*>(ptr), value == JNI_TRUE);
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_isReadOnlyEnabled(JNIEnv*, jclass, jlong ptr) {
+    return te_is_read_only_enabled(reinterpret_cast<te_editor*>(ptr)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setCaretsVisible(JNIEnv*, jclass, jlong ptr, jboolean value) {
+    te_set_carets_visible(reinterpret_cast<te_editor*>(ptr), value == JNI_TRUE);
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_isCaretsVisible(JNIEnv*, jclass, jlong ptr) {
+    return te_is_carets_visible(reinterpret_cast<te_editor*>(ptr)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setAutoIndentEnabled(JNIEnv*, jclass, jlong ptr, jboolean value) {
+    te_set_auto_indent_enabled(reinterpret_cast<te_editor*>(ptr), value == JNI_TRUE);
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_isAutoIndentEnabled(JNIEnv*, jclass, jlong ptr) {
+    return te_is_auto_indent_enabled(reinterpret_cast<te_editor*>(ptr)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setShowWhitespacesEnabled(JNIEnv*, jclass, jlong ptr, jboolean value) {
+    te_set_show_whitespaces_enabled(reinterpret_cast<te_editor*>(ptr), value == JNI_TRUE);
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_isShowWhitespacesEnabled(JNIEnv*, jclass, jlong ptr) {
+    return te_is_show_whitespaces_enabled(reinterpret_cast<te_editor*>(ptr)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setShowLineNumbersEnabled(JNIEnv*, jclass, jlong ptr, jboolean value) {
+    te_set_show_line_numbers_enabled(reinterpret_cast<te_editor*>(ptr), value == JNI_TRUE);
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_isShowLineNumbersEnabled(JNIEnv*, jclass, jlong ptr) {
+    return te_is_show_line_numbers_enabled(reinterpret_cast<te_editor*>(ptr)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setShowMiniMapEnabled(JNIEnv*, jclass, jlong ptr, jboolean value) {
+    te_set_show_minimap_enabled(reinterpret_cast<te_editor*>(ptr), value == JNI_TRUE);
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_isShowMiniMapEnabled(JNIEnv*, jclass, jlong ptr) {
+    return te_is_show_minimap_enabled(reinterpret_cast<te_editor*>(ptr)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setShowMatchingBrackets(JNIEnv*, jclass, jlong ptr, jboolean value) {
+    te_set_show_matching_brackets(reinterpret_cast<te_editor*>(ptr), value == JNI_TRUE);
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_isShowingMatchingBrackets(JNIEnv*, jclass, jlong ptr) {
+    return te_is_showing_matching_brackets(reinterpret_cast<te_editor*>(ptr)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setCompletePairedGlyphs(JNIEnv*, jclass, jlong ptr, jboolean value) {
+    te_set_complete_paired_glyphs(reinterpret_cast<te_editor*>(ptr), value == JNI_TRUE);
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_isCompletingPairedGlyphs(JNIEnv*, jclass, jlong ptr) {
+    return te_is_completing_paired_glyphs(reinterpret_cast<te_editor*>(ptr)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setLineFoldingEnabled(JNIEnv*, jclass, jlong ptr, jboolean value) {
+    te_set_line_folding_enabled(reinterpret_cast<te_editor*>(ptr), value == JNI_TRUE);
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_isLineFoldingEnabled(JNIEnv*, jclass, jlong ptr) {
+    return te_is_line_folding_enabled(reinterpret_cast<te_editor*>(ptr)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setOverwriteEnabled(JNIEnv*, jclass, jlong ptr, jboolean value) {
+    te_set_overwrite_enabled(reinterpret_cast<te_editor*>(ptr), value == JNI_TRUE);
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_isOverwriteEnabled(JNIEnv*, jclass, jlong ptr) {
+    return te_is_overwrite_enabled(reinterpret_cast<te_editor*>(ptr)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setMiddleMouseScrollMode(JNIEnv*, jclass, jlong ptr) {
+    te_set_middle_mouse_scroll_mode(reinterpret_cast<te_editor*>(ptr));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setMiddleMousePanMode(JNIEnv*, jclass, jlong ptr) {
+    te_set_middle_mouse_pan_mode(reinterpret_cast<te_editor*>(ptr));
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_isMiddleMousePanMode(JNIEnv*, jclass, jlong ptr) {
+    return te_is_middle_mouse_pan_mode(reinterpret_cast<te_editor*>(ptr)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setTextLeftMargin(JNIEnv*, jclass, jlong ptr, jlong value) {
+    te_set_text_left_margin(reinterpret_cast<te_editor*>(ptr), static_cast<size_t>(value));
+}
+
+JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_getTextLeftMargin(JNIEnv*, jclass, jlong ptr) {
+    return static_cast<jlong>(te_get_text_left_margin(reinterpret_cast<te_editor*>(ptr)));
+}
+
+// ---- Language & palette ----
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setLanguage(JNIEnv*, jclass, jlong ptr, jint language) {
+    te_set_language(reinterpret_cast<te_editor*>(ptr), language);
+}
+
+JNIEXPORT jstring JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_getLanguageName(JNIEnv* env, jclass, jlong ptr) {
+    return te_string_to_jstring(env, te_get_language_name(reinterpret_cast<te_editor*>(ptr)));
+}
+
+JNIEXPORT jint JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_getPaletteColor(JNIEnv*, jclass, jlong ptr, jint color) {
+    uint32_t out = 0;
+    te_get_palette_color(reinterpret_cast<te_editor*>(ptr), color, &out);
+    return static_cast<jint>(out);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setPaletteColor(JNIEnv*, jclass, jlong ptr, jint color, jint value) {
+    te_set_palette_color(reinterpret_cast<te_editor*>(ptr), color, static_cast<uint32_t>(value));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setDefaultDarkPalette(JNIEnv*, jclass, jlong ptr) {
+    te_set_default_dark_palette(reinterpret_cast<te_editor*>(ptr));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setDefaultLightPalette(JNIEnv*, jclass, jlong ptr) {
+    te_set_default_light_palette(reinterpret_cast<te_editor*>(ptr));
+}
+
+// ---- Clipboard / undo ----
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_cut(JNIEnv*, jclass, jlong ptr) {
+    te_cut(reinterpret_cast<te_editor*>(ptr));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_copy(JNIEnv*, jclass, jlong ptr) {
+    te_copy(reinterpret_cast<te_editor*>(ptr));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_paste(JNIEnv*, jclass, jlong ptr) {
+    te_paste(reinterpret_cast<te_editor*>(ptr));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_undo(JNIEnv*, jclass, jlong ptr) {
+    te_undo(reinterpret_cast<te_editor*>(ptr));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_redo(JNIEnv*, jclass, jlong ptr) {
+    te_redo(reinterpret_cast<te_editor*>(ptr));
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_canUndo(JNIEnv*, jclass, jlong ptr) {
+    return te_can_undo(reinterpret_cast<te_editor*>(ptr)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_canRedo(JNIEnv*, jclass, jlong ptr) {
+    return te_can_redo(reinterpret_cast<te_editor*>(ptr)) ? JNI_TRUE : JNI_FALSE;
+}
+
+// ---- Selection ----
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_selectAll(JNIEnv*, jclass, jlong ptr) {
+    te_select_all(reinterpret_cast<te_editor*>(ptr));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_selectLine(JNIEnv*, jclass, jlong ptr, jlong line) {
+    te_select_line(reinterpret_cast<te_editor*>(ptr), static_cast<size_t>(line));
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_anyCursorHasSelection(JNIEnv*, jclass, jlong ptr) {
+    return te_any_cursor_has_selection(reinterpret_cast<te_editor*>(ptr)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jstring JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_getSelectedText(JNIEnv* env, jclass, jlong ptr) {
+    return te_string_to_jstring(env, te_get_selected_text(reinterpret_cast<te_editor*>(ptr)));
+}
+
+// ---- Find / replace ----
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_selectFirstOccurrenceOf(JNIEnv* env, jclass, jlong ptr, jstring text, jboolean case_sensitive, jboolean whole_word) {
+    std::string text_s = jstring_to_string(env, text);
+    te_select_first_occurrence_of(reinterpret_cast<te_editor*>(ptr), text_s.c_str(), case_sensitive == JNI_TRUE, whole_word == JNI_TRUE);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_selectNextOccurrenceOf(JNIEnv* env, jclass, jlong ptr, jstring text, jboolean case_sensitive, jboolean whole_word) {
+    std::string text_s = jstring_to_string(env, text);
+    te_select_next_occurrence_of(reinterpret_cast<te_editor*>(ptr), text_s.c_str(), case_sensitive == JNI_TRUE, whole_word == JNI_TRUE);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_replaceTextInCurrentCursor(JNIEnv* env, jclass, jlong ptr, jstring text) {
+    std::string text_s = jstring_to_string(env, text);
+    te_replace_text_in_current_cursor(reinterpret_cast<te_editor*>(ptr), text_s.c_str());
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_replaceTextInAllCursors(JNIEnv* env, jclass, jlong ptr, jstring text) {
+    std::string text_s = jstring_to_string(env, text);
+    te_replace_text_in_all_cursors(reinterpret_cast<te_editor*>(ptr), text_s.c_str());
+}
+
+// ---- Cursor / scrolling ----
+
+JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_getNumberOfCursors(JNIEnv*, jclass, jlong ptr) {
+    return static_cast<jlong>(te_get_number_of_cursors(reinterpret_cast<te_editor*>(ptr)));
+}
+
+JNIEXPORT jstring JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_getCursorText(JNIEnv* env, jclass, jlong ptr, jlong cursor) {
+    return te_string_to_jstring(env, te_get_cursor_text(reinterpret_cast<te_editor*>(ptr), static_cast<size_t>(cursor)));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_scrollToLine(JNIEnv*, jclass, jlong ptr, jlong line, jint alignment) {
+    te_scroll_to_line(reinterpret_cast<te_editor*>(ptr), static_cast<size_t>(line), alignment);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setCursorPos(JNIEnv*, jclass, jlong ptr, jlong line, jlong index) {
+    te_set_cursor_pos(reinterpret_cast<te_editor*>(ptr), static_cast<size_t>(line), static_cast<size_t>(index));
+}
+
+JNIEXPORT jlongArray JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_getCursorPos(JNIEnv* env, jclass, jlong ptr) {
+    uint64_t line = 0;
+    uint64_t index = 0;
+    te_get_cursor_pos(reinterpret_cast<te_editor*>(ptr), &line, &index);
+    jlongArray out = env->NewLongArray(2);
+    if (out == nullptr) {
+        return nullptr;
+    }
+    jlong values[2] = {static_cast<jlong>(line), static_cast<jlong>(index)};
+    env->SetLongArrayRegion(out, 0, 2, values);
+    return out;
+}
+
+JNIEXPORT jfloat JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_getLineHeight(JNIEnv*, jclass, jlong ptr) {
+    return te_get_line_height(reinterpret_cast<te_editor*>(ptr));
+}
+
+JNIEXPORT jfloat JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_getGlyphWidth(JNIEnv*, jclass, jlong ptr) {
+    return te_get_glyph_width(reinterpret_cast<te_editor*>(ptr));
+}
+
+// ---- Markers ----
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_addMarker(JNIEnv* env, jclass, jlong ptr, jlong line, jint line_number_color, jint text_color, jstring line_number_tooltip, jstring text_tooltip) {
+    std::string line_number_tooltip_s = jstring_to_string(env, line_number_tooltip);
+    std::string text_tooltip_s = jstring_to_string(env, text_tooltip);
+    te_add_marker(reinterpret_cast<te_editor*>(ptr), static_cast<size_t>(line), static_cast<uint32_t>(line_number_color),
+                  static_cast<uint32_t>(text_color), line_number_tooltip_s.empty() ? nullptr : line_number_tooltip_s.c_str(),
+                  text_tooltip_s.empty() ? nullptr : text_tooltip_s.c_str());
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_clearMarkers(JNIEnv*, jclass, jlong ptr) {
+    te_clear_markers(reinterpret_cast<te_editor*>(ptr));
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_hasMarkers(JNIEnv*, jclass, jlong ptr) {
+    return te_has_markers(reinterpret_cast<te_editor*>(ptr)) ? JNI_TRUE : JNI_FALSE;
+}
+
+} // extern "C" (ColorTextEdit additions)
+
+// =========================================================================
+// ColorTextEdit extras additions
+// =========================================================================
+
+extern "C" {
+
+// ---- TrieAutoComplete ----
+
+JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_autocompleteCreate(JNIEnv*, jclass) {
+    return reinterpret_cast<jlong>(te_autocomplete_create());
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_autocompleteDestroy(JNIEnv*, jclass, jlong ac) {
+    te_autocomplete_destroy(reinterpret_cast<te_autocomplete*>(ac));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_autocompleteConnect(JNIEnv*, jclass, jlong ac, jlong editor_ptr) {
+    te_autocomplete_connect(reinterpret_cast<te_autocomplete*>(ac), reinterpret_cast<te_editor*>(editor_ptr));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_autocompleteDisconnect(JNIEnv*, jclass, jlong ac) {
+    te_autocomplete_disconnect(reinterpret_cast<te_autocomplete*>(ac));
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_autocompleteIsConnected(JNIEnv*, jclass, jlong ac) {
+    return te_autocomplete_is_connected(reinterpret_cast<te_autocomplete*>(ac)) ? JNI_TRUE : JNI_FALSE;
+}
+
+// ---- Notifications ----
+
+JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_notificationsCreate(JNIEnv*, jclass) {
+    return reinterpret_cast<jlong>(te_notifications_create());
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_notificationsDestroy(JNIEnv*, jclass, jlong notifications) {
+    te_notifications_destroy(reinterpret_cast<te_notifications*>(notifications));
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_notificationsAdd(JNIEnv* env, jclass, jlong notifications, jint type, jstring message, jint dismiss_time_ms) {
+    std::string message_s = jstring_to_string(env, message);
+    te_notifications_add(reinterpret_cast<te_notifications*>(notifications), type, message_s.c_str(), dismiss_time_ms);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_notificationsRender(JNIEnv*, jclass, jlong notifications, jfloat pos_x, jfloat pos_y) {
+    te_notifications_render(reinterpret_cast<te_notifications*>(notifications), pos_x, pos_y);
+}
+
+} // extern "C" (ColorTextEdit extras additions)
+
+// =========================================================================
+// TextEditor events additions
+// =========================================================================
+
+// TextEditor event callbacks are C function pointers plus an opaque user_data.
+// The JNI setters install the static trampolines below (user_data carries the
+// raw editor pointer) and forward to the Kotlin TextEditorEventsJvmBridge
+// object, which dispatches into per-editor registries. The class reference
+// and method IDs are cached once from a JNI entry point so the trampolines
+// only need an attached JNIEnv.
+
+static JavaVM* g_te_jvm = nullptr;
+static jclass g_te_bridge_class = nullptr;
+static jmethodID g_te_notify_transaction = nullptr;
+static jmethodID g_te_notify_change = nullptr;
+static jmethodID g_te_notify_line_number_popup = nullptr;
+static jmethodID g_te_notify_text_popup = nullptr;
+static jmethodID g_te_notify_hover_popup = nullptr;
+
+// Provides a JNIEnv for the current thread, attaching it to the JVM first if
+// needed: callbacks may fire on a thread that is not yet attached.
+class ThreadLocalJNIEnv {
+public:
+    JNIEnv* env = nullptr;
+    bool attached = false;
+
+    ThreadLocalJNIEnv() {
+        if (g_te_jvm == nullptr) {
+            return;
+        }
+        JNIEnv* check = nullptr;
+        if (g_te_jvm->GetEnv(reinterpret_cast<void**>(&check), JNI_VERSION_1_6) == JNI_OK) {
+            env = check;
+            return;
+        }
+        JavaVMAttachArgs args = {};
+        args.version = JNI_VERSION_1_6;
+        if (g_te_jvm->AttachCurrentThread(reinterpret_cast<void**>(&env), &args) == JNI_OK) {
+            attached = true;
+        }
+    }
+
+    ~ThreadLocalJNIEnv() {
+        if (attached) {
+            g_te_jvm->DetachCurrentThread();
+        }
+    }
+};
+
+static void ensure_te_bridge(JNIEnv* env) {
+    if (g_te_bridge_class != nullptr) {
+        return;
+    }
+    if (g_te_jvm == nullptr) {
+        env->GetJavaVM(&g_te_jvm);
+    }
+    jclass local = env->FindClass("cn/enaium/imgui/extensions/colortextedit/TextEditorEventsJvmBridge");
+    if (local == nullptr) {
+        return; // pending exception; bridge not reachable
+    }
+    g_te_bridge_class = static_cast<jclass>(env->NewGlobalRef(local));
+    env->DeleteLocalRef(local);
+    g_te_notify_transaction = env->GetStaticMethodID(
+        g_te_bridge_class, "notifyTransaction", "(J[Z[J[J[J[J[Ljava/lang/String;)V");
+    g_te_notify_change = env->GetStaticMethodID(g_te_bridge_class, "notifyChange", "(J)V");
+    g_te_notify_line_number_popup = env->GetStaticMethodID(g_te_bridge_class, "notifyLineNumberPopup", "(JJJ)V");
+    g_te_notify_text_popup = env->GetStaticMethodID(g_te_bridge_class, "notifyTextPopup", "(JJJ)V");
+    g_te_notify_hover_popup = env->GetStaticMethodID(g_te_bridge_class, "notifyHoverPopup", "(JJJ)V");
+}
+
+extern "C" {
+
+// ---- Callback trampolines (C-linkage so they can be installed as te_* callbacks) ----
+
+static void te_jni_notify_transaction(const te_change_batch* batch, void* user_data) {
+    ThreadLocalJNIEnv helper;
+    if (helper.env != nullptr && g_te_bridge_class != nullptr) {
+        jlong editor_ptr = reinterpret_cast<jlong>(user_data);
+        jsize count = static_cast<jsize>(batch->count);
+
+        jbooleanArray inserts = helper.env->NewBooleanArray(count);
+        jlongArray start_lines = helper.env->NewLongArray(count);
+        jlongArray start_indexes = helper.env->NewLongArray(count);
+        jlongArray end_lines = helper.env->NewLongArray(count);
+        jlongArray end_indexes = helper.env->NewLongArray(count);
+        jclass string_class = helper.env->FindClass("java/lang/String");
+        jobjectArray texts = helper.env->NewObjectArray(count, string_class, nullptr);
+        helper.env->DeleteLocalRef(string_class);
+
+        for (jsize i = 0; i < count; i++) {
+            const te_text_change& change = batch->changes[i];
+            jboolean insert = change.insert ? JNI_TRUE : JNI_FALSE;
+            jlong start_line = static_cast<jlong>(change.start_line);
+            jlong start_index = static_cast<jlong>(change.start_index);
+            jlong end_line = static_cast<jlong>(change.end_line);
+            jlong end_index = static_cast<jlong>(change.end_index);
+            jstring text = helper.env->NewStringUTF(change.text != nullptr ? change.text : "");
+            helper.env->SetBooleanArrayRegion(inserts, i, 1, &insert);
+            helper.env->SetLongArrayRegion(start_lines, i, 1, &start_line);
+            helper.env->SetLongArrayRegion(start_indexes, i, 1, &start_index);
+            helper.env->SetLongArrayRegion(end_lines, i, 1, &end_line);
+            helper.env->SetLongArrayRegion(end_indexes, i, 1, &end_index);
+            helper.env->SetObjectArrayElement(texts, i, text);
+            helper.env->DeleteLocalRef(text);
+        }
+
+        helper.env->CallStaticVoidMethod(g_te_bridge_class, g_te_notify_transaction, editor_ptr, inserts,
+                                         start_lines, start_indexes, end_lines, end_indexes, texts);
+
+        helper.env->DeleteLocalRef(inserts);
+        helper.env->DeleteLocalRef(start_lines);
+        helper.env->DeleteLocalRef(start_indexes);
+        helper.env->DeleteLocalRef(end_lines);
+        helper.env->DeleteLocalRef(end_indexes);
+        helper.env->DeleteLocalRef(texts);
+    }
+    // The C side allocates the batch and hands it to the callback; the
+    // binding must release it after converting the data.
+    te_change_batch_free(const_cast<te_change_batch*>(batch));
+}
+
+static void te_jni_notify_change(void* user_data) {
+    ThreadLocalJNIEnv helper;
+    if (helper.env == nullptr || g_te_bridge_class == nullptr) {
+        return;
+    }
+    helper.env->CallStaticVoidMethod(g_te_bridge_class, g_te_notify_change, reinterpret_cast<jlong>(user_data));
+}
+
+static void te_jni_notify_line_number_popup(const te_popup_data* data, void* user_data) {
+    ThreadLocalJNIEnv helper;
+    if (helper.env == nullptr || g_te_bridge_class == nullptr) {
+        return;
+    }
+    helper.env->CallStaticVoidMethod(g_te_bridge_class, g_te_notify_line_number_popup,
+                                     reinterpret_cast<jlong>(user_data), static_cast<jlong>(data->line),
+                                     static_cast<jlong>(data->index));
+}
+
+static void te_jni_notify_text_popup(const te_popup_data* data, void* user_data) {
+    ThreadLocalJNIEnv helper;
+    if (helper.env == nullptr || g_te_bridge_class == nullptr) {
+        return;
+    }
+    helper.env->CallStaticVoidMethod(g_te_bridge_class, g_te_notify_text_popup,
+                                     reinterpret_cast<jlong>(user_data), static_cast<jlong>(data->line),
+                                     static_cast<jlong>(data->index));
+}
+
+static void te_jni_notify_hover_popup(const te_popup_data* data, void* user_data) {
+    ThreadLocalJNIEnv helper;
+    if (helper.env == nullptr || g_te_bridge_class == nullptr) {
+        return;
+    }
+    helper.env->CallStaticVoidMethod(g_te_bridge_class, g_te_notify_hover_popup,
+                                     reinterpret_cast<jlong>(user_data), static_cast<jlong>(data->line),
+                                     static_cast<jlong>(data->index));
+}
+
+// ---- Change / transaction callbacks ----
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setTransactionCallback(JNIEnv* env, jclass, jlong editor_ptr, jboolean activate) {
+    ensure_te_bridge(env);
+    te_editor* editor = reinterpret_cast<te_editor*>(editor_ptr);
+    if (activate == JNI_TRUE) {
+        te_set_transaction_callback(editor, te_jni_notify_transaction, reinterpret_cast<void*>(editor_ptr));
+    } else {
+        te_set_transaction_callback(editor, nullptr, nullptr);
+    }
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setChangeCallback(JNIEnv* env, jclass, jlong editor_ptr, jboolean activate, jint delay_ms) {
+    ensure_te_bridge(env);
+    te_editor* editor = reinterpret_cast<te_editor*>(editor_ptr);
+    if (activate == JNI_TRUE) {
+        te_set_change_callback(editor, te_jni_notify_change, delay_ms, reinterpret_cast<void*>(editor_ptr));
+    } else {
+        te_set_change_callback(editor, nullptr, 0, nullptr);
+    }
+}
+
+// ---- Async autocomplete ----
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setAutoCompleteSuggestions(JNIEnv* env, jclass, jlong editor_ptr, jobjectArray values) {
+    jsize count = values != nullptr ? env->GetArrayLength(values) : 0;
+    std::vector<std::string> owning;
+    std::vector<const char*> c_values;
+    owning.reserve(static_cast<size_t>(count));
+    c_values.reserve(static_cast<size_t>(count));
+    for (jsize i = 0; i < count; i++) {
+        jstring value = static_cast<jstring>(env->GetObjectArrayElement(values, i));
+        if (value == nullptr) {
+            owning.emplace_back();
+            c_values.push_back(owning.back().c_str());
+            continue;
+        }
+        const char* chars = env->GetStringUTFChars(value, nullptr);
+        owning.emplace_back(chars != nullptr ? chars : "");
+        if (chars != nullptr) {
+            env->ReleaseStringUTFChars(value, chars);
+        }
+        c_values.push_back(owning.back().c_str());
+        env->DeleteLocalRef(value);
+    }
+    te_set_auto_complete_suggestions(reinterpret_cast<te_editor*>(editor_ptr), c_values.data(), static_cast<size_t>(count));
+}
+
+// ---- Popup / hover callbacks ----
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setLineNumberContextMenuCallback(JNIEnv* env, jclass, jlong editor_ptr, jboolean activate) {
+    ensure_te_bridge(env);
+    te_editor* editor = reinterpret_cast<te_editor*>(editor_ptr);
+    if (activate == JNI_TRUE) {
+        te_set_line_number_context_menu_callback(editor, te_jni_notify_line_number_popup, reinterpret_cast<void*>(editor_ptr));
+    } else {
+        te_set_line_number_context_menu_callback(editor, nullptr, nullptr);
+    }
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setTextContextMenuCallback(JNIEnv* env, jclass, jlong editor_ptr, jboolean activate) {
+    ensure_te_bridge(env);
+    te_editor* editor = reinterpret_cast<te_editor*>(editor_ptr);
+    if (activate == JNI_TRUE) {
+        te_set_text_context_menu_callback(editor, te_jni_notify_text_popup, reinterpret_cast<void*>(editor_ptr));
+    } else {
+        te_set_text_context_menu_callback(editor, nullptr, nullptr);
+    }
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setTextHoverCallback(JNIEnv* env, jclass, jlong editor_ptr, jboolean activate) {
+    ensure_te_bridge(env);
+    te_editor* editor = reinterpret_cast<te_editor*>(editor_ptr);
+    if (activate == JNI_TRUE) {
+        te_set_text_hover_callback(editor, te_jni_notify_hover_popup, reinterpret_cast<void*>(editor_ptr));
+    } else {
+        te_set_text_hover_callback(editor, nullptr, nullptr);
+    }
+}
+
+// ---- Mouse queries ----
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_isMousePosOverGlyph(JNIEnv*, jclass, jlong editor_ptr, jfloat x, jfloat y) {
+    return te_is_mouse_pos_over_glyph(reinterpret_cast<te_editor*>(editor_ptr), x, y) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_getDocPosAtMousePos(JNIEnv* env, jclass, jlong editor_ptr, jfloat x, jfloat y, jlongArray out) {
+    uint64_t line = 0;
+    uint64_t index = 0;
+    te_get_doc_pos_at_mouse_pos(reinterpret_cast<te_editor*>(editor_ptr), x, y, &line, &index);
+    if (out == nullptr) {
+        return;
+    }
+    jlong values[2] = {static_cast<jlong>(line), static_cast<jlong>(index)};
+    env->SetLongArrayRegion(out, 0, 2, values);
+}
+
+} // extern "C" (TextEditor events additions)

@@ -104,6 +104,7 @@ val buildJniLibrary = tasks.register<Exec>("buildJniLibrary") {
     inputs.dir(rootProject.file("includes/implot3d"))
     inputs.dir(rootProject.file("includes/imgui-node-editor"))
     inputs.dir(rootProject.file("includes/ImGuiFileDialog"))
+    inputs.dir(rootProject.file("includes/ImGuiColorTextEdit"))
     inputs.dir(rootProject.file("includes/imgui_club"))
     outputs.file(resourceOutputDir.map { it.file(libFile) })
 }
