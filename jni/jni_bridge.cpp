@@ -5668,7 +5668,13 @@ public:
         }
         JavaVMAttachArgs args = {};
         args.version = JNI_VERSION_1_6;
+        // Desktop JDK's JavaVM::AttachCurrentThread takes void**; the Android
+        // NDK's takes JNIEnv**. Cast accordingly so both toolchains accept it.
+#ifdef __ANDROID__
+        if (g_te_jvm->AttachCurrentThread(&env, &args) == JNI_OK) {
+#else
         if (g_te_jvm->AttachCurrentThread(reinterpret_cast<void**>(&env), &args) == JNI_OK) {
+#endif
             attached = true;
         }
     }
