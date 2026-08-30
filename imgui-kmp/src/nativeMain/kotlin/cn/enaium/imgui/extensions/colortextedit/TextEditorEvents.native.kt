@@ -67,8 +67,11 @@ private fun transactionTrampoline(batch: CPointer<te_change_batch>?, userData: C
         buildList {
             if (batch != null) {
                 val changes = batch.pointed.changes
-                for (i in 0uL until batch.pointed.count) {
-                    val change = changes!![i.toLong()]
+                // size_t count is 32-bit on androidNativeArm32 and 64-bit
+                // elsewhere; iterate via toLong() to stay platform-neutral.
+                val count = batch.pointed.count
+                for (i in 0L until count.toLong()) {
+                    val change = changes!![i]
                     add(
                         TextChange(
                             insert = change.insert,
@@ -141,7 +144,7 @@ actual object TextEditorEvents {
     actual fun setAutoCompleteSuggestions(editor: ColorTextEditEditor, suggestions: List<String>) = memScoped {
         val values = allocArray<CPointerVar<ByteVar>>(suggestions.size)
         suggestions.forEachIndexed { i, s -> values[i] = s.cstr.ptr }
-        te_set_auto_complete_suggestions(ptr(editor), values, suggestions.size.toULong())
+        te_set_auto_complete_suggestions(ptr(editor), values, suggestions.size.convert())
     }
 
     actual fun setLineNumberContextMenuCallback(editor: ColorTextEditEditor, onPopup: ((PopupData) -> Unit)?) {
