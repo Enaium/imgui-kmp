@@ -22,6 +22,7 @@
 
 package cn.enaium.imgui.example.common
 
+import cn.enaium.imgui.ImFontConfig
 import cn.enaium.imgui.ImGui
 import cn.enaium.imgui.backends.sdl.ImGuiSdlBackend
 import cn.enaium.imgui.backends.sdl.ImGuiSdlRendererBackend
@@ -73,7 +74,7 @@ object SdlRendererApp {
             title = title,
             width = 1280,
             height = 800,
-            flags = SDLWindowFlags.RESIZABLE,
+            flags = SDLWindowFlags.RESIZABLE or SDLWindowFlags.HIGH_PIXEL_DENSITY,
         ).use { window ->
             SDL.createRenderer(window).use { renderer ->
                 val context = ImGui.createContext()
@@ -82,10 +83,18 @@ object SdlRendererApp {
                     val backend = ImGuiSdlRendererBackend(renderer)
                     imgui.init()
 
-                    // Build the font atlas, then create the renderer texture
-                    // from the resulting pixels and hand the texture id to imgui.
+                    // On high-DPI displays (Retina, ...) the atlas is baked at
+                    // `sizePixels * rasterizerDensity` physical px while keeping
+                    // logical metrics at `sizePixels`, so text stays crisp when
+                    // the backend renders at the framebuffer scale.
                     val fonts = ImGui.getIO().fonts
-                    fonts.addFontDefault()
+                    val density = maxOf(imgui.framebufferScale.x, imgui.framebufferScale.y, 1f)
+                    fonts.addFontDefault(
+                        ImFontConfig(
+                            sizePixels = 13f * density,
+                            rasterizerDensity = density,
+                        ),
+                    )
                     check(fonts.build()) { "font atlas build failed" }
                     val texData = fonts.getTexDataAsRGBA32()
                     val fontTextureId = backend.uploadFontTexture(texData.pixels, texData.width, texData.height)

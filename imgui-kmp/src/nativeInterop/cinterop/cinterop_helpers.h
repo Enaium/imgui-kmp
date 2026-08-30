@@ -32,6 +32,7 @@
 
 #include "imgui_c.h"
 #include "implot_c.h"
+#include "implot3d_c.h"
 #include "node_editor_c.h"
 #include "file_dialog_c.h"
 #include "memory_editor_c.h"
@@ -48,6 +49,7 @@ struct imgui_draw_cmd { void* impl; };
 struct imgui_font { void* impl; };
 struct imgui_font_atlas { void* impl; };
 struct implot_context { void* impl; };
+struct implot3d_context { void* impl; };
 struct ne_context { void* impl; };
 struct igfd_dialog { void* impl; };
 struct me_editor { void* impl; };

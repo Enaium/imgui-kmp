@@ -22,6 +22,7 @@
 
 package cn.enaium.imgui.example.gpu
 
+import cn.enaium.imgui.ImFontConfig
 import cn.enaium.imgui.ImGui
 import cn.enaium.imgui.backends.sdl.ImGuiSdlBackend
 import cn.enaium.imgui.backends.sdl.ImGuiSdlGpuBackend
@@ -72,7 +73,7 @@ fun runSdlGpuExample(frames: Int = Int.MAX_VALUE) {
         title = "imgui-kmp gpu example",
         width = 1280,
         height = 800,
-        flags = SDLWindowFlags.RESIZABLE,
+        flags = SDLWindowFlags.RESIZABLE or SDLWindowFlags.HIGH_PIXEL_DENSITY,
     ).use { window ->
         device.use {
             check(device.claimWindow(window)) { "SDL_ClaimWindowForGPUDevice failed: ${SDL.error()}" }
@@ -84,7 +85,13 @@ fun runSdlGpuExample(frames: Int = Int.MAX_VALUE) {
                 imgui.init()
 
                 val fonts = ImGui.getIO().fonts
-                fonts.addFontDefault()
+                val density = maxOf(imgui.framebufferScale.x, imgui.framebufferScale.y, 1f)
+                fonts.addFontDefault(
+                    ImFontConfig(
+                        sizePixels = 13f * density,
+                        rasterizerDensity = density,
+                    ),
+                )
                 check(fonts.build()) { "font atlas build failed" }
                 val texData = fonts.getTexDataAsRGBA32()
                 val fontTextureId = backend.uploadFontTexture(texData.pixels, texData.width, texData.height)

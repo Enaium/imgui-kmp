@@ -22,6 +22,7 @@
 
 package cn.enaium.imgui.example.club
 
+import cn.enaium.imgui.ImFontConfig
 import cn.enaium.imgui.ImGui
 import cn.enaium.imgui.ImGuiCol
 import cn.enaium.imgui.ImGuiCond
@@ -73,7 +74,7 @@ fun runClubExample(frames: Int = Int.MAX_VALUE) {
         title = "imgui-kmp club example",
         width = 1280,
         height = 800,
-        flags = SDLWindowFlags.RESIZABLE,
+        flags = SDLWindowFlags.RESIZABLE or SDLWindowFlags.HIGH_PIXEL_DENSITY,
     ).use { window ->
         SDL.createRenderer(window).use { renderer ->
             // Two ImGui contexts: the main demo UI and an overlay context that
@@ -88,12 +89,18 @@ fun runClubExample(frames: Int = Int.MAX_VALUE) {
                 ImGui.setCurrentContext(mainContext)
                 val mainImgui = ImGuiSdlBackend(window)
                 mainImgui.init()
-                val mainFontTexture = uploadFontTexture(backend)
+                val mainFontTexture = uploadFontTexture(
+                    backend,
+                    maxOf(mainImgui.framebufferScale.x, mainImgui.framebufferScale.y, 1f),
+                )
 
                 ImGui.setCurrentContext(overlayContext)
                 val overlayImgui = ImGuiSdlBackend(window)
                 overlayImgui.init()
-                val overlayFontTexture = uploadFontTexture(backend)
+                val overlayFontTexture = uploadFontTexture(
+                    backend,
+                    maxOf(overlayImgui.framebufferScale.x, overlayImgui.framebufferScale.y, 1f),
+                )
 
                 ImGui.setCurrentContext(mainContext)
 
@@ -186,10 +193,20 @@ fun runClubExample(frames: Int = Int.MAX_VALUE) {
     SDL.quit()
 }
 
-/** Builds the font atlas of the current context and uploads it to the renderer. */
-private fun uploadFontTexture(backend: ImGuiSdlRendererBackend): Long {
+/**
+ * Builds the font atlas of the current context and uploads it to the renderer.
+ * [density] is the framebuffer scale (1.0 on a standard display, 2.0 Retina):
+ * the atlas is baked at `sizePixels * density` physical px so text stays crisp
+ * when the backend renders at the framebuffer scale.
+ */
+private fun uploadFontTexture(backend: ImGuiSdlRendererBackend, density: Float): Long {
     val fonts = ImGui.getIO().fonts
-    fonts.addFontDefault()
+    fonts.addFontDefault(
+        ImFontConfig(
+            sizePixels = 13f * density,
+            rasterizerDensity = density,
+        ),
+    )
     check(fonts.build()) { "font atlas build failed" }
     val texData = fonts.getTexDataAsRGBA32()
     val textureId = backend.uploadFontTexture(texData.pixels, texData.width, texData.height)

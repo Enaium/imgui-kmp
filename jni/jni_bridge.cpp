@@ -31,6 +31,7 @@
 #include "imgui_internal.h"
 #include "imgui_c.h"
 #include "implot_c.h"
+#include "implot3d_c.h"
 
 // =========================================================================
 // Helpers
@@ -4062,10 +4063,9 @@ JNIEXPORT jobjectArray JNICALL Java_cn_enaium_imgui_extensions_filedialog_Jni_ge
     jclass string_class = env->FindClass("java/lang/String");
     jobjectArray out = env->NewObjectArray(static_cast<jsize>(count * 2), string_class, nullptr);
     for (int i = 0; i < count * 2; i++) {
-        jstring item = flat[i] != nullptr ? env->NewStringUTF(flat[i]) : nullptr;
-        if (item != nullptr) {
-            env->DeleteLocalRef(item);
-        }
+        jstring item = flat[i] != nullptr ? env->NewStringUTF(flat[i]) : env->NewStringUTF("");
+        env->SetObjectArrayElement(out, i, item);
+        env->DeleteLocalRef(item);
     }
     igfd_selection_free(flat, count);
     return out;
@@ -4419,3 +4419,808 @@ JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_threadedrendering_Jni_shu
 }
 
 } // extern "C" (multi-context compositor / threaded rendering additions)
+// =========================================================================
+// ImPlot3D
+// =========================================================================
+
+// Fills an implot3d_spec C struct from a float spec array encoded as
+// [set_flag, value(s)] for each of the 11 optional groups: line_color(4),
+// line_weight(1), fill_color(4), fill_alpha(1), marker(1), marker_size(1),
+// marker_line_color(4), marker_fill_color(4), offset(1), stride(1), flags(1).
+// 11 flags + 23 values = 34 floats; a null array keeps every library default.
+#define IMPLOT3D_SPEC_FLOAT_COUNT 34 // 11 set-flags + 23 value slots
+
+static implot3d_spec decode_spec3d(const jfloat* data) {
+    implot3d_spec spec;
+    memset(&spec, 0, sizeof(spec));
+    if (data == nullptr) {
+        return spec;
+    }
+    int i = 0;
+    if (data[i++] != 0.0f) {
+        spec.line_color_set = 1;
+        for (int j = 0; j < 4; j++) spec.line_color[j] = data[i++];
+    } else {
+        i += 4;
+    }
+    if (data[i++] != 0.0f) {
+        spec.line_weight_set = 1;
+        spec.line_weight = data[i++];
+    } else {
+        i += 1;
+    }
+    if (data[i++] != 0.0f) {
+        spec.fill_color_set = 1;
+        for (int j = 0; j < 4; j++) spec.fill_color[j] = data[i++];
+    } else {
+        i += 4;
+    }
+    if (data[i++] != 0.0f) {
+        spec.fill_alpha_set = 1;
+        spec.fill_alpha = data[i++];
+    } else {
+        i += 1;
+    }
+    if (data[i++] != 0.0f) {
+        spec.marker_set = 1;
+        spec.marker = (int)data[i++];
+    } else {
+        i += 1;
+    }
+    if (data[i++] != 0.0f) {
+        spec.marker_size_set = 1;
+        spec.marker_size = data[i++];
+    } else {
+        i += 1;
+    }
+    if (data[i++] != 0.0f) {
+        spec.marker_line_color_set = 1;
+        for (int j = 0; j < 4; j++) spec.marker_line_color[j] = data[i++];
+    } else {
+        i += 4;
+    }
+    if (data[i++] != 0.0f) {
+        spec.marker_fill_color_set = 1;
+        for (int j = 0; j < 4; j++) spec.marker_fill_color[j] = data[i++];
+    } else {
+        i += 4;
+    }
+    if (data[i++] != 0.0f) {
+        spec.offset_set = 1;
+        spec.offset = (int)data[i++];
+    } else {
+        i += 1;
+    }
+    if (data[i++] != 0.0f) {
+        spec.stride_set = 1;
+        spec.stride = (int)data[i++];
+    } else {
+        i += 1;
+    }
+    if (data[i++] != 0.0f) {
+        spec.flags_set = 1;
+        spec.flags = (int)data[i++];
+    }
+    return spec;
+}
+
+// ImPlot3DStyle float-array layout (76 floats, identical in ImPlot3D.jvm.kt):
+// lineWeight, marker, markerSize, fillAlpha,
+// plotDefaultSize.x/y, plotMinSize.x/y, plotPadding.x/y, labelPadding.x/y,
+// legendPadding.x/y, legendInnerPadding.x/y, legendSpacing.x/y,
+// viewScaleFactor, colors[14] (x/y/z/w interleaved), colormap.
+#define IMPLOT3D_STYLE_FLOAT_COUNT 76
+
+static void read_style3d_to_floats(const implot3d_style& style, jfloat* out) {
+    int i = 0;
+    out[i++] = style.line_weight;
+    out[i++] = (jfloat)style.marker;
+    out[i++] = style.marker_size;
+    out[i++] = style.fill_alpha;
+    out[i++] = style.plot_default_size.x;
+    out[i++] = style.plot_default_size.y;
+    out[i++] = style.plot_min_size.x;
+    out[i++] = style.plot_min_size.y;
+    out[i++] = style.plot_padding.x;
+    out[i++] = style.plot_padding.y;
+    out[i++] = style.label_padding.x;
+    out[i++] = style.label_padding.y;
+    out[i++] = style.legend_padding.x;
+    out[i++] = style.legend_padding.y;
+    out[i++] = style.legend_inner_padding.x;
+    out[i++] = style.legend_inner_padding.y;
+    out[i++] = style.legend_spacing.x;
+    out[i++] = style.legend_spacing.y;
+    out[i++] = style.view_scale_factor;
+    for (int c = 0; c < 14; c++) {
+        out[i++] = style.colors[c].x;
+        out[i++] = style.colors[c].y;
+        out[i++] = style.colors[c].z;
+        out[i++] = style.colors[c].w;
+    }
+    out[i++] = (jfloat)style.colormap;
+}
+
+static void write_style3d_from_floats(implot3d_style& style, const jfloat* in) {
+    int i = 0;
+    style.line_weight = in[i++];
+    style.marker = (int)in[i++];
+    style.marker_size = in[i++];
+    style.fill_alpha = in[i++];
+    style.plot_default_size.x = in[i++];
+    style.plot_default_size.y = in[i++];
+    style.plot_min_size.x = in[i++];
+    style.plot_min_size.y = in[i++];
+    style.plot_padding.x = in[i++];
+    style.plot_padding.y = in[i++];
+    style.label_padding.x = in[i++];
+    style.label_padding.y = in[i++];
+    style.legend_padding.x = in[i++];
+    style.legend_padding.y = in[i++];
+    style.legend_inner_padding.x = in[i++];
+    style.legend_inner_padding.y = in[i++];
+    style.legend_spacing.x = in[i++];
+    style.legend_spacing.y = in[i++];
+    style.view_scale_factor = in[i++];
+    for (int c = 0; c < 14; c++) {
+        style.colors[c].x = in[i++];
+        style.colors[c].y = in[i++];
+        style.colors[c].z = in[i++];
+        style.colors[c].w = in[i++];
+    }
+    style.colormap = (int)in[i++];
+}
+
+static jfloatArray vec2_to_jfloat_array(JNIEnv* env, imgui_vec2 v) {
+    jfloatArray out = env->NewFloatArray(2);
+    jfloat values[2] = {v.x, v.y};
+    env->SetFloatArrayRegion(out, 0, 2, values);
+    return out;
+}
+
+static jfloatArray vec4_to_jfloat_array(JNIEnv* env, imgui_vec4 v) {
+    jfloatArray out = env->NewFloatArray(4);
+    jfloat values[4] = {v.x, v.y, v.z, v.w};
+    env->SetFloatArrayRegion(out, 0, 4, values);
+    return out;
+}
+
+static jdoubleArray point3d_to_jdouble_array(JNIEnv* env, implot3d_point p) {
+    jdoubleArray out = env->NewDoubleArray(3);
+    jdouble values[3] = {p.x, p.y, p.z};
+    env->SetDoubleArrayRegion(out, 0, 3, values);
+    return out;
+}
+
+static jdoubleArray quat3d_to_jdouble_array(JNIEnv* env, implot3d_quat q) {
+    jdoubleArray out = env->NewDoubleArray(4);
+    jdouble values[4] = {q.x, q.y, q.z, q.w};
+    env->SetDoubleArrayRegion(out, 0, 4, values);
+    return out;
+}
+
+static jdoubleArray mesh_vtx_to_jdouble_array(JNIEnv* env, const implot3d_point* vtx, int count) {
+    jdoubleArray out = env->NewDoubleArray((jsize)count * 3);
+    jdouble values[3];
+    for (int i = 0; i < count; i++) {
+        values[0] = vtx[i].x;
+        values[1] = vtx[i].y;
+        values[2] = vtx[i].z;
+        env->SetDoubleArrayRegion(out, i * 3, 3, values);
+    }
+    return out;
+}
+
+static jintArray mesh_idx_to_jint_array(JNIEnv* env, const unsigned int* idx, int count) {
+    jintArray out = env->NewIntArray(count);
+    env->SetIntArrayRegion(out, 0, count, reinterpret_cast<const jint*>(idx));
+    return out;
+}
+
+extern "C" {
+
+// ---- Context ----
+
+JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_createContext(JNIEnv*, jclass) {
+    return reinterpret_cast<jlong>(implot3d_create_context());
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_destroyContext(JNIEnv*, jclass, jlong ptr) {
+    implot3d_destroy_context(reinterpret_cast<implot3d_context*>(ptr));
+}
+
+JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_getCurrentContext(JNIEnv*, jclass) {
+    return reinterpret_cast<jlong>(implot3d_get_current_context());
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_setCurrentContext(JNIEnv*, jclass, jlong ctx) {
+    implot3d_set_current_context(reinterpret_cast<implot3d_context*>(ctx));
+}
+
+// ---- Begin/End plot ----
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_beginPlot(JNIEnv* env, jclass, jstring title_id, jfloat size_x, jfloat size_y, jint flags) {
+    std::string title = jstring_to_string(env, title_id);
+    imgui_vec2 size;
+    size.x = size_x;
+    size.y = size_y;
+    return implot3d_begin_plot(title.c_str(), size, flags) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_endPlot(JNIEnv*, jclass) {
+    implot3d_end_plot();
+}
+
+// ---- Setup ----
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_setupAxis(JNIEnv* env, jclass, jint axis, jstring label, jint flags) {
+    std::string label_str = jstring_to_string(env, label);
+    implot3d_setup_axis(axis, label != nullptr && !label_str.empty() ? label_str.c_str() : nullptr, flags);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_setupAxisLimits(JNIEnv*, jclass, jint axis, jdouble v_min, jdouble v_max, jint cond) {
+    implot3d_setup_axis_limits(axis, v_min, v_max, cond);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_setupAxisTicksValues(JNIEnv* env, jclass, jint axis, jdoubleArray values_arr, jobjectArray labels, jint tick_count, jboolean keep_default) {
+    std::vector<std::string> strings;
+    std::vector<const char*> cstrings;
+    if (labels != nullptr) {
+        get_string_array(env, labels, strings, cstrings);
+    }
+    jdouble* values = env->GetDoubleArrayElements(values_arr, nullptr);
+    implot3d_setup_axis_ticks_values(axis, values, tick_count, labels != nullptr ? cstrings.data() : nullptr, keep_default == JNI_TRUE);
+    env->ReleaseDoubleArrayElements(values_arr, values, JNI_ABORT);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_setupAxisTicksLimits(JNIEnv* env, jclass, jint axis, jdouble v_min, jdouble v_max, jint tick_count, jobjectArray labels, jboolean keep_default) {
+    std::vector<std::string> strings;
+    std::vector<const char*> cstrings;
+    if (labels != nullptr) {
+        get_string_array(env, labels, strings, cstrings);
+    }
+    implot3d_setup_axis_ticks_limits(axis, v_min, v_max, tick_count, labels != nullptr ? cstrings.data() : nullptr, keep_default == JNI_TRUE);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_setupAxisScale(JNIEnv*, jclass, jint axis, jint scale) {
+    implot3d_setup_axis_scale(axis, scale);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_setupAxisLimitsConstraints(JNIEnv*, jclass, jint axis, jdouble v_min, jdouble v_max) {
+    implot3d_setup_axis_limits_constraints(axis, v_min, v_max);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_setupAxisZoomConstraints(JNIEnv*, jclass, jint axis, jdouble zoom_min, jdouble zoom_max) {
+    implot3d_setup_axis_zoom_constraints(axis, zoom_min, zoom_max);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_setupAxes(JNIEnv* env, jclass, jstring x_label, jstring y_label, jstring z_label, jint x_flags, jint y_flags, jint z_flags) {
+    std::string x = jstring_to_string(env, x_label);
+    std::string y = jstring_to_string(env, y_label);
+    std::string z = jstring_to_string(env, z_label);
+    implot3d_setup_axes(x.empty() ? nullptr : x.c_str(), y.empty() ? nullptr : y.c_str(), z.empty() ? nullptr : z.c_str(), x_flags, y_flags, z_flags);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_setupAxesLimits(JNIEnv*, jclass, jdouble x_min, jdouble x_max, jdouble y_min, jdouble y_max, jdouble z_min, jdouble z_max, jint cond) {
+    implot3d_setup_axes_limits(x_min, x_max, y_min, y_max, z_min, z_max, cond);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_setupBoxRotationAngles(JNIEnv*, jclass, jdouble elevation, jdouble azimuth, jboolean animate, jint cond) {
+    implot3d_setup_box_rotation_angles(elevation, azimuth, animate == JNI_TRUE, cond);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_setupBoxRotationQuat(JNIEnv*, jclass, jdouble x, jdouble y, jdouble z, jdouble w, jboolean animate, jint cond) {
+    implot3d_quat rotation;
+    rotation.x = x;
+    rotation.y = y;
+    rotation.z = z;
+    rotation.w = w;
+    implot3d_setup_box_rotation_quat(rotation, animate == JNI_TRUE, cond);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_setupBoxInitialRotationAngles(JNIEnv*, jclass, jdouble elevation, jdouble azimuth) {
+    implot3d_setup_box_initial_rotation_angles(elevation, azimuth);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_setupBoxInitialRotationQuat(JNIEnv*, jclass, jdouble x, jdouble y, jdouble z, jdouble w) {
+    implot3d_quat rotation;
+    rotation.x = x;
+    rotation.y = y;
+    rotation.z = z;
+    rotation.w = w;
+    implot3d_setup_box_initial_rotation_quat(rotation);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_setupBoxScale(JNIEnv*, jclass, jdouble x, jdouble y, jdouble z) {
+    implot3d_setup_box_scale(x, y, z);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_setupLegend(JNIEnv*, jclass, jint location, jint flags) {
+    implot3d_setup_legend(location, flags);
+}
+
+// ---- Plot items (double data arrays) ----
+
+#define IMPLOT3D_PLOT_ITEM_BODY(name)                                                                  \
+    std::string label = jstring_to_string(env, label_id);                                             \
+    jdouble* xs = env->GetDoubleArrayElements(xs_arr, nullptr);                                       \
+    jdouble* ys = env->GetDoubleArrayElements(ys_arr, nullptr);                                       \
+    jdouble* zs = env->GetDoubleArrayElements(zs_arr, nullptr);                                       \
+    jfloat* spec_data = spec_arr != nullptr ? env->GetFloatArrayElements(spec_arr, nullptr) : nullptr; \
+    implot3d_spec spec = decode_spec3d(spec_data);                                                     \
+    name(label.c_str(), xs, ys, zs, count, &spec);                                                     \
+    env->ReleaseDoubleArrayElements(xs_arr, xs, JNI_ABORT);                                           \
+    env->ReleaseDoubleArrayElements(ys_arr, ys, JNI_ABORT);                                           \
+    env->ReleaseDoubleArrayElements(zs_arr, zs, JNI_ABORT);                                           \
+    if (spec_arr != nullptr) {                                                                         \
+        env->ReleaseFloatArrayElements(spec_arr, spec_data, JNI_ABORT);                                \
+    }
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_plotScatter(JNIEnv* env, jclass, jstring label_id, jdoubleArray xs_arr, jdoubleArray ys_arr, jdoubleArray zs_arr, jint count, jfloatArray spec_arr) {
+    IMPLOT3D_PLOT_ITEM_BODY(implot3d_plot_scatter)
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_plotLine(JNIEnv* env, jclass, jstring label_id, jdoubleArray xs_arr, jdoubleArray ys_arr, jdoubleArray zs_arr, jint count, jfloatArray spec_arr) {
+    IMPLOT3D_PLOT_ITEM_BODY(implot3d_plot_line)
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_plotTriangle(JNIEnv* env, jclass, jstring label_id, jdoubleArray xs_arr, jdoubleArray ys_arr, jdoubleArray zs_arr, jint count, jfloatArray spec_arr) {
+    IMPLOT3D_PLOT_ITEM_BODY(implot3d_plot_triangle)
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_plotQuad(JNIEnv* env, jclass, jstring label_id, jdoubleArray xs_arr, jdoubleArray ys_arr, jdoubleArray zs_arr, jint count, jfloatArray spec_arr) {
+    IMPLOT3D_PLOT_ITEM_BODY(implot3d_plot_quad)
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_plotSurface(JNIEnv* env, jclass, jstring label_id, jdoubleArray xs_arr, jdoubleArray ys_arr, jdoubleArray zs_arr, jint x_count, jint y_count, jdouble scale_min, jdouble scale_max, jfloatArray spec_arr) {
+    std::string label = jstring_to_string(env, label_id);
+    jdouble* xs = env->GetDoubleArrayElements(xs_arr, nullptr);
+    jdouble* ys = env->GetDoubleArrayElements(ys_arr, nullptr);
+    jdouble* zs = env->GetDoubleArrayElements(zs_arr, nullptr);
+    jfloat* spec_data = spec_arr != nullptr ? env->GetFloatArrayElements(spec_arr, nullptr) : nullptr;
+    implot3d_spec spec = decode_spec3d(spec_data);
+    implot3d_plot_surface(label.c_str(), xs, ys, zs, x_count, y_count, scale_min, scale_max, &spec);
+    env->ReleaseDoubleArrayElements(xs_arr, xs, JNI_ABORT);
+    env->ReleaseDoubleArrayElements(ys_arr, ys, JNI_ABORT);
+    env->ReleaseDoubleArrayElements(zs_arr, zs, JNI_ABORT);
+    if (spec_arr != nullptr) {
+        env->ReleaseFloatArrayElements(spec_arr, spec_data, JNI_ABORT);
+    }
+}
+
+// vtx/idxs counts are derived from the array lengths on this side.
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_plotMesh(JNIEnv* env, jclass, jstring label_id, jdoubleArray vtx_xs_arr, jdoubleArray vtx_ys_arr, jdoubleArray vtx_zs_arr, jintArray idxs_arr, jfloatArray spec_arr) {
+    std::string label = jstring_to_string(env, label_id);
+    jdouble* vtx_xs = env->GetDoubleArrayElements(vtx_xs_arr, nullptr);
+    jdouble* vtx_ys = env->GetDoubleArrayElements(vtx_ys_arr, nullptr);
+    jdouble* vtx_zs = env->GetDoubleArrayElements(vtx_zs_arr, nullptr);
+    jint* idxs = env->GetIntArrayElements(idxs_arr, nullptr);
+    jfloat* spec_data = spec_arr != nullptr ? env->GetFloatArrayElements(spec_arr, nullptr) : nullptr;
+    implot3d_spec spec = decode_spec3d(spec_data);
+    jsize vtx_count = env->GetArrayLength(vtx_xs_arr);
+    jsize idx_count = env->GetArrayLength(idxs_arr);
+    implot3d_plot_mesh(label.c_str(), vtx_xs, vtx_ys, vtx_zs, reinterpret_cast<const unsigned int*>(idxs), (int)vtx_count, (int)idx_count, &spec);
+    env->ReleaseDoubleArrayElements(vtx_xs_arr, vtx_xs, JNI_ABORT);
+    env->ReleaseDoubleArrayElements(vtx_ys_arr, vtx_ys, JNI_ABORT);
+    env->ReleaseDoubleArrayElements(vtx_zs_arr, vtx_zs, JNI_ABORT);
+    env->ReleaseIntArrayElements(idxs_arr, idxs, JNI_ABORT);
+    if (spec_arr != nullptr) {
+        env->ReleaseFloatArrayElements(spec_arr, spec_data, JNI_ABORT);
+    }
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_plotText(JNIEnv* env, jclass, jstring text, jdouble x, jdouble y, jdouble z, jdouble angle, jfloat pix_x, jfloat pix_y) {
+    std::string text_str = jstring_to_string(env, text);
+    imgui_vec2 offset;
+    offset.x = pix_x;
+    offset.y = pix_y;
+    implot3d_plot_text(text_str.c_str(), x, y, z, angle, offset);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_plotDummy(JNIEnv* env, jclass, jstring label_id, jfloatArray spec_arr) {
+    std::string label = jstring_to_string(env, label_id);
+    jfloat* spec_data = spec_arr != nullptr ? env->GetFloatArrayElements(spec_arr, nullptr) : nullptr;
+    implot3d_spec spec = decode_spec3d(spec_data);
+    implot3d_plot_dummy(label.c_str(), &spec);
+    if (spec_arr != nullptr) {
+        env->ReleaseFloatArrayElements(spec_arr, spec_data, JNI_ABORT);
+    }
+}
+
+// ---- Plot utils ----
+
+JNIEXPORT jfloatArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_plotToPixelsPoint(JNIEnv* env, jclass, jdouble x, jdouble y, jdouble z) {
+    implot3d_point point;
+    point.x = x;
+    point.y = y;
+    point.z = z;
+    return vec2_to_jfloat_array(env, implot3d_plot_to_pixels_point(point));
+}
+
+JNIEXPORT jfloatArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_plotToPixelsXyz(JNIEnv* env, jclass, jdouble x, jdouble y, jdouble z) {
+    return vec2_to_jfloat_array(env, implot3d_plot_to_pixels_xyz(x, y, z));
+}
+
+JNIEXPORT jdoubleArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_pixelsToPlotRayVec2(JNIEnv* env, jclass, jfloat pix_x, jfloat pix_y) {
+    imgui_vec2 pix;
+    pix.x = pix_x;
+    pix.y = pix_y;
+    implot3d_ray ray = implot3d_pixels_to_plot_ray_vec2(pix);
+    jdoubleArray out = env->NewDoubleArray(6);
+    jdouble values[6] = {ray.origin.x, ray.origin.y, ray.origin.z, ray.direction.x, ray.direction.y, ray.direction.z};
+    env->SetDoubleArrayRegion(out, 0, 6, values);
+    return out;
+}
+
+JNIEXPORT jdoubleArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_pixelsToPlotRayXy(JNIEnv* env, jclass, jdouble x, jdouble y) {
+    implot3d_ray ray = implot3d_pixels_to_plot_ray_xy(x, y);
+    jdoubleArray out = env->NewDoubleArray(6);
+    jdouble values[6] = {ray.origin.x, ray.origin.y, ray.origin.z, ray.direction.x, ray.direction.y, ray.direction.z};
+    env->SetDoubleArrayRegion(out, 0, 6, values);
+    return out;
+}
+
+JNIEXPORT jdoubleArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_pixelsToPlotPlaneVec2(JNIEnv* env, jclass, jfloat pix_x, jfloat pix_y, jint plane, jboolean mask) {
+    imgui_vec2 pix;
+    pix.x = pix_x;
+    pix.y = pix_y;
+    return point3d_to_jdouble_array(env, implot3d_pixels_to_plot_plane_vec2(pix, plane, mask == JNI_TRUE));
+}
+
+JNIEXPORT jdoubleArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_pixelsToPlotPlaneXy(JNIEnv* env, jclass, jdouble x, jdouble y, jint plane, jboolean mask) {
+    return point3d_to_jdouble_array(env, implot3d_pixels_to_plot_plane_xy(x, y, plane, mask == JNI_TRUE));
+}
+
+JNIEXPORT jfloatArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_getPlotRectPos(JNIEnv* env, jclass) {
+    return vec2_to_jfloat_array(env, implot3d_get_plot_rect_pos());
+}
+
+JNIEXPORT jfloatArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_getPlotRectSize(JNIEnv* env, jclass) {
+    return vec2_to_jfloat_array(env, implot3d_get_plot_rect_size());
+}
+
+JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_getPlotDrawList(JNIEnv*, jclass) {
+    return reinterpret_cast<jlong>(implot3d_get_plot_draw_list());
+}
+
+// ---- Style ----
+
+JNIEXPORT jfloatArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_getStyle(JNIEnv* env, jclass) {
+    implot3d_style style;
+    implot3d_get_style(&style);
+    jfloatArray out = env->NewFloatArray(IMPLOT3D_STYLE_FLOAT_COUNT);
+    jfloat values[IMPLOT3D_STYLE_FLOAT_COUNT];
+    read_style3d_to_floats(style, values);
+    env->SetFloatArrayRegion(out, 0, IMPLOT3D_STYLE_FLOAT_COUNT, values);
+    return out;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_setStyle(JNIEnv* env, jclass, jfloatArray style_arr) {
+    jfloat* data = env->GetFloatArrayElements(style_arr, nullptr);
+    implot3d_style style;
+    write_style3d_from_floats(style, data);
+    implot3d_set_style(&style);
+    env->ReleaseFloatArrayElements(style_arr, data, JNI_ABORT);
+}
+
+// A null dst array edits the current style in place; a non-null one is
+// decoded, filled and written back so the caller sees the result.
+#define IMPLOT3D_STYLE_COLORS_BODY(call)                                                               \
+    if (dst_arr == nullptr) {                                                                          \
+        call(nullptr);                                                                                 \
+        return nullptr;                                                                                \
+    }                                                                                                  \
+    jfloat* data = env->GetFloatArrayElements(dst_arr, nullptr);                                       \
+    implot3d_style style;                                                                              \
+    write_style3d_from_floats(style, data);                                                            \
+    call(&style);                                                                                      \
+    read_style3d_to_floats(style, data);                                                               \
+    env->ReleaseFloatArrayElements(dst_arr, data, 0);                                                  \
+    return dst_arr;
+
+JNIEXPORT jfloatArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_styleColorsAuto(JNIEnv* env, jclass, jfloatArray dst_arr) {
+    IMPLOT3D_STYLE_COLORS_BODY(implot3d_style_colors_auto)
+}
+
+JNIEXPORT jfloatArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_styleColorsDark(JNIEnv* env, jclass, jfloatArray dst_arr) {
+    IMPLOT3D_STYLE_COLORS_BODY(implot3d_style_colors_dark)
+}
+
+JNIEXPORT jfloatArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_styleColorsLight(JNIEnv* env, jclass, jfloatArray dst_arr) {
+    IMPLOT3D_STYLE_COLORS_BODY(implot3d_style_colors_light)
+}
+
+JNIEXPORT jfloatArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_styleColorsClassic(JNIEnv* env, jclass, jfloatArray dst_arr) {
+    IMPLOT3D_STYLE_COLORS_BODY(implot3d_style_colors_classic)
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_pushStyleColorVec4(JNIEnv*, jclass, jint idx, jfloat r, jfloat g, jfloat b, jfloat a) {
+    imgui_vec4 color;
+    color.x = r;
+    color.y = g;
+    color.z = b;
+    color.w = a;
+    implot3d_push_style_color_vec4(idx, color);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_pushStyleColorU32(JNIEnv*, jclass, jint idx, jint color) {
+    implot3d_push_style_color_u32(idx, (uint32_t)color);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_popStyleColor(JNIEnv*, jclass, jint count) {
+    implot3d_pop_style_color(count);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_pushStyleVarFloat(JNIEnv*, jclass, jint idx, jfloat val) {
+    implot3d_push_style_var_float(idx, val);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_pushStyleVarInt(JNIEnv*, jclass, jint idx, jint val) {
+    implot3d_push_style_var_int(idx, val);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_pushStyleVarVec2(JNIEnv*, jclass, jint idx, jfloat x, jfloat y) {
+    imgui_vec2 val;
+    val.x = x;
+    val.y = y;
+    implot3d_push_style_var_vec2(idx, val);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_popStyleVar(JNIEnv*, jclass, jint count) {
+    implot3d_pop_style_var(count);
+}
+
+JNIEXPORT jfloatArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_getStyleColor(JNIEnv* env, jclass, jint idx) {
+    return vec4_to_jfloat_array(env, implot3d_get_style_color_vec4(idx));
+}
+
+JNIEXPORT jint JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_getStyleColorU32(JNIEnv*, jclass, jint idx) {
+    return (jint)implot3d_get_style_color_u32(idx);
+}
+
+JNIEXPORT jint JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_nextMarker(JNIEnv*, jclass) {
+    return implot3d_next_marker();
+}
+
+// ---- Colormaps ----
+
+JNIEXPORT jint JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_addColormapVec4(JNIEnv* env, jclass, jstring name, jfloatArray cols_arr, jboolean qual) {
+    std::string name_str = jstring_to_string(env, name);
+    jfloat* cols = env->GetFloatArrayElements(cols_arr, nullptr);
+    jsize size = env->GetArrayLength(cols_arr);
+    jint result = implot3d_add_colormap_vec4(name_str.c_str(), reinterpret_cast<const imgui_vec4*>(cols), (int)(size / 4), qual == JNI_TRUE);
+    env->ReleaseFloatArrayElements(cols_arr, cols, JNI_ABORT);
+    return result;
+}
+
+JNIEXPORT jint JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_addColormapU32(JNIEnv* env, jclass, jstring name, jintArray cols_arr, jboolean qual) {
+    std::string name_str = jstring_to_string(env, name);
+    jint* cols = env->GetIntArrayElements(cols_arr, nullptr);
+    jsize size = env->GetArrayLength(cols_arr);
+    jint result = implot3d_add_colormap_u32(name_str.c_str(), reinterpret_cast<const uint32_t*>(cols), (int)size, qual == JNI_TRUE);
+    env->ReleaseIntArrayElements(cols_arr, cols, JNI_ABORT);
+    return result;
+}
+
+JNIEXPORT jint JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_getColormapCount(JNIEnv*, jclass) {
+    return implot3d_get_colormap_count();
+}
+
+JNIEXPORT jstring JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_getColormapName(JNIEnv* env, jclass, jint cmap) {
+    const char* name = implot3d_get_colormap_name(cmap);
+    return name != nullptr ? env->NewStringUTF(name) : nullptr;
+}
+
+JNIEXPORT jint JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_getColormapIndex(JNIEnv* env, jclass, jstring name) {
+    std::string name_str = jstring_to_string(env, name);
+    return implot3d_get_colormap_index(name_str.c_str());
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_pushColormap(JNIEnv*, jclass, jint cmap) {
+    implot3d_push_colormap(cmap);
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_pushColormapName(JNIEnv* env, jclass, jstring name) {
+    std::string name_str = jstring_to_string(env, name);
+    implot3d_push_colormap_name(name_str.c_str());
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_popColormap(JNIEnv*, jclass, jint count) {
+    implot3d_pop_colormap(count);
+}
+
+JNIEXPORT jfloatArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_nextColormapColor(JNIEnv* env, jclass) {
+    return vec4_to_jfloat_array(env, implot3d_next_colormap_color());
+}
+
+JNIEXPORT jint JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_getColormapSize(JNIEnv*, jclass, jint cmap) {
+    return implot3d_get_colormap_size(cmap);
+}
+
+JNIEXPORT jfloatArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_getColormapColor(JNIEnv* env, jclass, jint idx, jint cmap) {
+    return vec4_to_jfloat_array(env, implot3d_get_colormap_color(idx, cmap));
+}
+
+JNIEXPORT jfloatArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_sampleColormap(JNIEnv* env, jclass, jfloat t, jint cmap) {
+    return vec4_to_jfloat_array(env, implot3d_sample_colormap(t, cmap));
+}
+
+// ---- Demo ----
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_showDemoWindow(JNIEnv* env, jclass, jbooleanArray p_open) {
+    jboolean* elems = p_open != nullptr ? env->GetBooleanArrayElements(p_open, nullptr) : nullptr;
+    implot3d_show_demo_window(reinterpret_cast<bool*>(elems));
+    if (elems != nullptr) {
+        env->ReleaseBooleanArrayElements(p_open, elems, 0);
+    }
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_showAllDemos(JNIEnv*, jclass) {
+    implot3d_show_all_demos();
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_showStyleEditor(JNIEnv*, jclass) {
+    implot3d_show_style_editor();
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_showStyleSelector(JNIEnv* env, jclass, jstring label) {
+    std::string label_str = jstring_to_string(env, label);
+    return implot3d_show_style_selector(label_str.c_str()) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_showColormapSelector(JNIEnv* env, jclass, jstring label) {
+    std::string label_str = jstring_to_string(env, label);
+    return implot3d_show_colormap_selector(label_str.c_str()) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_showMetricsWindow(JNIEnv* env, jclass, jbooleanArray p_open) {
+    jboolean* elems = p_open != nullptr ? env->GetBooleanArrayElements(p_open, nullptr) : nullptr;
+    implot3d_show_metrics_window(reinterpret_cast<bool*>(elems));
+    if (elems != nullptr) {
+        env->ReleaseBooleanArrayElements(p_open, elems, 0);
+    }
+}
+
+JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_showAboutWindow(JNIEnv* env, jclass, jbooleanArray p_open) {
+    jboolean* elems = p_open != nullptr ? env->GetBooleanArrayElements(p_open, nullptr) : nullptr;
+    implot3d_show_about_window(reinterpret_cast<bool*>(elems));
+    if (elems != nullptr) {
+        env->ReleaseBooleanArrayElements(p_open, elems, 0);
+    }
+}
+
+// ---- Built-in meshes ----
+
+JNIEXPORT jdoubleArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_cubeVtx(JNIEnv* env, jclass) {
+    return mesh_vtx_to_jdouble_array(env, implot3d_cube_vtx(), implot3d_cube_vtx_count());
+}
+
+JNIEXPORT jintArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_cubeIdx(JNIEnv* env, jclass) {
+    return mesh_idx_to_jint_array(env, implot3d_cube_idx(), implot3d_cube_idx_count());
+}
+
+JNIEXPORT jdoubleArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_sphereVtx(JNIEnv* env, jclass) {
+    return mesh_vtx_to_jdouble_array(env, implot3d_sphere_vtx(), implot3d_sphere_vtx_count());
+}
+
+JNIEXPORT jintArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_sphereIdx(JNIEnv* env, jclass) {
+    return mesh_idx_to_jint_array(env, implot3d_sphere_idx(), implot3d_sphere_idx_count());
+}
+
+JNIEXPORT jdoubleArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_duckVtx(JNIEnv* env, jclass) {
+    return mesh_vtx_to_jdouble_array(env, implot3d_duck_vtx(), implot3d_duck_vtx_count());
+}
+
+JNIEXPORT jintArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_duckIdx(JNIEnv* env, jclass) {
+    return mesh_idx_to_jint_array(env, implot3d_duck_idx(), implot3d_duck_idx_count());
+}
+
+// ---- Point math ----
+
+JNIEXPORT jdoubleArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_pointAdd(JNIEnv* env, jclass, jdouble ax, jdouble ay, jdouble az, jdouble bx, jdouble by, jdouble bz) {
+    return point3d_to_jdouble_array(env, implot3d_point_add(implot3d_point_make(ax, ay, az), implot3d_point_make(bx, by, bz)));
+}
+
+JNIEXPORT jdoubleArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_pointSub(JNIEnv* env, jclass, jdouble ax, jdouble ay, jdouble az, jdouble bx, jdouble by, jdouble bz) {
+    return point3d_to_jdouble_array(env, implot3d_point_sub(implot3d_point_make(ax, ay, az), implot3d_point_make(bx, by, bz)));
+}
+
+JNIEXPORT jdoubleArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_pointMul(JNIEnv* env, jclass, jdouble ax, jdouble ay, jdouble az, jdouble bx, jdouble by, jdouble bz) {
+    return point3d_to_jdouble_array(env, implot3d_point_mul(implot3d_point_make(ax, ay, az), implot3d_point_make(bx, by, bz)));
+}
+
+JNIEXPORT jdoubleArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_pointDiv(JNIEnv* env, jclass, jdouble ax, jdouble ay, jdouble az, jdouble bx, jdouble by, jdouble bz) {
+    return point3d_to_jdouble_array(env, implot3d_point_div(implot3d_point_make(ax, ay, az), implot3d_point_make(bx, by, bz)));
+}
+
+JNIEXPORT jdoubleArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_pointMulScalar(JNIEnv* env, jclass, jdouble x, jdouble y, jdouble z, jdouble scalar) {
+    return point3d_to_jdouble_array(env, implot3d_point_mul_double(implot3d_point_make(x, y, z), scalar));
+}
+
+JNIEXPORT jdoubleArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_pointDivScalar(JNIEnv* env, jclass, jdouble x, jdouble y, jdouble z, jdouble scalar) {
+    return point3d_to_jdouble_array(env, implot3d_point_div_double(implot3d_point_make(x, y, z), scalar));
+}
+
+JNIEXPORT jdoubleArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_pointNeg(JNIEnv* env, jclass, jdouble x, jdouble y, jdouble z) {
+    return point3d_to_jdouble_array(env, implot3d_point_neg(implot3d_point_make(x, y, z)));
+}
+
+JNIEXPORT jdouble JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_pointDot(JNIEnv*, jclass, jdouble ax, jdouble ay, jdouble az, jdouble bx, jdouble by, jdouble bz) {
+    return implot3d_point_dot(implot3d_point_make(ax, ay, az), implot3d_point_make(bx, by, bz));
+}
+
+JNIEXPORT jdoubleArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_pointCross(JNIEnv* env, jclass, jdouble ax, jdouble ay, jdouble az, jdouble bx, jdouble by, jdouble bz) {
+    return point3d_to_jdouble_array(env, implot3d_point_cross(implot3d_point_make(ax, ay, az), implot3d_point_make(bx, by, bz)));
+}
+
+JNIEXPORT jdouble JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_pointLength(JNIEnv*, jclass, jdouble x, jdouble y, jdouble z) {
+    return implot3d_point_length(implot3d_point_make(x, y, z));
+}
+
+JNIEXPORT jdouble JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_pointLengthSquared(JNIEnv*, jclass, jdouble x, jdouble y, jdouble z) {
+    return implot3d_point_length_squared(implot3d_point_make(x, y, z));
+}
+
+JNIEXPORT jdoubleArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_pointNormalized(JNIEnv* env, jclass, jdouble x, jdouble y, jdouble z) {
+    return point3d_to_jdouble_array(env, implot3d_point_normalized(implot3d_point_make(x, y, z)));
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_pointIsNaN(JNIEnv*, jclass, jdouble x, jdouble y, jdouble z) {
+    return implot3d_point_is_nan(implot3d_point_make(x, y, z)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_pointEq(JNIEnv*, jclass, jdouble ax, jdouble ay, jdouble az, jdouble bx, jdouble by, jdouble bz) {
+    return implot3d_point_eq(implot3d_point_make(ax, ay, az), implot3d_point_make(bx, by, bz)) ? JNI_TRUE : JNI_FALSE;
+}
+
+// ---- Quat math ----
+
+JNIEXPORT jdoubleArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_quatFromAngleAxis(JNIEnv* env, jclass, jdouble angle, jdouble ax, jdouble ay, jdouble az) {
+    return quat3d_to_jdouble_array(env, implot3d_quat_from_angle_axis(angle, implot3d_point_make(ax, ay, az)));
+}
+
+JNIEXPORT jdoubleArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_quatFromTwoVectors(JNIEnv* env, jclass, jdouble ax, jdouble ay, jdouble az, jdouble bx, jdouble by, jdouble bz) {
+    return quat3d_to_jdouble_array(env, implot3d_quat_from_two_vectors(implot3d_point_make(ax, ay, az), implot3d_point_make(bx, by, bz)));
+}
+
+JNIEXPORT jdoubleArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_quatFromElAz(JNIEnv* env, jclass, jdouble elevation, jdouble azimuth) {
+    return quat3d_to_jdouble_array(env, implot3d_quat_from_el_az(elevation, azimuth));
+}
+
+JNIEXPORT jdoubleArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_quatMul(JNIEnv* env, jclass, jdouble ax, jdouble ay, jdouble az, jdouble aw, jdouble bx, jdouble by, jdouble bz, jdouble bw) {
+    return quat3d_to_jdouble_array(env, implot3d_quat_mul(implot3d_quat_make(ax, ay, az, aw), implot3d_quat_make(bx, by, bz, bw)));
+}
+
+JNIEXPORT jdoubleArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_quatRotatePoint(JNIEnv* env, jclass, jdouble qx, jdouble qy, jdouble qz, jdouble qw, jdouble px, jdouble py, jdouble pz) {
+    return point3d_to_jdouble_array(env, implot3d_quat_rotate_point(implot3d_quat_make(qx, qy, qz, qw), implot3d_point_make(px, py, pz)));
+}
+
+JNIEXPORT jdoubleArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_quatNormalized(JNIEnv* env, jclass, jdouble x, jdouble y, jdouble z, jdouble w) {
+    return quat3d_to_jdouble_array(env, implot3d_quat_normalized(implot3d_quat_make(x, y, z, w)));
+}
+
+JNIEXPORT jdoubleArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_quatConjugate(JNIEnv* env, jclass, jdouble x, jdouble y, jdouble z, jdouble w) {
+    return quat3d_to_jdouble_array(env, implot3d_quat_conjugate(implot3d_quat_make(x, y, z, w)));
+}
+
+JNIEXPORT jdoubleArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_quatInverse(JNIEnv* env, jclass, jdouble x, jdouble y, jdouble z, jdouble w) {
+    return quat3d_to_jdouble_array(env, implot3d_quat_inverse(implot3d_quat_make(x, y, z, w)));
+}
+
+JNIEXPORT jdouble JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_quatLength(JNIEnv*, jclass, jdouble x, jdouble y, jdouble z, jdouble w) {
+    return implot3d_quat_length(implot3d_quat_make(x, y, z, w));
+}
+
+JNIEXPORT jdouble JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_quatDot(JNIEnv*, jclass, jdouble ax, jdouble ay, jdouble az, jdouble aw, jdouble bx, jdouble by, jdouble bz, jdouble bw) {
+    return implot3d_quat_dot(implot3d_quat_make(ax, ay, az, aw), implot3d_quat_make(bx, by, bz, bw));
+}
+
+JNIEXPORT jdoubleArray JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_quatSlerp(JNIEnv* env, jclass, jdouble ax, jdouble ay, jdouble az, jdouble aw, jdouble bx, jdouble by, jdouble bz, jdouble bw, jdouble t) {
+    return quat3d_to_jdouble_array(env, implot3d_quat_slerp(implot3d_quat_make(ax, ay, az, aw), implot3d_quat_make(bx, by, bz, bw), t));
+}
+
+JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_extensions_implot3d_Jni_quatEq(JNIEnv*, jclass, jdouble ax, jdouble ay, jdouble az, jdouble aw, jdouble bx, jdouble by, jdouble bz, jdouble bw) {
+    return implot3d_quat_eq(implot3d_quat_make(ax, ay, az, aw), implot3d_quat_make(bx, by, bz, bw)) ? JNI_TRUE : JNI_FALSE;
+}
+
+} // extern "C" (ImPlot3D additions)

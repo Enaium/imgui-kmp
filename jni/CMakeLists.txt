@@ -20,6 +20,7 @@ option(BUILD_JNI "Build the JNI shared library" ON)
 
 set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../includes/imgui)
 set(IMPLOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../includes/implot)
+set(IMPLOT3D_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../includes/implot3d)
 set(NODE_EDITOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../includes/imgui-node-editor)
 set(FILE_DIALOG_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../includes/ImGuiFileDialog)
 set(MEMORY_EDITOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../includes/imgui_club/imgui_memory_editor)
@@ -36,6 +37,10 @@ add_library(imgui STATIC
     ${IMPLOT_DIR}/implot.cpp
     ${IMPLOT_DIR}/implot_items.cpp
     ${IMPLOT_DIR}/implot_demo.cpp
+    ${IMPLOT3D_DIR}/implot3d.cpp
+    ${IMPLOT3D_DIR}/implot3d_items.cpp
+    ${IMPLOT3D_DIR}/implot3d_meshes.cpp
+    ${IMPLOT3D_DIR}/implot3d_demo.cpp
     ${NODE_EDITOR_DIR}/imgui_node_editor.cpp
     ${NODE_EDITOR_DIR}/imgui_node_editor_api.cpp
     ${NODE_EDITOR_DIR}/crude_json.cpp
@@ -44,6 +49,7 @@ add_library(imgui STATIC
     ${CLUB_DIR}/imgui_multicontext_compositor/imgui_multicontext_compositor.cpp
     ${C_API_DIR}/imgui_c.cc
     ${C_API_DIR}/implot_c.cc
+    ${C_API_DIR}/implot3d_c.cc
     ${C_API_DIR}/node_editor_c.cc
     ${C_API_DIR}/file_dialog_c.cc
     ${C_API_DIR}/memory_editor_c.cc
@@ -63,6 +69,7 @@ target_include_directories(imgui PUBLIC
     ${C_API_DIR}
     ${IMGUI_DIR}
     ${IMPLOT_DIR}
+    ${IMPLOT3D_DIR}
 )
 
 if(MSVC)

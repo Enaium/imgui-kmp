@@ -13,3 +13,6 @@
 [submodule "includes/ImGuiFileDialog"]
 	path = includes/ImGuiFileDialog
 	url = git@github.com:aiekick/ImGuiFileDialog.git
+[submodule "includes/implot3d"]
+	path = includes/implot3d
+	url = git@github.com:brenocq/implot3d.git
