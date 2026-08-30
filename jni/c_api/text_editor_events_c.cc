@@ -103,7 +103,7 @@ void te_change_batch_free(te_change_batch* batch) {
 // Async autocomplete
 // =========================================================================
 
-void te_set_auto_complete_suggestions(te_editor* editor, const char* const* values, size_t count) {
+void te_set_auto_complete_suggestions(te_editor* editor, const char* const* values, uint32_t count) {
     TextEditor* te = reinterpret_cast<TextEditor*>(editor);
     std::vector<std::string> suggestions;
     suggestions.reserve(count);

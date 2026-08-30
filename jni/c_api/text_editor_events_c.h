@@ -65,7 +65,7 @@ typedef struct te_text_change {
 // A set of changes belonging to one transaction
 typedef struct te_change_batch {
     te_text_change* changes;
-    size_t count;
+    uint32_t count;
 } te_change_batch;
 
 // Popup/hover callback data (TextEditor::PopupData)
@@ -98,7 +98,7 @@ void te_change_batch_free(te_change_batch* batch);
 
 // Injects suggestions produced asynchronously (LSP lookup thread).
 // values: array of UTF-8 strings; the strings are copied.
-void te_set_auto_complete_suggestions(te_editor* editor, const char* const* values, size_t count);
+void te_set_auto_complete_suggestions(te_editor* editor, const char* const* values, uint32_t count);
 
 // =========================================================================
 // Popup / hover callbacks
