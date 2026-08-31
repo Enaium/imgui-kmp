@@ -19,3 +19,6 @@
 [submodule "includes/ImGuiColorTextEdit"]
 	path = includes/ImGuiColorTextEdit
 	url = git@github.com:goossens/ImGuiColorTextEdit.git
+[submodule "includes/imgui_markdown"]
+	path = includes/imgui_markdown
+	url = git@github.com:enkisoftware/imgui_markdown.git

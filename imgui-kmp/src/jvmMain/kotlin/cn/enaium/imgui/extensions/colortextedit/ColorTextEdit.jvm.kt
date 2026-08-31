@@ -125,6 +125,102 @@ internal object Jni {
     external fun clearMarkers(ptr: Long)
     external fun hasMarkers(ptr: Long): Boolean
 
+    // Autocomplete config
+    external fun setAutoCompleteConfig(ptr: Long, activate: Boolean, triggerOnTyping: Boolean, triggerOnShortcut: Boolean, triggerInComments: Boolean, triggerInStrings: Boolean, autoInsertSingleSuggestions: Boolean, triggerDelayMs: Int, suggestionWidth: Long)
+
+    // Additional text queries and edits
+    external fun getSectionText(ptr: Long, startLine: Long, startIndex: Long, endLine: Long, endIndex: Long): String
+    external fun replaceSectionText(ptr: Long, startLine: Long, startIndex: Long, endLine: Long, endIndex: Long, text: String)
+    external fun selectionToLowerCase(ptr: Long)
+    external fun selectionToUpperCase(ptr: Long)
+    external fun stripTrailingWhitespaces(ptr: Long)
+    external fun tabsToSpaces(ptr: Long)
+    external fun spacesToTabs(ptr: Long)
+    external fun indentLines(ptr: Long)
+    external fun deindentLines(ptr: Long)
+    external fun moveUpLines(ptr: Long)
+    external fun moveDownLines(ptr: Long)
+    external fun toggleComments(ptr: Long)
+
+    // Additional selection / cursor API
+    external fun selectLines(ptr: Long, start: Long, end: Long)
+    external fun selectRegion(ptr: Long, startLine: Long, startIndex: Long, endLine: Long, endIndex: Long)
+    external fun selectToBrackets(ptr: Long, includeBrackets: Boolean)
+    external fun growSelections(ptr: Long)
+    external fun shrinkSelections(ptr: Long)
+    external fun addNextOccurrence(ptr: Long, wholeWord: Boolean)
+    external fun selectAllOccurrences(ptr: Long, wholeWord: Boolean)
+    external fun clearCursors(ptr: Long)
+    external fun getCursorPosition(ptr: Long, cursor: Long): LongArray
+    external fun getCursorSelection(ptr: Long, cursor: Long): LongArray
+
+    // Word / find query
+    external fun getWordAtMousePos(ptr: Long, x: Float, y: Float): String
+    external fun findWordStart(ptr: Long, line: Long, index: Long, wholeWord: Boolean): LongArray
+    external fun findWordEnd(ptr: Long, line: Long, index: Long, wholeWord: Boolean): LongArray
+    external fun hasFindString(ptr: Long): Boolean
+    external fun findNext(ptr: Long)
+    external fun findAll(ptr: Long)
+    external fun openFindReplaceWindow(ptr: Long)
+    external fun closeFindReplaceWindow(ptr: Long)
+    external fun setFindButtonLabel(ptr: Long, label: String)
+    external fun setFindAllButtonLabel(ptr: Long, label: String)
+    external fun setReplaceButtonLabel(ptr: Long, label: String)
+    external fun setReplaceAllButtonLabel(ptr: Long, label: String)
+
+    // Visibility / folding
+    external fun isMousePosOverTextArea(ptr: Long, x: Float, y: Float): Boolean
+    external fun isDocPosVisible(ptr: Long, line: Long, index: Long): Boolean
+    external fun isLineFoldable(ptr: Long, line: Long): Boolean
+    external fun isLineFolded(ptr: Long, line: Long): Boolean
+    external fun isLineVisible(ptr: Long, line: Long): Boolean
+    external fun isLineHidden(ptr: Long, line: Long): Boolean
+    external fun foldAroundLine(ptr: Long, line: Long)
+    external fun unfoldAroundLine(ptr: Long, line: Long)
+    external fun toggleAtLine(ptr: Long, line: Long)
+    external fun unfoldAll(ptr: Long)
+    external fun getFirstVisibleRow(ptr: Long): Long
+    external fun getFirstVisibleColumn(ptr: Long): Long
+    external fun getLastVisibleRow(ptr: Long): Long
+    external fun getLastVisibleColumn(ptr: Long): Long
+
+    // Coordinate transforms
+    external fun docPosToVisPos(ptr: Long, line: Long, index: Long): LongArray
+    external fun visPosToDocPos(ptr: Long, row: Long, column: Long): LongArray
+
+    // Undo state
+    external fun getUndoIndex(ptr: Long): Long
+
+    // Static configuration (no editor instance needed)
+    external fun setDefaultPalette(text: Int, keyword: Int, number: Int, string: Int, comment: Int, background: Int, cursor: Int, selection: Int)
+    external fun getDefaultPalette(): LongArray
+    external fun setImGuiContext(imGuiContext: Long)
+
+    // Remaining configuration toggles
+    external fun setShowSpacesEnabled(ptr: Long, value: Boolean)
+    external fun isShowSpacesEnabled(ptr: Long): Boolean
+    external fun setShowTabsEnabled(ptr: Long, value: Boolean)
+    external fun isShowTabsEnabled(ptr: Long): Boolean
+    external fun setShowScrollbarMiniMapEnabled(ptr: Long, value: Boolean)
+    external fun isShowScrollbarMiniMapEnabled(ptr: Long): Boolean
+    external fun setShowPanScrollIndicatorEnabled(ptr: Long, value: Boolean)
+    external fun isShowPanScrollIndicatorEnabled(ptr: Long): Boolean
+    external fun setMiniMapColumns(ptr: Long, value: Long)
+    external fun getMiniMapColumns(ptr: Long): Long
+    external fun setLineNumberLeftMargin(ptr: Long, value: Long)
+    external fun getLineNumberLeftMargin(ptr: Long): Long
+    external fun setDecorationLeftMargin(ptr: Long, value: Long)
+    external fun getDecorationLeftMargin(ptr: Long): Long
+    external fun setLineBreakConfig(ptr: Long, breakAfter: String, breakBefore: String, useUnicodeAnnex14: Boolean)
+
+    // Line data hooks
+    external fun setInsertor(ptr: Long, activate: Boolean)
+    external fun setDeletor(ptr: Long, activate: Boolean)
+    external fun setUserData(ptr: Long, line: Long, data: Long)
+    external fun getUserData(ptr: Long, line: Long): Long
+    external fun iterateUserData(ptr: Long, activate: Boolean)
+    external fun setCustomTokenizer(ptr: Long, activate: Boolean)
+
     // TrieAutoComplete
     external fun autocompleteCreate(): Long
     external fun autocompleteDestroy(ac: Long)
@@ -147,6 +243,65 @@ internal object Jni {
     external fun setTextHoverCallback(ptr: Long, activate: Boolean)
     external fun isMousePosOverGlyph(ptr: Long, x: Float, y: Float): Boolean
     external fun getDocPosAtMousePos(ptr: Long, x: Float, y: Float, out: LongArray)
+}
+
+// Per-editor callback registries, keyed by the raw editor pointer. Callbacks
+// are stored in Kotlin and dispatched from ColorTextEditJvmBridge when the C
+// trampolines fire. Entries are removed when a callback is deactivated so
+// released editors do not leak.
+private val autocompleteRegistries = mutableMapOf<Long, (AutocompleteState) -> AutocompleteResult>()
+private val insertorRegistries = mutableMapOf<Long, (Long) -> Long>()
+private val deletorRegistries = mutableMapOf<Long, (Long, Long) -> Unit>()
+private val iterateRegistries = mutableMapOf<Long, (Long, Long) -> Unit>()
+
+/**
+ * Static callbacks invoked from the C trampolines in jni_bridge.cpp
+ * (JVM class: cn.enaium.imgui.extensions.colortextedit.ColorTextEditJvmBridge).
+ * Dispatches to the per-editor registries keyed by the editor pointer.
+ */
+internal object ColorTextEditJvmBridge {
+    @JvmStatic
+    fun notifyAutocomplete(
+        editorPtr: Long,
+        searchTerm: String,
+        searchTermStartLine: Long,
+        searchTermStartIndex: Long,
+        searchTermEndLine: Long,
+        searchTermEndIndex: Long,
+        inIdentifier: Boolean,
+        inNumber: Boolean,
+        inComment: Boolean,
+        inString: Boolean,
+    ): AutocompleteResult {
+        val callback = autocompleteRegistries[editorPtr] ?: return AutocompleteResult()
+        return callback(
+            AutocompleteState(
+                searchTerm = searchTerm,
+                searchTermStartLine = searchTermStartLine,
+                searchTermStartIndex = searchTermStartIndex,
+                searchTermEndLine = searchTermEndLine,
+                searchTermEndIndex = searchTermEndIndex,
+                inIdentifier = inIdentifier,
+                inNumber = inNumber,
+                inComment = inComment,
+                inString = inString,
+            )
+        )
+    }
+
+    @JvmStatic
+    fun notifyInsertor(editorPtr: Long, line: Long): Long =
+        insertorRegistries[editorPtr]?.invoke(line) ?: 0L
+
+    @JvmStatic
+    fun notifyDeletor(editorPtr: Long, line: Long, data: Long) {
+        deletorRegistries[editorPtr]?.invoke(line, data)
+    }
+
+    @JvmStatic
+    fun notifyIterateUserData(editorPtr: Long, line: Long, data: Long) {
+        iterateRegistries[editorPtr]?.invoke(line, data)
+    }
 }
 
 // =========================================================================
@@ -449,4 +604,363 @@ actual object ColorTextEdit {
 
     actual fun hasMarkers(editor: ColorTextEditEditor): Boolean =
         Jni.hasMarkers((editor as JvmColorTextEditEditor).ptr)
+
+    // ==================== Autocomplete config ====================
+    actual fun setAutoCompleteConfig(
+        editor: ColorTextEditEditor,
+        onSuggestions: ((AutocompleteState) -> AutocompleteResult)?,
+        triggerOnTyping: Boolean,
+        triggerOnShortcut: Boolean,
+        triggerInComments: Boolean,
+        triggerInStrings: Boolean,
+        autoInsertSingleSuggestions: Boolean,
+        triggerDelayMs: Int,
+        suggestionWidth: Long,
+    ) {
+        val ptr = (editor as JvmColorTextEditEditor).ptr
+        if (onSuggestions != null) {
+            autocompleteRegistries[ptr] = onSuggestions
+        } else {
+            autocompleteRegistries.remove(ptr)
+        }
+        Jni.setAutoCompleteConfig(ptr, onSuggestions != null, triggerOnTyping, triggerOnShortcut, triggerInComments, triggerInStrings, autoInsertSingleSuggestions, triggerDelayMs, suggestionWidth)
+    }
+
+    // ==================== Additional text queries and edits ====================
+    actual fun getSectionText(editor: ColorTextEditEditor, startLine: Long, startIndex: Long, endLine: Long, endIndex: Long): String =
+        Jni.getSectionText((editor as JvmColorTextEditEditor).ptr, startLine, startIndex, endLine, endIndex)
+
+    actual fun replaceSectionText(editor: ColorTextEditEditor, startLine: Long, startIndex: Long, endLine: Long, endIndex: Long, text: String) {
+        Jni.replaceSectionText((editor as JvmColorTextEditEditor).ptr, startLine, startIndex, endLine, endIndex, text)
+    }
+
+    actual fun selectionToLowerCase(editor: ColorTextEditEditor) {
+        Jni.selectionToLowerCase((editor as JvmColorTextEditEditor).ptr)
+    }
+
+    actual fun selectionToUpperCase(editor: ColorTextEditEditor) {
+        Jni.selectionToUpperCase((editor as JvmColorTextEditEditor).ptr)
+    }
+
+    actual fun stripTrailingWhitespaces(editor: ColorTextEditEditor) {
+        Jni.stripTrailingWhitespaces((editor as JvmColorTextEditEditor).ptr)
+    }
+
+    actual fun tabsToSpaces(editor: ColorTextEditEditor) {
+        Jni.tabsToSpaces((editor as JvmColorTextEditEditor).ptr)
+    }
+
+    actual fun spacesToTabs(editor: ColorTextEditEditor) {
+        Jni.spacesToTabs((editor as JvmColorTextEditEditor).ptr)
+    }
+
+    actual fun indentLines(editor: ColorTextEditEditor) {
+        Jni.indentLines((editor as JvmColorTextEditEditor).ptr)
+    }
+
+    actual fun deindentLines(editor: ColorTextEditEditor) {
+        Jni.deindentLines((editor as JvmColorTextEditEditor).ptr)
+    }
+
+    actual fun moveUpLines(editor: ColorTextEditEditor) {
+        Jni.moveUpLines((editor as JvmColorTextEditEditor).ptr)
+    }
+
+    actual fun moveDownLines(editor: ColorTextEditEditor) {
+        Jni.moveDownLines((editor as JvmColorTextEditEditor).ptr)
+    }
+
+    actual fun toggleComments(editor: ColorTextEditEditor) {
+        Jni.toggleComments((editor as JvmColorTextEditEditor).ptr)
+    }
+
+    // ==================== Additional selection / cursor API ====================
+    actual fun selectLines(editor: ColorTextEditEditor, start: Long, end: Long) {
+        Jni.selectLines((editor as JvmColorTextEditEditor).ptr, start, end)
+    }
+
+    actual fun selectRegion(editor: ColorTextEditEditor, startLine: Long, startIndex: Long, endLine: Long, endIndex: Long) {
+        Jni.selectRegion((editor as JvmColorTextEditEditor).ptr, startLine, startIndex, endLine, endIndex)
+    }
+
+    actual fun selectToBrackets(editor: ColorTextEditEditor, includeBrackets: Boolean) {
+        Jni.selectToBrackets((editor as JvmColorTextEditEditor).ptr, includeBrackets)
+    }
+
+    actual fun growSelections(editor: ColorTextEditEditor) {
+        Jni.growSelections((editor as JvmColorTextEditEditor).ptr)
+    }
+
+    actual fun shrinkSelections(editor: ColorTextEditEditor) {
+        Jni.shrinkSelections((editor as JvmColorTextEditEditor).ptr)
+    }
+
+    actual fun addNextOccurrence(editor: ColorTextEditEditor, wholeWord: Boolean) {
+        Jni.addNextOccurrence((editor as JvmColorTextEditEditor).ptr, wholeWord)
+    }
+
+    actual fun selectAllOccurrences(editor: ColorTextEditEditor, wholeWord: Boolean) {
+        Jni.selectAllOccurrences((editor as JvmColorTextEditEditor).ptr, wholeWord)
+    }
+
+    actual fun clearCursors(editor: ColorTextEditEditor) {
+        Jni.clearCursors((editor as JvmColorTextEditEditor).ptr)
+    }
+
+    actual fun getCursorPosition(editor: ColorTextEditEditor, cursor: Long): Pair<Long, Long> {
+        val pos = Jni.getCursorPosition((editor as JvmColorTextEditEditor).ptr, cursor)
+        return Pair(pos[0], pos[1])
+    }
+
+    actual fun getCursorSelection(editor: ColorTextEditEditor, cursor: Long): LongArray =
+        Jni.getCursorSelection((editor as JvmColorTextEditEditor).ptr, cursor)
+
+    // ==================== Word / find query ====================
+    actual fun getWordAtMousePos(editor: ColorTextEditEditor, x: Float, y: Float): String =
+        Jni.getWordAtMousePos((editor as JvmColorTextEditEditor).ptr, x, y)
+
+    actual fun findWordStart(editor: ColorTextEditEditor, line: Long, index: Long, wholeWord: Boolean): Pair<Long, Long> {
+        val pos = Jni.findWordStart((editor as JvmColorTextEditEditor).ptr, line, index, wholeWord)
+        return Pair(pos[0], pos[1])
+    }
+
+    actual fun findWordEnd(editor: ColorTextEditEditor, line: Long, index: Long, wholeWord: Boolean): Pair<Long, Long> {
+        val pos = Jni.findWordEnd((editor as JvmColorTextEditEditor).ptr, line, index, wholeWord)
+        return Pair(pos[0], pos[1])
+    }
+
+    actual fun hasFindString(editor: ColorTextEditEditor): Boolean =
+        Jni.hasFindString((editor as JvmColorTextEditEditor).ptr)
+
+    actual fun findNext(editor: ColorTextEditEditor) {
+        Jni.findNext((editor as JvmColorTextEditEditor).ptr)
+    }
+
+    actual fun findAll(editor: ColorTextEditEditor) {
+        Jni.findAll((editor as JvmColorTextEditEditor).ptr)
+    }
+
+    actual fun openFindReplaceWindow(editor: ColorTextEditEditor) {
+        Jni.openFindReplaceWindow((editor as JvmColorTextEditEditor).ptr)
+    }
+
+    actual fun closeFindReplaceWindow(editor: ColorTextEditEditor) {
+        Jni.closeFindReplaceWindow((editor as JvmColorTextEditEditor).ptr)
+    }
+
+    actual fun setFindButtonLabel(editor: ColorTextEditEditor, label: String) {
+        Jni.setFindButtonLabel((editor as JvmColorTextEditEditor).ptr, label)
+    }
+
+    actual fun setFindAllButtonLabel(editor: ColorTextEditEditor, label: String) {
+        Jni.setFindAllButtonLabel((editor as JvmColorTextEditEditor).ptr, label)
+    }
+
+    actual fun setReplaceButtonLabel(editor: ColorTextEditEditor, label: String) {
+        Jni.setReplaceButtonLabel((editor as JvmColorTextEditEditor).ptr, label)
+    }
+
+    actual fun setReplaceAllButtonLabel(editor: ColorTextEditEditor, label: String) {
+        Jni.setReplaceAllButtonLabel((editor as JvmColorTextEditEditor).ptr, label)
+    }
+
+    // ==================== Visibility / folding ====================
+    actual fun isMousePosOverTextArea(editor: ColorTextEditEditor, x: Float, y: Float): Boolean =
+        Jni.isMousePosOverTextArea((editor as JvmColorTextEditEditor).ptr, x, y)
+
+    actual fun isDocPosVisible(editor: ColorTextEditEditor, line: Long, index: Long): Boolean =
+        Jni.isDocPosVisible((editor as JvmColorTextEditEditor).ptr, line, index)
+
+    actual fun isLineFoldable(editor: ColorTextEditEditor, line: Long): Boolean =
+        Jni.isLineFoldable((editor as JvmColorTextEditEditor).ptr, line)
+
+    actual fun isLineFolded(editor: ColorTextEditEditor, line: Long): Boolean =
+        Jni.isLineFolded((editor as JvmColorTextEditEditor).ptr, line)
+
+    actual fun isLineVisible(editor: ColorTextEditEditor, line: Long): Boolean =
+        Jni.isLineVisible((editor as JvmColorTextEditEditor).ptr, line)
+
+    actual fun isLineHidden(editor: ColorTextEditEditor, line: Long): Boolean =
+        Jni.isLineHidden((editor as JvmColorTextEditEditor).ptr, line)
+
+    actual fun foldAroundLine(editor: ColorTextEditEditor, line: Long) {
+        Jni.foldAroundLine((editor as JvmColorTextEditEditor).ptr, line)
+    }
+
+    actual fun unfoldAroundLine(editor: ColorTextEditEditor, line: Long) {
+        Jni.unfoldAroundLine((editor as JvmColorTextEditEditor).ptr, line)
+    }
+
+    actual fun toggleAtLine(editor: ColorTextEditEditor, line: Long) {
+        Jni.toggleAtLine((editor as JvmColorTextEditEditor).ptr, line)
+    }
+
+    actual fun unfoldAll(editor: ColorTextEditEditor) {
+        Jni.unfoldAll((editor as JvmColorTextEditEditor).ptr)
+    }
+
+    actual fun getFirstVisibleRow(editor: ColorTextEditEditor): Long =
+        Jni.getFirstVisibleRow((editor as JvmColorTextEditEditor).ptr)
+
+    actual fun getFirstVisibleColumn(editor: ColorTextEditEditor): Long =
+        Jni.getFirstVisibleColumn((editor as JvmColorTextEditEditor).ptr)
+
+    actual fun getLastVisibleRow(editor: ColorTextEditEditor): Long =
+        Jni.getLastVisibleRow((editor as JvmColorTextEditEditor).ptr)
+
+    actual fun getLastVisibleColumn(editor: ColorTextEditEditor): Long =
+        Jni.getLastVisibleColumn((editor as JvmColorTextEditEditor).ptr)
+
+    // ==================== Coordinate transforms ====================
+    actual fun docPosToVisPos(editor: ColorTextEditEditor, line: Long, index: Long): Pair<Long, Long> {
+        val pos = Jni.docPosToVisPos((editor as JvmColorTextEditEditor).ptr, line, index)
+        return Pair(pos[0], pos[1])
+    }
+
+    actual fun visPosToDocPos(editor: ColorTextEditEditor, row: Long, column: Long): Pair<Long, Long> {
+        val pos = Jni.visPosToDocPos((editor as JvmColorTextEditEditor).ptr, row, column)
+        return Pair(pos[0], pos[1])
+    }
+
+    // ==================== Undo state ====================
+    actual fun getUndoIndex(editor: ColorTextEditEditor): Long =
+        Jni.getUndoIndex((editor as JvmColorTextEditEditor).ptr)
+
+    // ==================== Static configuration ====================
+    actual fun setDefaultPalette(text: Int, keyword: Int, number: Int, string: Int, comment: Int, background: Int, cursor: Int, selection: Int) {
+        Jni.setDefaultPalette(text, keyword, number, string, comment, background, cursor, selection)
+    }
+
+    actual fun getDefaultPalette(): LongArray = Jni.getDefaultPalette()
+
+    actual fun setImGuiContext(imGuiContext: Long) {
+        Jni.setImGuiContext(imGuiContext)
+    }
+
+    // ==================== Remaining configuration toggles ====================
+    actual fun setShowSpacesEnabled(editor: ColorTextEditEditor, value: Boolean) {
+        Jni.setShowSpacesEnabled((editor as JvmColorTextEditEditor).ptr, value)
+    }
+
+    actual fun isShowSpacesEnabled(editor: ColorTextEditEditor): Boolean =
+        Jni.isShowSpacesEnabled((editor as JvmColorTextEditEditor).ptr)
+
+    actual fun setShowTabsEnabled(editor: ColorTextEditEditor, value: Boolean) {
+        Jni.setShowTabsEnabled((editor as JvmColorTextEditEditor).ptr, value)
+    }
+
+    actual fun isShowTabsEnabled(editor: ColorTextEditEditor): Boolean =
+        Jni.isShowTabsEnabled((editor as JvmColorTextEditEditor).ptr)
+
+    actual fun setShowScrollbarMiniMapEnabled(editor: ColorTextEditEditor, value: Boolean) {
+        Jni.setShowScrollbarMiniMapEnabled((editor as JvmColorTextEditEditor).ptr, value)
+    }
+
+    actual fun isShowScrollbarMiniMapEnabled(editor: ColorTextEditEditor): Boolean =
+        Jni.isShowScrollbarMiniMapEnabled((editor as JvmColorTextEditEditor).ptr)
+
+    actual fun setShowPanScrollIndicatorEnabled(editor: ColorTextEditEditor, value: Boolean) {
+        Jni.setShowPanScrollIndicatorEnabled((editor as JvmColorTextEditEditor).ptr, value)
+    }
+
+    actual fun isShowPanScrollIndicatorEnabled(editor: ColorTextEditEditor): Boolean =
+        Jni.isShowPanScrollIndicatorEnabled((editor as JvmColorTextEditEditor).ptr)
+
+    actual fun setMiniMapColumns(editor: ColorTextEditEditor, value: Long) {
+        Jni.setMiniMapColumns((editor as JvmColorTextEditEditor).ptr, value)
+    }
+
+    actual fun getMiniMapColumns(editor: ColorTextEditEditor): Long =
+        Jni.getMiniMapColumns((editor as JvmColorTextEditEditor).ptr)
+
+    actual fun setLineNumberLeftMargin(editor: ColorTextEditEditor, value: Long) {
+        Jni.setLineNumberLeftMargin((editor as JvmColorTextEditEditor).ptr, value)
+    }
+
+    actual fun getLineNumberLeftMargin(editor: ColorTextEditEditor): Long =
+        Jni.getLineNumberLeftMargin((editor as JvmColorTextEditEditor).ptr)
+
+    actual fun setDecorationLeftMargin(editor: ColorTextEditEditor, value: Long) {
+        Jni.setDecorationLeftMargin((editor as JvmColorTextEditEditor).ptr, value)
+    }
+
+    actual fun getDecorationLeftMargin(editor: ColorTextEditEditor): Long =
+        Jni.getDecorationLeftMargin((editor as JvmColorTextEditEditor).ptr)
+
+    actual fun setLineBreakConfig(editor: ColorTextEditEditor, breakAfter: String, breakBefore: String, useUnicodeAnnex14: Boolean) {
+        Jni.setLineBreakConfig((editor as JvmColorTextEditEditor).ptr, breakAfter, breakBefore, useUnicodeAnnex14)
+    }
+
+    // ==================== Line data hooks ====================
+    actual fun setInsertor(editor: ColorTextEditEditor, insertor: ((Long) -> Long)?) {
+        val ptr = (editor as JvmColorTextEditEditor).ptr
+        if (insertor != null) {
+            insertorRegistries[ptr] = insertor
+        } else {
+            insertorRegistries.remove(ptr)
+        }
+        Jni.setInsertor(ptr, insertor != null)
+    }
+
+    actual fun setDeletor(editor: ColorTextEditEditor, deletor: ((Long, Long) -> Unit)?) {
+        val ptr = (editor as JvmColorTextEditEditor).ptr
+        if (deletor != null) {
+            deletorRegistries[ptr] = deletor
+        } else {
+            deletorRegistries.remove(ptr)
+        }
+        Jni.setDeletor(ptr, deletor != null)
+    }
+
+    actual fun setUserData(editor: ColorTextEditEditor, line: Long, data: Long) {
+        Jni.setUserData((editor as JvmColorTextEditEditor).ptr, line, data)
+    }
+
+    actual fun getUserData(editor: ColorTextEditEditor, line: Long): Long =
+        Jni.getUserData((editor as JvmColorTextEditEditor).ptr, line)
+
+    actual fun iterateUserData(editor: ColorTextEditEditor, iterate: ((Long, Long) -> Unit)?) {
+        val ptr = (editor as JvmColorTextEditEditor).ptr
+        if (iterate != null) {
+            iterateRegistries[ptr] = iterate
+        } else {
+            iterateRegistries.remove(ptr)
+        }
+        Jni.iterateUserData(ptr, iterate != null)
+    }
+
+    actual fun setCustomTokenizer(editor: ColorTextEditEditor, tokenizer: ((line: Long, offset: Long, text: String) -> Int)?) {
+        val ptr = (editor as JvmColorTextEditEditor).ptr
+        if (tokenizer != null) {
+            tokenizerRegistries[ptr] = tokenizer
+        } else {
+            tokenizerRegistries.remove(ptr)
+            tokenizerState.remove(ptr)
+        }
+        Jni.setCustomTokenizer(ptr, tokenizer != null)
+    }
 }
+
+// =========================================================================
+// Custom tokenizer bridge (dispatched from the C trampoline)
+// =========================================================================
+
+private val tokenizerRegistries = mutableMapOf<Long, (line: Long, offset: Long, text: String) -> Int>()
+private class TokenizerState { var line = -1L; var offset = 0L }
+
+internal object LanguageTokenizerJvmBridge {
+    @JvmStatic
+    fun tokenize(ptr: Long, line: Long, text: String): Int {
+        val cb = tokenizerRegistries[ptr] ?: return -1
+        val state = tokenizerState.getOrPut(ptr) { TokenizerState() }
+        if (line != state.line) {
+            state.line = line
+            state.offset = 0
+        }
+        val index = cb(line, state.offset, text)
+        state.offset += text.codePointCount(0, text.length).toLong()
+        return index
+    }
+}
+
+private val tokenizerState = mutableMapOf<Long, TokenizerState>()

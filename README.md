@@ -5,7 +5,7 @@
 [![GitHub Actions](https://img.shields.io/github/actions/workflow/status/Enaium/imgui-kmp/test.yml?label=test)](https://github.com/Enaium/imgui-kmp/actions/workflows/test.yml)
 [![GitHub Repo stars](https://img.shields.io/github/stars/Enaium/imgui-kmp?style=social)](https://github.com/Enaium/imgui-kmp)
 
-Kotlin Multiplatform bindings for [Dear ImGui](https://github.com/ocornut/imgui) and the ecosystem around it: [ImPlot](https://github.com/epezent/implot), [imgui-node-editor](https://github.com/thedmd/imgui-node-editor), [ImGuiFileDialog](https://github.com/aiekick/ImGuiFileDialog), the [imgui_club](https://github.com/ocornut/imgui_club) extensions (memory editor, multi-context compositor, threaded rendering) and SDL3 platform/renderer backends. The bindings wrap the C++ code from the `includes/` submodules through a C API, a JNI bridge (JVM/Android) and Kotlin/Native cinterop (all native targets).
+Kotlin Multiplatform bindings for [Dear ImGui](https://github.com/ocornut/imgui) and the ecosystem around it: [ImPlot](https://github.com/epezent/implot), [ImPlot3D](https://github.com/brenocq/implot3d), [imgui-node-editor](https://github.com/thedmd/imgui-node-editor), [ImGuiFileDialog](https://github.com/aiekick/ImGuiFileDialog), [ImGuiColorTextEdit](https://github.com/goossens/ImGuiColorTextEdit) (TextEditor + extras + event hooks), [imgui_markdown](https://github.com/enkisoftware/imgui_markdown), the [imgui_club](https://github.com/ocornut/imgui_club) extensions (memory editor, multi-context compositor, threaded rendering) and SDL3 platform/renderer backends. The bindings wrap the C++ code from the `includes/` submodules through a C API, a JNI bridge (JVM/Android) and Kotlin/Native cinterop (all native targets).
 
 ## Supported Platforms
 
@@ -28,7 +28,7 @@ Android has **two independent APIs**: the JVM API (an AAR with per-ABI JNI `.so`
 **Kotlin Multiplatform / Android / native:**
 
 ```kotlin
-implementation("cn.enaium.imgui:imgui-kmp:1.0.4")
+implementation("cn.enaium.imgui:imgui-kmp:1.0.6")
 ```
 
 **JVM:** the right native binary is resolved automatically — the `imgui-kmp-jvm` artifact pulls in the matching `:jni-jvm-*` sibling on the classpath:
@@ -92,6 +92,10 @@ The draw data is plain vertex/index buffers (20 bytes per vertex: pos, uv, color
 - `examples/sdl_gpu` — **SDL GPU** (`ImGuiSdlGpuBackend`), mirrors `imgui_impl_sdlgpu3.cpp` using the SDL3 GPU API with the precompiled SPIR-V/MSL shaders shipped with Dear ImGui.
 - `examples/node_editor` — a blueprints-style node graph on the [imgui-node-editor](https://github.com/thedmd/imgui-node-editor) bindings: draggable typed pins, link creation, deletion and context menus.
 - `examples/club` — the [imgui_club](https://github.com/ocornut/imgui_club) bindings: the `MemoryEditor` hex editor and the `MultiContextCompositor` stacking a second ImGui context over the main UI in one window, with cross-context drag & drop (drag a swatch from the main window onto the overlay — a different ImGui context — and the compositor delivers the payload there).
+- `examples/implot3d` — [ImPlot3D](https://github.com/brenocq/implot3d) 3D plots in a ShowDemoWindow-style layout: line/scatter/surface/mesh demos, box scale & rotation, markers & text, NaN handling.
+- `examples/filedialog` — [ImGuiFileDialog](https://github.com/aiekick/ImGuiFileDialog): open/save/directory dialogs with filter collections, per-extension file styles and selection reporting.
+- `examples/colortextedit` — [ImGuiColorTextEdit](https://github.com/goossens/ImGuiColorTextEdit): a syntax-highlighted text editor with language/palette switching, find/replace, markers and view toggles, plus the extras (TrieAutoComplete, notifications) and event hooks for language-server integration.
+- `examples/markdown` — [imgui_markdown](https://github.com/enkisoftware/imgui_markdown) rendered directly into a window (headings, lists, code, clickable links with tooltips).
 
 Run them headless or with a window:
 
@@ -110,9 +114,15 @@ SDL_VIDEO_DRIVER=dummy ./gradlew :examples:node_editor:jvmRun --args="--frames 1
 
 # JVM (imgui_club: memory editor + multi-context compositor)
 SDL_VIDEO_DRIVER=dummy ./gradlew :examples:club:jvmRun --args="--frames 120"
+
+# JVM (implot3d / filedialog / colortextedit / markdown)
+SDL_VIDEO_DRIVER=dummy ./gradlew :examples:implot3d:jvmRun --args="--frames 120"
+SDL_VIDEO_DRIVER=dummy ./gradlew :examples:filedialog:jvmRun --args="--frames 120"
+SDL_VIDEO_DRIVER=dummy ./gradlew :examples:colortextedit:jvmRun --args="--frames 120"
+SDL_VIDEO_DRIVER=dummy ./gradlew :examples:markdown:jvmRun --args="--frames 120"
 ```
 
-The examples consume `:imgui-kmp` as a project dependency, so they always build against the local source. (Standalone consumers use `cn.enaium.imgui:imgui-kmp:1.0.4` from Maven Central or Maven Local.)
+The examples consume `:imgui-kmp` as a project dependency, so they always build against the local source. (Standalone consumers use `cn.enaium.imgui:imgui-kmp:1.0.6` from Maven Central or Maven Local.)
 
 ## API Overview
 
@@ -153,7 +163,7 @@ The complete demo UI (menu bar, tabs, tables, popups, plots, the built-in `showD
 
 ## Building
 
-The Dear ImGui, ImPlot, imgui-node-editor, ImGuiFileDialog and imgui_club sources are git submodules under `includes/`:
+The Dear ImGui, ImPlot, ImPlot3D, imgui-node-editor, ImGuiFileDialog, ImGuiColorTextEdit, imgui_markdown and imgui_club sources are git submodules under `includes/`:
 
 ```bash
 git submodule update --init --recursive
@@ -161,8 +171,8 @@ git submodule update --init --recursive
 
 - `jni/` — CMake build of the static library (`libimgui.a`) and the JNI bridge, plus the per-OS/arch JVM JNI artifact projects.
 - `jni/c_api/` — the C API consumed by both the JNI bridge and the cinterop bindings.
-- `imgui-kmp/` — the multiplatform module: `cn.enaium.imgui` for ImGui, `cn.enaium.imgui.extensions.implot` for ImPlot, `...extensions.nodeeditor` for imgui-node-editor, `...extensions.filedialog` for ImGuiFileDialog and `...extensions.memoryeditor` / `...extensions.mcc` / `...extensions.threadedrendering` for imgui_club, plus the SDL backends under `cn.enaium.imgui.backends.sdl`.
-- `examples/` — the shared demo UI (`examples/common`), the shared SDL Android glue (`examples/android-sdl`) and the SDL renderer (`examples/sdl_renderer`), SDL GPU (`examples/sdl_gpu`), node editor (`examples/node_editor`) and imgui_club (`examples/club`) demos, shared across JVM, desktop native and Android native targets.
+- `imgui-kmp/` — the multiplatform module: `cn.enaium.imgui` for ImGui, `cn.enaium.imgui.extensions.implot` for ImPlot, `...extensions.implot3d` for ImPlot3D, `...extensions.nodeeditor` for imgui-node-editor, `...extensions.filedialog` for ImGuiFileDialog, `...extensions.colortextedit` for ImGuiColorTextEdit (TextEditor + TrieAutoComplete + Notifications + event hooks), `...extensions.markdown` for imgui_markdown and `...extensions.memoryeditor` / `...extensions.mcc` / `...extensions.threadedrendering` for imgui_club, plus the SDL backends under `cn.enaium.imgui.backends.sdl`.
+- `examples/` — the shared demo UI (`examples/common`), the shared SDL Android glue (`examples/android-sdl`) and the SDL renderer (`examples/sdl_renderer`), SDL GPU (`examples/sdl_gpu`), node editor (`examples/node_editor`), imgui_club (`examples/club`), ImPlot3D (`examples/implot3d`), file dialog (`examples/filedialog`), text editor (`examples/colortextedit`) and Markdown (`examples/markdown`) demos, shared across JVM, desktop native and Android native targets.
 
 ```bash
 ./gradlew :imgui-kmp:jvmTest          # JVM tests (uses the host JNI artifact)

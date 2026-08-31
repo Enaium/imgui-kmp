@@ -24,6 +24,7 @@ set(IMPLOT3D_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../includes/implot3d)
 set(NODE_EDITOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../includes/imgui-node-editor)
 set(FILE_DIALOG_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../includes/ImGuiFileDialog)
 set(TEXT_EDITOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../includes/ImGuiColorTextEdit)
+set(MARKDOWN_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../includes/imgui_markdown)
 set(MEMORY_EDITOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../includes/imgui_club/imgui_memory_editor)
 set(CLUB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../includes/imgui_club)
 set(C_API_DIR ${CMAKE_CURRENT_SOURCE_DIR}/c_api)
@@ -58,6 +59,7 @@ add_library(imgui STATIC
     ${C_API_DIR}/text_editor_c.cc
     ${C_API_DIR}/text_editor_extras_c.cc
     ${C_API_DIR}/text_editor_events_c.cc
+    ${C_API_DIR}/markdown_c.cc
     ${C_API_DIR}/memory_editor_c.cc
     ${C_API_DIR}/multi_context_compositor_c.cc
     ${C_API_DIR}/threaded_rendering_c.cc
@@ -68,6 +70,7 @@ target_include_directories(imgui PRIVATE
     ${FILE_DIALOG_DIR}
     ${TEXT_EDITOR_DIR}
     ${TEXT_EDITOR_DIR}/extras
+    ${MARKDOWN_DIR}
     ${MEMORY_EDITOR_DIR}
     ${CLUB_DIR}/imgui_multicontext_compositor
     ${CLUB_DIR}/imgui_threaded_rendering

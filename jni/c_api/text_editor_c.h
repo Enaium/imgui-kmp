@@ -225,6 +225,180 @@ void te_clear_markers(te_editor* editor);
 bool te_has_markers(te_editor* editor);
 
 // =========================================================================
+// Autocomplete configuration
+// =========================================================================
+
+// Mirrors TextEditor::AutoCompleteState (search context passed to the callback)
+typedef struct te_autocomplete_state {
+    const char* search_term; // UTF-8, valid for the callback duration
+    uint64_t search_term_start_line;
+    uint64_t search_term_start_index;
+    uint64_t search_term_end_line;
+    uint64_t search_term_end_index;
+    bool in_identifier;
+    bool in_number;
+    bool in_comment;
+    bool in_string;
+    void* user_data;
+} te_autocomplete_state;
+
+// Output buffer the callback fills (mirrors AutoCompleteState suggestions)
+typedef struct te_autocomplete_result {
+    char** suggestions; // array of UTF-8 strings (malloc'd copies)
+    uint32_t suggestion_count;
+    bool suggestions_promise; // set if async lookup deferred via te_set_auto_complete_suggestions
+} te_autocomplete_result;
+
+typedef void (*te_autocomplete_callback_fn)(const te_autocomplete_state* state, te_autocomplete_result* out);
+
+// Configure and activate autocomplete; pass null fn to deactivate. Config is
+// copied inside. trigger_on_typing/shortcut/comments/strings, auto_insert,
+// trigger_delay_ms, suggestion_width map to AutoCompleteConfig fields.
+void te_set_auto_complete_config(te_editor* editor, te_autocomplete_callback_fn fn,
+                                 void* user_data, bool trigger_on_typing, bool trigger_on_shortcut,
+                                 bool trigger_in_comments, bool trigger_in_strings,
+                                 bool auto_insert_single_suggestions, int trigger_delay_ms,
+                                 unsigned int suggestion_width);
+
+// =========================================================================
+// Additional text queries and edits
+// =========================================================================
+
+char* te_get_section_text(te_editor* editor, uint64_t start_line, uint64_t start_index, uint64_t end_line, uint64_t end_index); // caller frees
+void te_replace_section_text(te_editor* editor, uint64_t start_line, uint64_t start_index, uint64_t end_line, uint64_t end_index, const char* text);
+void te_selection_to_lower_case(te_editor* editor);
+void te_selection_to_upper_case(te_editor* editor);
+void te_strip_trailing_whitespaces(te_editor* editor);
+void te_tabs_to_spaces(te_editor* editor);
+void te_spaces_to_tabs(te_editor* editor);
+void te_indent_lines(te_editor* editor);
+void te_deindent_lines(te_editor* editor);
+void te_move_up_lines(te_editor* editor);
+void te_move_down_lines(te_editor* editor);
+void te_toggle_comments(te_editor* editor);
+
+// =========================================================================
+// Additional selection / cursor API
+// =========================================================================
+
+void te_select_lines(te_editor* editor, uint64_t start, uint64_t end);
+void te_select_region(te_editor* editor, uint64_t start_line, uint64_t start_index, uint64_t end_line, uint64_t end_index);
+void te_select_to_brackets(te_editor* editor, bool include_brackets);
+void te_grow_selections(te_editor* editor);
+void te_shrink_selections(te_editor* editor);
+void te_add_next_occurrence(te_editor* editor, bool whole_word);
+void te_select_all_occurrences(te_editor* editor, bool whole_word);
+void te_clear_cursors(te_editor* editor);
+
+// Get a specific cursor's position / selection (index < GetNumberOfCursors)
+void te_get_cursor_position(te_editor* editor, uint64_t cursor, uint64_t* out_line, uint64_t* out_index);
+void te_get_cursor_selection(te_editor* editor, uint64_t cursor, uint64_t* out_start_line, uint64_t* out_start_index, uint64_t* out_end_line, uint64_t* out_end_index);
+
+// =========================================================================
+// Word / find query
+// =========================================================================
+
+char* te_get_word_at_mouse_pos(te_editor* editor, float x, float y); // caller frees
+void te_find_word_start(te_editor* editor, uint64_t line, uint64_t index, bool whole_word, uint64_t* out_line, uint64_t* out_index);
+void te_find_word_end(te_editor* editor, uint64_t line, uint64_t index, bool whole_word, uint64_t* out_line, uint64_t* out_index);
+bool te_has_find_string(te_editor* editor);
+void te_find_next(te_editor* editor);
+void te_find_all(te_editor* editor);
+void te_open_find_replace_window(te_editor* editor);
+void te_close_find_replace_window(te_editor* editor);
+void te_set_find_button_label(te_editor* editor, const char* label);
+void te_set_find_all_button_label(te_editor* editor, const char* label);
+void te_set_replace_button_label(te_editor* editor, const char* label);
+void te_set_replace_all_button_label(te_editor* editor, const char* label);
+
+// =========================================================================
+// Visibility / folding / coordinate transforms
+// =========================================================================
+
+bool te_is_mouse_pos_over_text_area(te_editor* editor, float x, float y);
+bool te_is_doc_pos_visible(te_editor* editor, uint64_t line, uint64_t index);
+bool te_is_line_foldable(te_editor* editor, uint64_t line);
+bool te_is_line_folded(te_editor* editor, uint64_t line);
+bool te_is_line_visible(te_editor* editor, uint64_t line);
+bool te_is_line_hidden(te_editor* editor, uint64_t line);
+void te_fold_around_line(te_editor* editor, uint64_t line);
+void te_unfold_around_line(te_editor* editor, uint64_t line);
+void te_toggle_at_line(te_editor* editor, uint64_t line);
+void te_unfold_all(te_editor* editor);
+uint64_t te_get_first_visible_row(te_editor* editor);
+uint64_t te_get_first_visible_column(te_editor* editor);
+uint64_t te_get_last_visible_row(te_editor* editor);
+uint64_t te_get_last_visible_column(te_editor* editor);
+
+// DocPos <-> VisPos (row/column) transforms
+void te_doc_pos_to_vis_pos(te_editor* editor, uint64_t line, uint64_t index, uint64_t* out_row, uint64_t* out_column);
+void te_vis_pos_to_doc_pos(te_editor* editor, uint64_t row, uint64_t column, uint64_t* out_line, uint64_t* out_index);
+
+// =========================================================================
+// Undo state / static configuration
+// =========================================================================
+
+uint64_t te_get_undo_index(te_editor* editor);
+
+// Static palettes (affect all editors)
+void te_set_default_palette(uint32_t text, uint32_t keyword, uint32_t number, uint32_t string,
+                            uint32_t comment, uint32_t background, uint32_t cursor, uint32_t selection);
+void te_get_default_palette(uint32_t* out_text, uint32_t* out_keyword, uint32_t* out_number, uint32_t* out_string,
+                            uint32_t* out_comment, uint32_t* out_background, uint32_t* out_cursor, uint32_t* out_selection);
+
+// Attaches the editor to the current ImGui context (ImGui::SetCurrentContext)
+void te_set_im_gui_context(uint64_t im_gui_context);
+
+// =========================================================================
+// Remaining configuration toggles
+// =========================================================================
+
+void te_set_show_spaces_enabled(te_editor* editor, bool value);
+bool te_is_show_spaces_enabled(te_editor* editor);
+void te_set_show_tabs_enabled(te_editor* editor, bool value);
+bool te_is_show_tabs_enabled(te_editor* editor);
+void te_set_show_scrollbar_minimap_enabled(te_editor* editor, bool value);
+bool te_is_show_scrollbar_minimap_enabled(te_editor* editor);
+void te_set_show_pan_scroll_indicator_enabled(te_editor* editor, bool value);
+bool te_is_show_pan_scroll_indicator_enabled(te_editor* editor);
+void te_set_minimap_columns(te_editor* editor, uint64_t value);
+uint64_t te_get_minimap_columns(te_editor* editor);
+void te_set_line_number_left_margin(te_editor* editor, uint64_t value);
+uint64_t te_get_line_number_left_margin(te_editor* editor);
+void te_set_decoration_left_margin(te_editor* editor, uint64_t value);
+uint64_t te_get_decoration_left_margin(te_editor* editor);
+void te_set_line_break_config(te_editor* editor, const char* break_after, const char* break_before, bool use_unicode_annex14);
+
+// =========================================================================
+// Line data hooks (insertor/deletor/user data)
+// =========================================================================
+
+typedef void* (*te_insertor_fn)(uint64_t line, void* user_data);
+typedef void (*te_deletor_fn)(uint64_t line, void* data, void* user_data);
+typedef void (*te_iterate_user_data_fn)(uint64_t line, void* data, void* user_data);
+
+void te_set_insertor(te_editor* editor, te_insertor_fn fn, void* user_data);
+void te_set_deletor(te_editor* editor, te_deletor_fn fn, void* user_data);
+void te_set_user_data(te_editor* editor, uint64_t line, void* data);
+void* te_get_user_data(te_editor* editor, uint64_t line);
+void te_iterate_user_data(te_editor* editor, te_iterate_user_data_fn fn, void* user_data);
+
+// =========================================================================
+// Custom tokenizer (LSP semantic tokens)
+// =========================================================================
+
+// Installed as the language's customTokenizer. [text] is the token span
+// (UTF-8, [length] codepoints... see note: length is byte length of text).
+// Return a palette index (0..21) to color the span, or -1 to color it as
+// plain text (the span is still consumed by the custom tokenizer).
+typedef int64_t (*te_tokenizer_fn)(void* user_data, int64_t line, const char* text, size_t length);
+
+// Activates a per-editor custom tokenizer: copies the editor's CURRENT
+// language definition, installs [fn] as its customTokenizer and re-applies
+// it (which also forces a re-colorize). Pass fn == nullptr to deactivate.
+void te_set_custom_tokenizer(te_editor* editor, te_tokenizer_fn fn, void* user_data);
+
+// =========================================================================
 // Memory
 // =========================================================================
 
