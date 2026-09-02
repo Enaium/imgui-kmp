@@ -54,6 +54,13 @@ internal object Jni {
     external fun end()
     external fun beginChild(strId: String, sizeX: Float, sizeY: Float, childFlags: Int, windowFlags: Int): Boolean
     external fun endChild()
+    external fun dockSpace(id: Int, sizeX: Float, sizeY: Float, flags: Int): Int
+    external fun setNextWindowDockID(dockId: Int, cond: Int)
+    external fun dockBuilderAddNode(nodeId: Int, flags: Int): Int
+    external fun dockBuilderRemoveNode(nodeId: Int)
+    external fun dockBuilderSplitNode(nodeId: Int, splitDir: Int, ratio: Float): Long
+    external fun dockBuilderDockWindow(windowName: String, nodeId: Int)
+    external fun dockBuilderFinish(nodeId: Int)
     external fun setNextWindowPos(x: Float, y: Float, cond: Int, pivotX: Float, pivotY: Float)
     external fun setNextWindowSize(w: Float, h: Float, cond: Int)
     external fun setWindowSize(w: Float, h: Float, cond: Int)
@@ -738,6 +745,19 @@ actual object ImGui {
         Jni.beginChild(id, size.x, size.y, childFlags, windowFlags)
 
     actual fun endChild() = Jni.endChild()
+
+    // ---- Docking ----
+    actual fun dockSpace(id: Int, size: ImVec2, flags: Int): Int = Jni.dockSpace(id, size.x, size.y, flags)
+    actual fun setNextWindowDockID(dockId: Int, cond: Int) = Jni.setNextWindowDockID(dockId, cond)
+    actual fun dockBuilderAddNode(nodeId: Int, flags: Int): Int = Jni.dockBuilderAddNode(nodeId, flags)
+    actual fun dockBuilderRemoveNode(nodeId: Int) = Jni.dockBuilderRemoveNode(nodeId)
+    actual fun dockBuilderSplitNode(nodeId: Int, splitDir: Int, sizeRatioForNodeAtDir: Float): Pair<Int, Int> {
+        val packed = Jni.dockBuilderSplitNode(nodeId, splitDir, sizeRatioForNodeAtDir)
+        return (packed.toInt()) to ((packed ushr 32).toInt())
+    }
+    actual fun dockBuilderDockWindow(windowName: String, nodeId: Int) = Jni.dockBuilderDockWindow(windowName, nodeId)
+    actual fun dockBuilderFinish(nodeId: Int) = Jni.dockBuilderFinish(nodeId)
+
     actual fun setNextWindowPos(pos: ImVec2, cond: Int, pivot: ImVec2?) =
         Jni.setNextWindowPos(pos.x, pos.y, cond, pivot?.x ?: 0f, pivot?.y ?: 0f)
 

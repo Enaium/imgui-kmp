@@ -404,7 +404,7 @@ namespace {
         s.in_number = state.inNumber ? true : false;
         s.in_comment = state.inComment ? true : false;
         s.in_string = state.inString ? true : false;
-        s.user_data = g_ac_user_data;
+        s.user_data = state.userData;
 
         te_autocomplete_result out{};
         out.suggestions = nullptr;
@@ -767,6 +767,10 @@ void te_set_custom_tokenizer(te_editor* editor, te_tokenizer_fn fn, void* user_d
     te->SetLanguage(&state->language);
     states[te] = state;
 }
+
+// =========================================================================
+// Semantic highlighting overlay
+// =========================================================================
 
 // =========================================================================
 // Memory

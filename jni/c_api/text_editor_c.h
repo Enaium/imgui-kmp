@@ -244,7 +244,7 @@ typedef struct te_autocomplete_state {
 
 // Output buffer the callback fills (mirrors AutoCompleteState suggestions)
 typedef struct te_autocomplete_result {
-    char** suggestions; // array of UTF-8 strings (malloc'd copies)
+    char** suggestions; // insert strings (malloc'd copies)
     uint32_t suggestion_count;
     bool suggestions_promise; // set if async lookup deferred via te_set_auto_complete_suggestions
 } te_autocomplete_result;
@@ -391,7 +391,7 @@ void te_iterate_user_data(te_editor* editor, te_iterate_user_data_fn fn, void* u
 // (UTF-8, [length] codepoints... see note: length is byte length of text).
 // Return a palette index (0..21) to color the span, or -1 to color it as
 // plain text (the span is still consumed by the custom tokenizer).
-typedef int64_t (*te_tokenizer_fn)(void* user_data, int64_t line, const char* text, size_t length);
+typedef int64_t (*te_tokenizer_fn)(void* user_data, int64_t line, const char* text, uint32_t length);
 
 // Activates a per-editor custom tokenizer: copies the editor's CURRENT
 // language definition, installs [fn] as its customTokenizer and re-applies

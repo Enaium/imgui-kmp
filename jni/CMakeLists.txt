@@ -23,6 +23,7 @@ set(IMPLOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../includes/implot)
 set(IMPLOT3D_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../includes/implot3d)
 set(NODE_EDITOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../includes/imgui-node-editor)
 set(FILE_DIALOG_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../includes/ImGuiFileDialog)
+# Compiled straight from the pristine upstream submodule — no local patches.
 set(TEXT_EDITOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../includes/ImGuiColorTextEdit)
 set(MARKDOWN_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../includes/imgui_markdown)
 set(MEMORY_EDITOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../includes/imgui_club/imgui_memory_editor)

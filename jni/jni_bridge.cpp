@@ -184,6 +184,42 @@ extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_end(JNIEnv*, jclass) 
     imgui_end();
 }
 
+// =========================================================================
+// Docking
+// =========================================================================
+
+extern "C" JNIEXPORT jint JNICALL Java_cn_enaium_imgui_Jni_dockSpace(JNIEnv*, jclass, jint id, jfloat size_x, jfloat size_y, jint flags) {
+    return (jint)imgui_dock_space((int)id, size_x, size_y, (int)flags);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_setNextWindowDockID(JNIEnv*, jclass, jint dock_id, jint cond) {
+    imgui_set_next_window_dock_id((int)dock_id, (int)cond);
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_cn_enaium_imgui_Jni_dockBuilderAddNode(JNIEnv*, jclass, jint node_id, jint flags) {
+    return (jint)imgui_dock_builder_add_node((int)node_id, (int)flags);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_dockBuilderRemoveNode(JNIEnv*, jclass, jint node_id) {
+    imgui_dock_builder_remove_node((int)node_id);
+}
+
+extern "C" JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_Jni_dockBuilderSplitNode(JNIEnv*, jclass, jint node_id, jint split_dir, jfloat ratio) {
+    int id_at_dir = 0;
+    int id_at_opposite_dir = 0;
+    imgui_dock_builder_split_node((int)node_id, (int)split_dir, ratio, &id_at_dir, &id_at_opposite_dir);
+    return (jlong)(unsigned int)id_at_dir | ((jlong)(unsigned int)id_at_opposite_dir << 32);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_dockBuilderDockWindow(JNIEnv* env, jclass, jstring window_name, jint node_id) {
+    std::string name = jstring_to_string(env, window_name);
+    imgui_dock_builder_dock_window(name.c_str(), (int)node_id);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_dockBuilderFinish(JNIEnv*, jclass, jint node_id) {
+    imgui_dock_builder_finish((int)node_id);
+}
+
 extern "C" JNIEXPORT jboolean JNICALL Java_cn_enaium_imgui_Jni_beginChild(JNIEnv* env, jclass, jstring str_id, jfloat size_x, jfloat size_y, jint child_flags, jint window_flags) {
     std::string id = jstring_to_string(env, str_id);
     imgui_vec2 size;
@@ -5838,6 +5874,7 @@ JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setAuto
             c_values.push_back(owning.back().c_str());
             continue;
         }
+
         const char* chars = env->GetStringUTFChars(value, nullptr);
         owning.emplace_back(chars != nullptr ? chars : "");
         if (chars != nullptr) {
@@ -5921,6 +5958,7 @@ static jmethodID g_te_completion_notify_iterate = nullptr;
 static jclass g_te_completion_result_class = nullptr;
 static jfieldID g_te_completion_suggestions_field = nullptr;
 static jfieldID g_te_completion_suggestions_promise_field = nullptr;
+static jfieldID g_te_completion_labels_promise_field = nullptr;
 static jclass g_te_completion_list_class = nullptr;
 static jmethodID g_te_completion_list_size = nullptr;
 static jmethodID g_te_completion_list_get = nullptr;
@@ -5990,10 +6028,13 @@ extern "C" {
 
 // ---- Callback trampolines (C-linkage so they can be installed as te_* callbacks) ----
 
+
 static void te_jni_autocomplete(const te_autocomplete_state* state, te_autocomplete_result* out) {
     out->suggestions = nullptr;
     out->suggestion_count = 0;
-    out->suggestions_promise = false;
+    // default to "promised": on ANY failure below the C++ keeps the session
+    // alive instead of deactivating the popup on an empty non-promised result
+    out->suggestions_promise = true;
     ThreadLocalJNIEnv helper(g_te_completion_jvm);
     if (helper.env == nullptr || g_te_completion_bridge_class == nullptr || g_te_completion_notify_autocomplete == nullptr) {
         return;
@@ -6012,6 +6053,11 @@ static void te_jni_autocomplete(const te_autocomplete_state* state, te_autocompl
         state->in_comment ? JNI_TRUE : JNI_FALSE,
         state->in_string ? JNI_TRUE : JNI_FALSE);
     helper.env->DeleteLocalRef(search_term);
+    if (helper.env->ExceptionCheck()) {
+        // a Kotlin exception must not poison the JVM nor kill the popup;
+        // the promise stays true so the session waits for the next update
+        helper.env->ExceptionClear();
+    }
     if (result == nullptr || g_te_completion_result_class == nullptr) {
         helper.env->DeleteLocalRef(result);
         return;
@@ -6081,10 +6127,10 @@ JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setAuto
     te_editor* editor = reinterpret_cast<te_editor*>(ptr);
     if (activate == JNI_TRUE) {
         te_set_auto_complete_config(editor, te_jni_autocomplete, reinterpret_cast<void*>(ptr),
-                                    trigger_on_typing == JNI_TRUE, trigger_on_shortcut == JNI_TRUE,
-                                    trigger_in_comments == JNI_TRUE, trigger_in_strings == JNI_TRUE,
-                                    auto_insert_single_suggestions == JNI_TRUE, trigger_delay_ms,
-                                    static_cast<unsigned int>(suggestion_width));
+                                       trigger_on_typing == JNI_TRUE, trigger_on_shortcut == JNI_TRUE,
+                                       trigger_in_comments == JNI_TRUE, trigger_in_strings == JNI_TRUE,
+                                       auto_insert_single_suggestions == JNI_TRUE, trigger_delay_ms,
+                                       static_cast<unsigned int>(suggestion_width));
     } else {
         te_set_auto_complete_config(editor, nullptr, nullptr, false, false, false, false, false, 0, 0);
     }
@@ -6485,7 +6531,7 @@ static void ensure_tk_bridge(JNIEnv* env) {
     g_tk_tokenize = env->GetStaticMethodID(g_tk_bridge_class, "tokenize", "(JJLjava/lang/String;)I");
 }
 
-static int64_t te_tk_cb(void* user_data, int64_t line, const char* text, size_t length) {
+static int64_t te_tk_cb(void* user_data, int64_t line, const char* text, uint32_t length) {
     ThreadLocalJNIEnv helper(g_tk_jvm);
     if (helper.env == nullptr || g_tk_bridge_class == nullptr || g_tk_tokenize == nullptr) {
         return -1;
@@ -6504,6 +6550,7 @@ static int64_t te_tk_cb(void* user_data, int64_t line, const char* text, size_t 
     return idx;
 }
 
+extern "C" {
 JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setCustomTokenizer(JNIEnv* env, jclass, jlong ptr, jboolean activate) {
     ensure_tk_bridge(env);
     te_editor* editor = reinterpret_cast<te_editor*>(ptr);
@@ -6513,6 +6560,7 @@ JNIEXPORT void JNICALL Java_cn_enaium_imgui_extensions_colortextedit_Jni_setCust
         te_set_custom_tokenizer(editor, nullptr, nullptr);
     }
 }
+} // extern "C" (custom tokenizer)
 
 // Markdown additions
 // =========================================================================

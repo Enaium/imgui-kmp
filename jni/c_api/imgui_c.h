@@ -84,6 +84,20 @@ void imgui_show_id_stack_tool_window(bool* p_open);
 
 bool imgui_begin(const char* name, bool* p_open, int flags);
 void imgui_end(void);
+
+// =========================================================================
+// Docking (requires io.ConfigFlags |= ImGuiConfigFlags_DockingEnable)
+// =========================================================================
+
+int imgui_dock_space(int id, float size_x, float size_y, int flags);
+void imgui_set_next_window_dock_id(int dock_id, int cond);
+int imgui_dock_builder_add_node(int node_id, int flags);
+void imgui_dock_builder_remove_node(int node_id);
+// Splits [node_id] into two children along [split_dir]; fills the two out
+// ids (node at dir / node at opposite dir) and returns 1 on success.
+int imgui_dock_builder_split_node(int node_id, int split_dir, float size_ratio_for_node_at_dir, int* out_id_at_dir, int* out_id_at_opposite_dir);
+void imgui_dock_builder_dock_window(const char* window_name, int node_id);
+void imgui_dock_builder_finish(int node_id);
 bool imgui_begin_child(const char* str_id, imgui_vec2 size, int child_flags, int window_flags);
 void imgui_end_child(void);
 void imgui_set_next_window_pos(imgui_vec2 pos, int cond, imgui_vec2 pivot);

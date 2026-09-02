@@ -433,6 +433,21 @@ actual object ImGui {
     }
 
     actual fun endChild() = imgui_end_child()
+
+    // ---- Docking ----
+    actual fun dockSpace(id: Int, size: ImVec2, flags: Int): Int = imgui_dock_space(id, size.x, size.y, flags)
+    actual fun setNextWindowDockID(dockId: Int, cond: Int) = imgui_set_next_window_dock_id(dockId, cond)
+    actual fun dockBuilderAddNode(nodeId: Int, flags: Int): Int = imgui_dock_builder_add_node(nodeId, flags)
+    actual fun dockBuilderRemoveNode(nodeId: Int) = imgui_dock_builder_remove_node(nodeId)
+    actual fun dockBuilderSplitNode(nodeId: Int, splitDir: Int, sizeRatioForNodeAtDir: Float): Pair<Int, Int> = memScoped {
+        val idAtDir = alloc<IntVar>()
+        val idAtOppositeDir = alloc<IntVar>()
+        imgui_dock_builder_split_node(nodeId, splitDir, sizeRatioForNodeAtDir, idAtDir.ptr, idAtOppositeDir.ptr)
+        idAtDir.value to idAtOppositeDir.value
+    }
+    actual fun dockBuilderDockWindow(windowName: String, nodeId: Int) = imgui_dock_builder_dock_window(windowName, nodeId)
+    actual fun dockBuilderFinish(nodeId: Int) = imgui_dock_builder_finish(nodeId)
+
     actual fun setNextWindowPos(pos: ImVec2, cond: Int, pivot: ImVec2?) = memScoped {
         val p = alloc<imgui_vec2>()
         p.x = pos.x

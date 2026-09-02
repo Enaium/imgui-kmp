@@ -226,6 +226,47 @@ void imgui_end(void) {
     ImGui::End();
 }
 
+// =========================================================================
+// Docking (requires io.ConfigFlags |= ImGuiConfigFlags_DockingEnable)
+// =========================================================================
+
+int imgui_dock_space(int id, float size_x, float size_y, int flags) {
+    return (int)ImGui::DockSpace((ImGuiID)id, ImVec2(size_x, size_y), (ImGuiDockNodeFlags)flags);
+}
+
+void imgui_set_next_window_dock_id(int dock_id, int cond) {
+    ImGui::SetNextWindowDockID((ImGuiID)dock_id, (ImGuiCond)cond);
+}
+
+int imgui_dock_builder_add_node(int node_id, int flags) {
+    return (int)ImGui::DockBuilderAddNode((ImGuiID)node_id, (ImGuiDockNodeFlags)flags);
+}
+
+void imgui_dock_builder_remove_node(int node_id) {
+    ImGui::DockBuilderRemoveNode((ImGuiID)node_id);
+}
+
+int imgui_dock_builder_split_node(int node_id, int split_dir, float size_ratio_for_node_at_dir, int* out_id_at_dir, int* out_id_at_opposite_dir) {
+    ImGuiID id_at_dir = 0;
+    ImGuiID id_at_opposite_dir = 0;
+    ImGui::DockBuilderSplitNode((ImGuiID)node_id, (ImGuiDir)split_dir, size_ratio_for_node_at_dir, &id_at_dir, &id_at_opposite_dir);
+    if (out_id_at_dir != nullptr) {
+        *out_id_at_dir = (int)id_at_dir;
+    }
+    if (out_id_at_opposite_dir != nullptr) {
+        *out_id_at_opposite_dir = (int)id_at_opposite_dir;
+    }
+    return 1;
+}
+
+void imgui_dock_builder_dock_window(const char* window_name, int node_id) {
+    ImGui::DockBuilderDockWindow(window_name, (ImGuiID)node_id);
+}
+
+void imgui_dock_builder_finish(int node_id) {
+    ImGui::DockBuilderFinish((ImGuiID)node_id);
+}
+
 bool imgui_begin_child(const char* str_id, imgui_vec2 size, int child_flags, int window_flags) {
     return ImGui::BeginChild(str_id, ImVec2(size.x, size.y), child_flags, window_flags);
 }

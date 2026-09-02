@@ -84,12 +84,13 @@ fun main() {
 
 ### Renderer backends
 
-The draw data is plain vertex/index buffers (20 bytes per vertex: pos, uv, color), so it can be fed into any renderer. The `examples` directory holds six modules written in Kotlin on top of [sdl-kmp](https://github.com/Enaium/sdl-kmp):
+The draw data is plain vertex/index buffers (20 bytes per vertex: pos, uv, color), so it can be fed into any renderer. The `examples` directory holds the following modules written in Kotlin on top of [sdl-kmp](https://github.com/Enaium/sdl-kmp):
 
 - `examples/common` — the shared demo UI (`DemoUi`), the SDL platform backend (`ImGuiSdlBackend`) and the reusable `SdlRendererApp` frame-loop bootstrap used by the renderer-based examples.
 - `examples/android-sdl` — the vendored `org.libsdl.app` Android glue (`SDLActivity`, ...) shared by every example Android app.
 - `examples/sdl_renderer` — **SDL renderer** (`ImGuiSdlRendererBackend`), mirrors `imgui_impl_sdlrenderer3.cpp` using `SDL_RenderGeometry`.
 - `examples/sdl_gpu` — **SDL GPU** (`ImGuiSdlGpuBackend`), mirrors `imgui_impl_sdlgpu3.cpp` using the SDL3 GPU API with the precompiled SPIR-V/MSL shaders shipped with Dear ImGui.
+- `examples/docking` — an IDE-style dockable layout: a full-screen `DockSpace` host with a menu bar, a default `DockBuilder` tree (Hierarchy / Viewport / Inspector / Console) and a Layout menu to reset the tree or toggle DockSpace flags.
 - `examples/node_editor` — a blueprints-style node graph on the [imgui-node-editor](https://github.com/thedmd/imgui-node-editor) bindings: draggable typed pins, link creation, deletion and context menus.
 - `examples/club` — the [imgui_club](https://github.com/ocornut/imgui_club) bindings: the `MemoryEditor` hex editor and the `MultiContextCompositor` stacking a second ImGui context over the main UI in one window, with cross-context drag & drop (drag a swatch from the main window onto the overlay — a different ImGui context — and the compositor delivers the payload there).
 - `examples/implot3d` — [ImPlot3D](https://github.com/brenocq/implot3d) 3D plots in a ShowDemoWindow-style layout: line/scatter/surface/mesh demos, box scale & rotation, markers & text, NaN handling.
@@ -105,6 +106,9 @@ SDL_VIDEO_DRIVER=dummy ./gradlew :examples:sdl_renderer:jvmRun --args="--frames 
 
 # JVM (SDL GPU, needs a real display)
 ./gradlew :examples:sdl_gpu:jvmRun --args="--frames 120"
+
+# JVM (docking layout)
+SDL_VIDEO_DRIVER=dummy ./gradlew :examples:docking:jvmRun --args="--frames 120"
 
 # Native macOS (headless)
 SDL_VIDEO_DRIVER=dummy IMGUI_KMP_FRAMES=120 ./examples/sdl_renderer/build/bin/macosArm64/debugExecutable/sdl_renderer.kexe

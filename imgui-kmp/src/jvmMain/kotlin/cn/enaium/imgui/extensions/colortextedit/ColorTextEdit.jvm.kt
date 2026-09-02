@@ -623,7 +623,11 @@ actual object ColorTextEdit {
         } else {
             autocompleteRegistries.remove(ptr)
         }
-        Jni.setAutoCompleteConfig(ptr, onSuggestions != null, triggerOnTyping, triggerOnShortcut, triggerInComments, triggerInStrings, autoInsertSingleSuggestions, triggerDelayMs, suggestionWidth)
+        Jni.setAutoCompleteConfig(
+            ptr, onSuggestions != null, triggerOnTyping, triggerOnShortcut,
+            triggerInComments, triggerInStrings, autoInsertSingleSuggestions,
+            triggerDelayMs, suggestionWidth,
+        )
     }
 
     // ==================== Additional text queries and edits ====================
@@ -939,6 +943,7 @@ actual object ColorTextEdit {
         }
         Jni.setCustomTokenizer(ptr, tokenizer != null)
     }
+
 }
 
 // =========================================================================

@@ -257,6 +257,21 @@ expect object ImGui {
     fun end()
     fun beginChild(id: String, size: ImVec2 = ImVec2(0f, 0f), childFlags: Int = 0, windowFlags: Int = 0): Boolean
     fun endChild()
+
+    // ==================== Docking ====================
+    /** Opens/continues a dock space; returns its id. Requires io.ConfigFlags DOCKING_ENABLE. */
+    fun dockSpace(id: Int, size: ImVec2 = ImVec2(0f, 0f), flags: Int = 0): Int
+    /** Docks the next window into the node [dockId] ([ImGuiCond] for the first-use condition). */
+    fun setNextWindowDockID(dockId: Int, cond: Int = ImGuiCond.FIRST_USE_EVER)
+    /** Creates a dock node ([nodeId] 0 = allocate). Use with [ImGuiDockNodeFlags.DOCK_SPACE] for a dock-space root. */
+    fun dockBuilderAddNode(nodeId: Int, flags: Int = 0): Int
+    fun dockBuilderRemoveNode(nodeId: Int)
+    /** Splits [nodeId] into two children along [splitDir]; returns (node-at-dir id, node-at-opposite-dir id). */
+    fun dockBuilderSplitNode(nodeId: Int, splitDir: Int, sizeRatioForNodeAtDir: Float): Pair<Int, Int>
+    /** Docks the window [windowName] (exact Begin label) into [nodeId]. */
+    fun dockBuilderDockWindow(windowName: String, nodeId: Int)
+    fun dockBuilderFinish(nodeId: Int)
+
     fun setNextWindowPos(pos: ImVec2, cond: Int = ImGuiCond.ALWAYS, pivot: ImVec2? = null)
     fun setNextWindowSize(size: ImVec2, cond: Int = ImGuiCond.ALWAYS)
     fun setWindowSize(size: ImVec2, cond: Int = ImGuiCond.ALWAYS)
@@ -688,6 +703,7 @@ object ImGuiWindowFlags {
     const val NO_NAV_INPUTS = 1 shl 16
     const val NO_NAV_FOCUS = 1 shl 17
     const val UNSAVED_DOCUMENT = 1 shl 18
+    const val NO_DOCKING = 1 shl 19
 
     const val NO_DECORATION = NO_TITLE_BAR or NO_RESIZE or NO_SCROLLBAR
     const val NO_INPUTS = NO_MOUSE_INPUTS or NO_NAV_INPUTS
@@ -731,6 +747,7 @@ object ImGuiConfigFlags {
     const val NO_MOUSE = 1 shl 4
     const val NO_MOUSE_CURSOR_CHANGE = 1 shl 5
     const val NO_KEYBOARD = 1 shl 6
+    const val DOCKING_ENABLE = 1 shl 7
     const val IS_SRGB = 1 shl 20
     const val IS_TOUCH_SCREEN = 1 shl 21
 }
@@ -739,6 +756,21 @@ object ImGuiMouseButton {
     const val LEFT = 0
     const val RIGHT = 1
     const val MIDDLE = 2
+}
+
+object ImGuiDockNodeFlags {
+    const val NONE = 0
+    const val KEEP_ALIVE_ONLY = 1 shl 0
+    const val NO_DOCKING_OVER_CENTRAL_NODE = 1 shl 2
+    const val PASSTHRU_CENTRAL_NODE = 1 shl 3
+    const val NO_DOCKING_SPLIT = 1 shl 4
+    const val NO_RESIZE = 1 shl 5
+    const val AUTO_HIDE_TAB_BAR = 1 shl 6
+    const val NO_UNDOCKING = 1 shl 7
+    /** Internal: the node occupies a user window (a DockSpace). Set on DockBuilderAddNode roots. */
+    const val DOCK_SPACE = 1 shl 10
+    const val NO_WINDOW_MENU_BUTTON = 1 shl 14
+    const val NO_CLOSE_BUTTON = 1 shl 15
 }
 
 object ImGuiDir {
