@@ -63,6 +63,14 @@ private val autocompleteCallbacks = mutableMapOf<Long, ((AutocompleteState) -> A
 private val insertorCallbacks = mutableMapOf<Long, ((Long) -> Long)?>()
 private val deletorCallbacks = mutableMapOf<Long, ((Long, Long) -> Unit)?>()
 private val iterateUserDataCallbacks = mutableMapOf<Long, ((Long, Long) -> Unit)?>()
+private val tokenizerCallbacks = mutableMapOf<Long, ((Long, Long, String) -> Int)?>()
+
+/** Running tokenizer offset for each editor, reset per line (see [tokenizerTrampoline]). */
+private val tokenizerState = mutableMapOf<Long, TokenizerOffsetState>()
+private class TokenizerOffsetState {
+    var line = -1L
+    var offset = 0L
+}
 
 /** Uses the raw `te_editor` pointer value as the registry key. */
 private fun key(editor: ColorTextEditEditor): Long =
@@ -136,6 +144,30 @@ private fun deletorTrampoline(line: ULong, data: COpaquePointer?, userData: COpa
 /** User-data iteration callback: reports each line and its opaque data token. */
 private fun iterateUserDataTrampoline(line: ULong, data: COpaquePointer?, userData: COpaquePointer?) {
     iterateUserDataCallbacks[keyOf(userData)]?.invoke(line.toLong(), data?.rawValue?.toLong() ?: 0L)
+}
+
+/**
+ * Custom tokenizer callback: the C side reports contiguous token spans along
+ * each line, so the offset starts at 0 per line and advances by the span's
+ * codepoint count, mirroring the JVM bridge's running state.
+ */
+private fun tokenizerTrampoline(userData: COpaquePointer?, line: Long, text: CPointer<ByteVar>?, length: UInt): Long {
+    val callback = tokenizerCallbacks[keyOf(userData)] ?: return -1L
+    val state = tokenizerState.getOrPut(keyOf(userData)) { TokenizerOffsetState() }
+    if (line != state.line) {
+        state.line = line
+        state.offset = 0
+    }
+    val span = text?.toKString() ?: ""
+    val index = callback(line, state.offset, span)
+    // The C side reports byte length; count UTF-8 lead bytes to advance the
+    // offset by codepoints (mirrors the JVM bridge's codePointCount).
+    var codepoints = 0L
+    for (i in span.indices) {
+        if (span[i].code.toInt() and 0xC0 != 0x80) codepoints++
+    }
+    state.offset += codepoints
+    return index.toLong()
 }
 
 actual object ColorTextEdit {
@@ -719,6 +751,18 @@ actual object ColorTextEdit {
         } else {
             iterateUserDataCallbacks.remove(k)
             te_iterate_user_data(ptr(editor), null, null)
+        }
+    }
+
+    actual fun setCustomTokenizer(editor: ColorTextEditEditor, tokenizer: ((line: Long, offset: Long, text: String) -> Int)?) {
+        val k = key(editor)
+        if (tokenizer != null) {
+            tokenizerCallbacks[k] = tokenizer
+            te_set_custom_tokenizer(ptr(editor), staticCFunction(::tokenizerTrampoline), k.toCPointer<ByteVar>())
+        } else {
+            tokenizerCallbacks.remove(k)
+            tokenizerState.remove(k)
+            te_set_custom_tokenizer(ptr(editor), null, null)
         }
     }
 }
