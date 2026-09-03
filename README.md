@@ -28,7 +28,7 @@ Android has **two independent APIs**: the JVM API (an AAR with per-ABI JNI `.so`
 **Kotlin Multiplatform / Android / native:**
 
 ```kotlin
-implementation("cn.enaium.imgui:imgui-kmp:1.0.6")
+implementation("cn.enaium.imgui:imgui-kmp:1.0.7")
 ```
 
 **JVM:** the right native binary is resolved automatically — the `imgui-kmp-jvm` artifact pulls in the matching `:jni-jvm-*` sibling on the classpath:
@@ -126,7 +126,7 @@ SDL_VIDEO_DRIVER=dummy ./gradlew :examples:colortextedit:jvmRun --args="--frames
 SDL_VIDEO_DRIVER=dummy ./gradlew :examples:markdown:jvmRun --args="--frames 120"
 ```
 
-The examples consume `:imgui-kmp` as a project dependency, so they always build against the local source. (Standalone consumers use `cn.enaium.imgui:imgui-kmp:1.0.6` from Maven Central or Maven Local.)
+The examples consume `:imgui-kmp` as a project dependency, so they always build against the local source. (Standalone consumers use `cn.enaium.imgui:imgui-kmp:1.0.7` from Maven Central or Maven Local.)
 
 ## API Overview
 
