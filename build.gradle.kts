@@ -9,7 +9,7 @@ plugins {
 
 allprojects {
     group = "cn.enaium.imgui"
-    version = "1.0.7"
+    version = "1.0.8"
 }
 
 // ==================== Submodule patches ====================
