@@ -88,9 +88,9 @@ class ImGuiSdlBackend(private val window: SDLWindow) {
 
             is SDLEvent.MouseButton -> {
                 val button = when (event.button) {
-                    1 -> 0 // left
-                    2 -> 1 // middle
-                    3 -> 2 // right
+                    1 -> 0 // SDL left (1) -> ImGui left (0)
+                    2 -> 2 // SDL middle (2) -> ImGui middle (2)
+                    3 -> 1 // SDL right (3) -> ImGui right (1)
                     else -> return
                 }
                 io.addMouseButtonEvent(button, event.down)
