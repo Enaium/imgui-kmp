@@ -5727,6 +5727,66 @@ private:
     JavaVM* jvm_;
 };
 
+// =========================================================================
+// Platform clipboard bridge
+// =========================================================================
+
+// The platform clipboard callbacks (installed via
+// imgui_set_clipboard_callbacks) dispatch to the Kotlin
+// ClipboardJvmBridge object, which forwards to the SDL-backed setters
+// installed by ImGuiSdlBackend. The getter's result is cached in a static
+// buffer: imgui keeps the returned pointer until the next getter call.
+static JavaVM* g_clipboard_jvm = nullptr;
+static jclass g_clipboard_bridge_class = nullptr;
+static jmethodID g_clipboard_set = nullptr;
+static jmethodID g_clipboard_get = nullptr;
+static std::string g_clipboard_cache;
+
+static void ensure_clipboard_bridge(JNIEnv* env) {
+    if (g_clipboard_bridge_class != nullptr) return;
+    if (g_clipboard_jvm == nullptr) env->GetJavaVM(&g_clipboard_jvm);
+    jclass local = env->FindClass("cn/enaium/imgui/ClipboardJvmBridge");
+    if (local == nullptr) return;
+    g_clipboard_bridge_class = static_cast<jclass>(env->NewGlobalRef(local));
+    env->DeleteLocalRef(local);
+    g_clipboard_set = env->GetStaticMethodID(g_clipboard_bridge_class, "setText", "(Ljava/lang/String;)V");
+    g_clipboard_get = env->GetStaticMethodID(g_clipboard_bridge_class, "getText", "()Ljava/lang/String;");
+}
+
+static void clipboard_set_cb(const char* text) {
+    ThreadLocalJNIEnv helper(g_clipboard_jvm);
+    if (helper.env == nullptr || g_clipboard_bridge_class == nullptr || g_clipboard_set == nullptr) {
+        return;
+    }
+    jstring jtext = helper.env->NewStringUTF(text != nullptr ? text : "");
+    helper.env->CallStaticVoidMethod(g_clipboard_bridge_class, g_clipboard_set, jtext);
+    helper.env->DeleteLocalRef(jtext);
+}
+
+static const char* clipboard_get_cb() {
+    ThreadLocalJNIEnv helper(g_clipboard_jvm);
+    if (helper.env == nullptr || g_clipboard_bridge_class == nullptr || g_clipboard_get == nullptr) {
+        return nullptr;
+    }
+    auto jtext = static_cast<jstring>(helper.env->CallStaticObjectMethod(g_clipboard_bridge_class, g_clipboard_get));
+    if (jtext == nullptr) {
+        // No jstring (uninstalled bridge): honor imgui's contract that an
+        // empty clipboard returns a null pointer, not an empty string.
+        g_clipboard_cache.clear();
+        return nullptr;
+    }
+    const char* utf = helper.env->GetStringUTFChars(jtext, nullptr);
+    g_clipboard_cache = utf != nullptr ? utf : "";
+    if (utf != nullptr) helper.env->ReleaseStringUTFChars(jtext, utf);
+    helper.env->DeleteLocalRef(jtext);
+    return g_clipboard_cache.c_str();
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_setClipboardFunctions(JNIEnv* env, jclass) {
+    ensure_clipboard_bridge(env);
+    imgui_set_clipboard_callbacks(clipboard_set_cb, clipboard_get_cb);
+}
+
 static void ensure_te_bridge(JNIEnv* env) {
     if (g_te_bridge_class != nullptr) {
         return;

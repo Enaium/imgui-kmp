@@ -346,6 +346,14 @@ void imgui_set_next_frame_want_capture_keyboard(bool want_capture_keyboard);
 void imgui_set_next_frame_want_capture_mouse(bool want_capture_mouse);
 void imgui_set_clipboard_text(const char* text);
 const char* imgui_get_clipboard_text(void);
+
+// Installs the platform clipboard callbacks behind ImGui::SetClipboardText /
+// GetClipboardText (used by InputText paste and TextEditor clipboard ops).
+// The getter must return a pointer that stays valid until the next getter
+// call. Pass null for both to restore the default no-op behavior.
+typedef void (*imgui_clipboard_set_fn)(const char* text);
+typedef const char* (*imgui_clipboard_get_fn)(void);
+void imgui_set_clipboard_callbacks(imgui_clipboard_set_fn set_fn, imgui_clipboard_get_fn get_fn);
 double imgui_get_time(void);
 imgui_vec2 imgui_get_cursor_pos(void);
 imgui_vec2 imgui_get_cursor_screen_pos(void);

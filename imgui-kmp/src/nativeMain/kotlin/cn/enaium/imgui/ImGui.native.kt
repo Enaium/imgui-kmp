@@ -364,6 +364,34 @@ private inline fun <T> withIntVar(v: IntArray, block: (CPointer<IntVar>) -> T): 
 }
 
 // =========================================================================
+// Platform clipboard bridge (installed by ImGui.setClipboardFunctions)
+// =========================================================================
+private var clipboardBridgeSetText: ((String) -> Unit)? = null
+private var clipboardBridgeGetText: (() -> String?)? = null
+private var clipboardGetCache: CPointer<ByteVar>? = null
+
+/** Forwards to the Kotlin setter installed by the platform backend. */
+private fun clipboardSetTrampoline(text: CPointer<ByteVar>?) {
+    clipboardBridgeSetText?.invoke(text?.toKString() ?: "")
+}
+
+/**
+ * Forwards to the Kotlin getter and returns a heap buffer that stays alive
+ * until the next getter call (imgui's clipboard contract); the buffer is
+ * freed on the next call or when the callbacks are uninstalled.
+ */
+private fun clipboardGetTrampoline(): CPointer<ByteVar>? {
+    val text = clipboardBridgeGetText?.invoke() ?: return null
+    clipboardGetCache?.let { nativeHeap.free(it) }
+    val bytes = text.encodeToByteArray()
+    val mem = nativeHeap.allocArray<ByteVar>(bytes.size + 1)
+    bytes.forEachIndexed { i, b -> mem[i] = b.toByte() }
+    mem[bytes.size] = 0
+    clipboardGetCache = mem
+    return mem
+}
+
+// =========================================================================
 // actual object
 // =========================================================================
 
@@ -1092,6 +1120,23 @@ actual object ImGui {
     actual fun setNextFrameWantCaptureMouse(wantCaptureMouse: Boolean) = imgui_set_next_frame_want_capture_mouse(wantCaptureMouse)
     actual fun setClipboardText(text: String) = imgui_set_clipboard_text(text)
     actual fun getClipboardText(): String? = imgui_get_clipboard_text()?.toKString()
+
+    actual fun setClipboardFunctions(setText: ((String) -> Unit)?, getText: (() -> String?)?) {
+        clipboardBridgeSetText = setText
+        clipboardBridgeGetText = getText
+        // A getter's returned C string must stay valid until the next getter
+        // call, so keep the last result alive in a heap buffer.
+        if (setText != null || getText != null) {
+            imgui_set_clipboard_callbacks(
+                if (setText != null) staticCFunction(::clipboardSetTrampoline) else null,
+                if (getText != null) staticCFunction(::clipboardGetTrampoline) else null,
+            )
+        } else {
+            imgui_set_clipboard_callbacks(null, null)
+            clipboardGetCache?.let { nativeHeap.free(it) }
+            clipboardGetCache = null
+        }
+    }
 
     // ---- Cursor / scroll / layout ----
     actual fun getCursorPos(): ImVec2 = imgui_get_cursor_pos().useContents { ImVec2(x, y) }

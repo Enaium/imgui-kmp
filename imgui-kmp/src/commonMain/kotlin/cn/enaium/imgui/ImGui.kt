@@ -524,6 +524,15 @@ expect object ImGui {
     fun setClipboardText(text: String)
     fun getClipboardText(): String?
 
+    /**
+     * Installs the platform clipboard callbacks behind [setClipboardText] /
+     * [getClipboardText] (used by InputText paste and the ColorTextEdit
+     * clipboard operations). Pass null for both to restore the default
+     * no-op behavior. The platform backend (e.g. `ImGuiSdlBackend`) calls
+     * this with SDL-backed implementations during init.
+     */
+    fun setClipboardFunctions(setText: ((String) -> Unit)?, getText: (() -> String?)?)
+
     // ==================== Cursor / scroll / layout ====================
     fun getCursorPos(): ImVec2
     fun getCursorScreenPos(): ImVec2

@@ -278,6 +278,7 @@ internal object Jni {
     external fun setNextFrameWantCaptureMouse(wantCaptureMouse: Boolean)
     external fun setClipboardText(text: String)
     external fun getClipboardText(): String?
+    external fun setClipboardFunctions()
     external fun getTime(): Double
     external fun getCursorPos(): FloatArray
     external fun getCursorScreenPos(): FloatArray
@@ -1125,6 +1126,12 @@ actual object ImGui {
     actual fun setNextFrameWantCaptureMouse(wantCaptureMouse: Boolean) = Jni.setNextFrameWantCaptureMouse(wantCaptureMouse)
     actual fun setClipboardText(text: String) = Jni.setClipboardText(text)
     actual fun getClipboardText(): String? = Jni.getClipboardText()
+
+    actual fun setClipboardFunctions(setText: ((String) -> Unit)?, getText: (() -> String?)?) {
+        clipboardBridgeSetText = setText
+        clipboardBridgeGetText = getText
+        Jni.setClipboardFunctions()
+    }
 
     actual fun getCursorPos(): ImVec2 {
         val v = Jni.getCursorPos()

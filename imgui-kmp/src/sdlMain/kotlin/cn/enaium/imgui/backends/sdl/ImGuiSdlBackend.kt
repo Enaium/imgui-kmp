@@ -70,6 +70,15 @@ class ImGuiSdlBackend(private val window: SDLWindow) {
         io.iniFilename = null
         io.configFlags = cn.enaium.imgui.ImGuiConfigFlags.NAV_ENABLE_KEYBOARD
         lastTime = cn.enaium.sdl.SDL.getTicks()
+
+        // Clipboard: imgui_impl_sdl3 wires Platform_SetClipboardTextFn /
+        // Platform_GetClipboardTextFn to SDL_SetClipboardText / SDL_GetClipboardText.
+        // Without them ImGui::GetClipboardText returns null and paste stops working
+        // (InputText and the ColorTextEdit clipboard ops both go through it).
+        ImGui.setClipboardFunctions(
+            setText = { text -> cn.enaium.sdl.SDL.setClipboardText(text) },
+            getText = { cn.enaium.sdl.SDL.getClipboardText() },
+        )
     }
 
     /** Feeds one SDL event into the imgui input queue. */

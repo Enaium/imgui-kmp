@@ -96,4 +96,38 @@ class ImGuiJvmTest {
             ImGui.destroyContext(context)
         }
     }
+
+    /**
+     * Installs platform clipboard callbacks and verifies the full chain:
+     * ImGui::SetClipboardText -> JNI -> ClipboardJvmBridge -> Kotlin setter,
+     * and Kotlin getter -> ClipboardJvmBridge -> JNI -> ImGui::GetClipboardText.
+     * This is what InputText paste and the ColorTextEdit clipboard ops use.
+     */
+    @Test
+    fun clipboardRoundTripsThroughInstalledCallbacks() {
+        val context = ImGui.createContext()
+        try {
+            val setTexts = ArrayList<String>()
+            var getText: (() -> String?)? = null
+
+            ImGui.setClipboardFunctions(
+                setText = { text -> setTexts.add(text) },
+                getText = { getText?.invoke() },
+            )
+            getText = { "clipboard-content" }
+
+            ImGui.setClipboardText("hello clipboard")
+            assertEquals(listOf("hello clipboard"), setTexts)
+
+            assertEquals("clipboard-content", ImGui.getClipboardText())
+
+            // Uninstalling must restore the no-op behavior.
+            ImGui.setClipboardFunctions(null, null)
+            ImGui.setClipboardText("ignored")
+            assertEquals(listOf("hello clipboard"), setTexts, "setter should be detached")
+            assertEquals(null, ImGui.getClipboardText())
+        } finally {
+            ImGui.destroyContext(context)
+        }
+    }
 }

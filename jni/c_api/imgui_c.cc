@@ -1254,6 +1254,27 @@ const char* imgui_get_clipboard_text(void) {
     return ImGui::GetClipboardText();
 }
 
+static imgui_clipboard_set_fn g_clipboard_set_fn = nullptr;
+static imgui_clipboard_get_fn g_clipboard_get_fn = nullptr;
+
+static void imgui_platform_set_clipboard_text(ImGuiContext*, const char* text) {
+    if (g_clipboard_set_fn != nullptr) {
+        g_clipboard_set_fn(text);
+    }
+}
+
+static const char* imgui_platform_get_clipboard_text(ImGuiContext*) {
+    return g_clipboard_get_fn != nullptr ? g_clipboard_get_fn() : nullptr;
+}
+
+void imgui_set_clipboard_callbacks(imgui_clipboard_set_fn set_fn, imgui_clipboard_get_fn get_fn) {
+    g_clipboard_set_fn = set_fn;
+    g_clipboard_get_fn = get_fn;
+    ImGuiPlatformIO& io = ImGui::GetPlatformIO();
+    io.Platform_SetClipboardTextFn = set_fn != nullptr ? imgui_platform_set_clipboard_text : nullptr;
+    io.Platform_GetClipboardTextFn = get_fn != nullptr ? imgui_platform_get_clipboard_text : nullptr;
+}
+
 double imgui_get_time(void) {
     return ImGui::GetTime();
 }
