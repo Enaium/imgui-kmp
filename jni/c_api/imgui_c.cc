@@ -1788,9 +1788,34 @@ imgui_font_atlas* imgui_io_get_fonts(imgui_io* io) {
 // Fonts
 // =========================================================================
 
+// Glyph ranges covering the scripts the Kotlin UI uses (Latin, Latin-1,
+// CJK Unified Ideographs, Hiragana/Katakana, Hangul, Cyrillic, Greek).
+// Kept in static storage: ImFontConfig.GlyphRanges only needs to stay
+// valid until ImFontAtlas::Build(), and the atlas is built once.
+static const ImWchar imgui_font_glyph_ranges_full[] = {
+    0x0020, 0x00FF, // Basic Latin + Latin-1 Supplement
+    0x0100, 0x017F, // Latin Extended-A
+    0x0180, 0x024F, // Latin Extended-B
+    0x0370, 0x03FF, // Greek
+    0x0400, 0x04FF, // Cyrillic
+    0x2000, 0x206F, // General Punctuation
+    0x3000, 0x30FF, // CJK Symbols + Hiragana + Katakana
+    0x3130, 0x318F, // Hangul Compatibility Jamo
+    0x31F0, 0x31FF, // Katakana Phonetic Extensions
+    0x3400, 0x4DBF, // CJK Extension A
+    0x4E00, 0x9FFF, // CJK Unified Ideographs
+    0xAC00, 0xD7AF, // Hangul Syllables
+    0xFF00, 0xFFEF, // Halfwidth/Fullwidth Forms
+    0,
+};
+
+
 imgui_font* imgui_font_atlas_add_font_from_file_ttf(imgui_font_atlas* atlas, const char* path, float size_px) {
-    return (imgui_font*)((ImFontAtlas*)atlas)->AddFontFromFileTTF(path, size_px);
+    ImFontConfig cfg;
+    cfg.GlyphRanges = imgui_font_glyph_ranges_full;
+    return (imgui_font*)((ImFontAtlas*)atlas)->AddFontFromFileTTF(path, size_px, &cfg);
 }
+
 
 // Builds an ImFontConfig from the flattened C params.
 static ImFontConfig imgui_font_config_from(const char* name, bool merge_mode, bool pixel_snap_h, int oversample_h, int oversample_v,
@@ -1798,6 +1823,7 @@ static ImFontConfig imgui_font_config_from(const char* name, bool merge_mode, bo
     float glyph_min_advance_x, float glyph_max_advance_x,
     float rasterizer_multiply, float rasterizer_density, float extra_size_scale) {
     ImFontConfig cfg;
+    cfg.GlyphRanges = imgui_font_glyph_ranges_full;
     cfg.MergeMode = merge_mode;
     cfg.PixelSnapH = pixel_snap_h;
     cfg.OversampleH = (ImS8)oversample_h;
@@ -1840,6 +1866,34 @@ imgui_font* imgui_font_atlas_add_font_from_file_ttf_cfg(imgui_font_atlas* atlas,
     return (imgui_font*)((ImFontAtlas*)atlas)->AddFontFromFileTTF(path, cfg.SizePixels, &cfg);
 }
 
+// ImGui keeps ImFontConfig::GlyphRanges as a raw pointer and reads it again
+// at ImFontAtlas::Build(), so the caller's range array must outlive the
+// add-font call. Copy it into static storage (the atlas is built once at
+// startup) instead of trusting a transient JVM/native buffer.
+#define IMGUI_GLYPH_RANGES_MAX 4096
+static unsigned short imgui_custom_glyph_ranges[IMGUI_GLYPH_RANGES_MAX];
+
+imgui_font* imgui_font_atlas_add_font_from_file_ttf_ranges(imgui_font_atlas* atlas, const char* path,
+    const char* name, bool merge_mode, bool pixel_snap_h,
+    int oversample_h, int oversample_v,
+    float size_pixels, float glyph_offset_x, float glyph_offset_y,
+    float glyph_min_advance_x, float glyph_max_advance_x,
+    float rasterizer_multiply, float rasterizer_density, float extra_size_scale,
+    const unsigned short* ranges) {
+    ImFontConfig cfg = imgui_font_config_from(name, merge_mode, pixel_snap_h, oversample_h, oversample_v,
+        size_pixels, glyph_offset_x, glyph_offset_y, glyph_min_advance_x, glyph_max_advance_x,
+        rasterizer_multiply, rasterizer_density, extra_size_scale);
+    if (ranges != NULL) {
+        size_t n = 0;
+        while (ranges[n] != 0 && n < IMGUI_GLYPH_RANGES_MAX - 1) {
+            imgui_custom_glyph_ranges[n] = ranges[n];
+            n++;
+        }
+        imgui_custom_glyph_ranges[n] = 0;
+        cfg.GlyphRanges = imgui_custom_glyph_ranges;
+    }
+    return (imgui_font*)((ImFontAtlas*)atlas)->AddFontFromFileTTF(path, cfg.SizePixels, &cfg);
+}
 imgui_font* imgui_font_atlas_add_font_default(imgui_font_atlas* atlas) {
     return (imgui_font*)((ImFontAtlas*)atlas)->AddFontDefault();
 }

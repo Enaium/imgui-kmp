@@ -55,6 +55,7 @@ object SdlRendererApp {
         init: (fontTextureId: Long) -> Unit,
         draw: (frame: Int) -> Unit,
         close: () -> Unit,
+        fontSetup: (cn.enaium.imgui.ImFontAtlas, density: Float) -> Unit = { _, _ -> },
     ) {
         SDL.setMainReady()
         // Fall back to the dummy video driver (headless CI runners, SSH
@@ -89,6 +90,9 @@ object SdlRendererApp {
                     // the backend renders at the framebuffer scale.
                     val fonts = ImGui.getIO().fonts
                     val density = maxOf(imgui.framebufferScale.x, imgui.framebufferScale.y, 1f)
+                    // Font examples add their own faces (TTF with custom glyph
+                    // ranges) before the atlas is built.
+                    fontSetup(fonts, density)
                     fonts.addFontDefault(
                         ImFontConfig(
                             sizePixels = 13f * density,

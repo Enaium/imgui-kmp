@@ -136,16 +136,34 @@ internal class NativeImFontAtlas(internal val ptr: CPointer<imgui_font_atlas>?) 
             ),
         )
 
-    override fun addFontFromFileTTF(path: String, config: ImFontConfig): ImFont =
-        NativeImFont(
-            imgui_font_atlas_add_font_from_file_ttf_cfg(
+    override fun addFontFromFileTTF(path: String, config: ImFontConfig): ImFont {
+        val ranges = config.glyphRanges
+        if (ranges == null) {
+            return NativeImFont(
+                imgui_font_atlas_add_font_from_file_ttf_cfg(
+                    ptr, path, config.name, config.mergeMode, config.pixelSnapH,
+                    config.oversampleH, config.oversampleV,
+                    config.sizePixels, config.glyphOffsetX, config.glyphOffsetY,
+                    config.glyphMinAdvanceX, config.glyphMaxAdvanceX,
+                    config.rasterizerMultiply, config.rasterizerDensity, config.extraSizeScale,
+                ),
+            )
+        }
+        // Flat {first, last} pairs -> 0-terminated ImWchar list.
+        val buf = UShortArray(ranges.size + 1)
+        for (i in ranges.indices) buf[i] = ranges[i].toUShort()
+        buf[ranges.size] = 0u
+        return NativeImFont(
+            imgui_font_atlas_add_font_from_file_ttf_ranges(
                 ptr, path, config.name, config.mergeMode, config.pixelSnapH,
                 config.oversampleH, config.oversampleV,
                 config.sizePixels, config.glyphOffsetX, config.glyphOffsetY,
                 config.glyphMinAdvanceX, config.glyphMaxAdvanceX,
                 config.rasterizerMultiply, config.rasterizerDensity, config.extraSizeScale,
+                buf.refTo(0),
             ),
         )
+    }
 
     override fun build(): Boolean = imgui_font_atlas_build(ptr)
 

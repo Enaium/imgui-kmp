@@ -161,7 +161,111 @@ class ImFontConfig(
     var rasterizerDensity: Float = 1f,
     /** Extra rasterizer scale over [sizePixels]. */
     var extraSizeScale: Float = 1f,
+    /**
+     * Mirrors `ImFontConfig::GlyphRanges`: a flat list of inclusive
+     * {first, last} codepoint pairs, 0-terminated (same layout as
+     * ImGui's `ImWchar` ranges). Build it with [ImFontGlyphRangesBuilder]
+     * or use the presets in [ImFontGlyphRanges]. Null keeps the library
+     * default coverage.
+     */
+    var glyphRanges: IntArray? = null,
 )
+
+/**
+ * Mirrors Dear ImGui's `ImFontGlyphRangesBuilder`: accumulates codepoints
+ * (whole chars, texts, or existing range lists) and produces a
+ * 0-terminated {first, last} range list for [ImFontConfig.glyphRanges].
+ */
+class ImFontGlyphRangesBuilder {
+    private val codepoints = mutableSetOf<Int>()
+
+    /** Adds one Unicode codepoint (mirrors `AddChar`). */
+    fun addChar(cp: Int): ImFontGlyphRangesBuilder {
+        if (cp in 1..0x10FFFF) codepoints.add(cp)
+        return this
+    }
+
+    /** Adds every codepoint in [text] (mirrors `AddText`). */
+    fun addText(text: String): ImFontGlyphRangesBuilder {
+        for (c in text) addChar(c.code)
+        return this
+    }
+
+    /** Adds all codepoints covered by a {first, last} pair list (mirrors `AddRanges`). */
+    fun addRanges(ranges: IntArray): ImFontGlyphRangesBuilder {
+        var i = 0
+        while (i + 1 < ranges.size && ranges[i] != 0) {
+            val first = ranges[i]
+            val last = ranges[i + 1]
+            if (first <= last) {
+                for (cp in first..last) addChar(cp)
+            }
+            i += 2
+        }
+        return this
+    }
+
+    /** Builds a 0-terminated {first, last} codepoint list (mirrors `BuildRanges`). */
+    fun buildRanges(): IntArray {
+        if (codepoints.isEmpty()) return intArrayOf(0)
+        val sorted = codepoints.sorted()
+        val out = mutableListOf<Int>()
+        var start = sorted[0]
+        var prev = start
+        for (i in 1 until sorted.size) {
+            val cp = sorted[i]
+            if (cp == prev + 1) {
+                prev = cp
+            } else {
+                out.add(start)
+                out.add(prev)
+                start = cp
+                prev = cp
+            }
+        }
+        out.add(start)
+        out.add(prev)
+        out.add(0)
+        return out.toIntArray()
+    }
+}
+
+/**
+ * Glyph range presets mirroring `ImFontAtlas::GetGlyphRanges*`. Each is a
+ * 0-terminated {first, last} list suitable for [ImFontConfig.glyphRanges].
+ */
+object ImFontGlyphRanges {
+    /** Basic Latin + Latin-1 Supplement (mirrors GetGlyphRangesDefault). */
+    val default: IntArray = intArrayOf(0x20, 0x7E, 0xA0, 0xFF, 0)
+
+    /** Default + Greek + Cyrillic (mirrors GetGlyphRangesCyrillic). */
+    val cyrillic: IntArray = intArrayOf(
+        0x20, 0x7E, 0xA0, 0xFF, 0x370, 0x3FF, 0x400, 0x4FF, 0,
+    )
+
+    /** Default + Hiragana/Katakana + full CJK Unified Ideographs
+     *  (mirrors GetGlyphRangesChineseFull). */
+    val chineseFull: IntArray = intArrayOf(
+        0x20, 0x7E, 0xA0, 0xFF, 0x300, 0x36F, 0x370, 0x3FF, 0x400, 0x4FF,
+        0x1E00, 0x1EFF, 0x2000, 0x206F, 0x20A0, 0x20BF, 0x3000, 0x30FF,
+        0x31F0, 0x31FF, 0x3400, 0x4DBF, 0x4E00, 0x9FFF, 0xA000, 0xA48F,
+        0xFF00, 0xFFEF, 0,
+    )
+
+    /** Default + Hiragana/Katakana (mirrors GetGlyphRangesJapanese). */
+    val japanese: IntArray = intArrayOf(
+        0x20, 0x7E, 0xA0, 0xFF, 0x300, 0x36F, 0x370, 0x3FF, 0x400, 0x4FF,
+        0x1E00, 0x1EFF, 0x2000, 0x206F, 0x20A0, 0x20BF, 0x3000, 0x30FF,
+        0x31F0, 0x31FF, 0xFF00, 0xFFEF, 0x4E00, 0x9FFF, 0,
+    )
+
+    /** Default + Hangul (mirrors GetGlyphRangesKorean). */
+    val korean: IntArray = intArrayOf(
+        0x20, 0x7E, 0xA0, 0xFF, 0x300, 0x36F, 0x370, 0x3FF, 0x400, 0x4FF,
+        0x1E00, 0x1EFF, 0x2000, 0x206F, 0x20A0, 0x20BF, 0x3000, 0x30FF,
+        0x3131, 0x318E, 0xAC00, 0xD7A3, 0xFF00, 0xFFEF, 0,
+    )
+}
 
 interface ImFontAtlas {
     /**
@@ -188,7 +292,8 @@ interface ImFontAtlas {
             this.rasterizerDensity = rasterizerDensity
         })
 
-    /** Loads [path] with the full [ImFontConfig]. */
+    /** Loads [path] with the full [ImFontConfig] (including
+     *  [ImFontConfig.glyphRanges] when set). */
     fun addFontFromFileTTF(path: String, config: ImFontConfig): ImFont
 
     fun build(): Boolean

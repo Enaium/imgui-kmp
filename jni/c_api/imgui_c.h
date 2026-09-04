@@ -511,6 +511,18 @@ imgui_font* imgui_font_atlas_add_font_from_file_ttf_cfg(imgui_font_atlas* atlas,
     float glyph_min_advance_x, float glyph_max_advance_x,
     float rasterizer_multiply, float rasterizer_density, float extra_size_scale);
 
+// Like imgui_font_atlas_add_font_from_file_ttf_cfg but with an explicit
+// glyph range list: `ranges` is a 0-terminated array of {first, last}
+// codepoint pairs (ImWchar). NULL keeps the built-in full coverage
+// (Latin + CJK + Kana + Hangul + Cyrillic + Greek).
+imgui_font* imgui_font_atlas_add_font_from_file_ttf_ranges(imgui_font_atlas* atlas, const char* path,
+    const char* name, bool merge_mode, bool pixel_snap_h,
+    int oversample_h, int oversample_v,
+    float size_pixels, float glyph_offset_x, float glyph_offset_y,
+    float glyph_min_advance_x, float glyph_max_advance_x,
+    float rasterizer_multiply, float rasterizer_density, float extra_size_scale,
+    const unsigned short* ranges);
+
 bool imgui_font_atlas_build(imgui_font_atlas* atlas);
 void imgui_font_atlas_get_tex_data_as_rgba32(imgui_font_atlas* atlas, const unsigned char** out_pixels, int* out_width, int* out_height, int* out_bpp);
 void imgui_font_atlas_set_tex_id(imgui_font_atlas* atlas, uint64_t tex_id);

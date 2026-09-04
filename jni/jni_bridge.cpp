@@ -2196,6 +2196,33 @@ extern "C" JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_Jni_fontsAddFontFromFile
         glyph_min_advance_x, glyph_max_advance_x, rasterizer_multiply, rasterizer_density, extra_size_scale));
 }
 
+extern "C" JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_Jni_fontsAddFontFromFileTTFRanges(
+    JNIEnv* env, jclass, jlong atlas, jstring path, jstring name, jboolean merge_mode, jboolean pixel_snap_h,
+    jint oversample_h, jint oversample_v, jfloat size_pixels,
+    jfloat glyph_offset_x, jfloat glyph_offset_y, jfloat glyph_min_advance_x, jfloat glyph_max_advance_x,
+    jfloat rasterizer_multiply, jfloat rasterizer_density, jfloat extra_size_scale, jintArray ranges) {
+    std::string path_str = jstring_to_string(env, path);
+    std::string name_str;
+    const unsigned short* ranges_ptr = NULL;
+    std::vector<unsigned short> ranges_buf;
+    if (ranges != NULL) {
+        jsize len = env->GetArrayLength(ranges);
+        jint* elems = env->GetIntArrayElements(ranges, NULL);
+        ranges_buf.reserve((size_t)len + 1);
+        for (jsize i = 0; i < len; i++)
+            ranges_buf.push_back((unsigned short)elems[i]);
+        ranges_buf.push_back(0); // 0-terminated ImWchar list
+        env->ReleaseIntArrayElements(ranges, elems, JNI_ABORT);
+        ranges_ptr = ranges_buf.data();
+    }
+    return reinterpret_cast<jlong>(imgui_font_atlas_add_font_from_file_ttf_ranges(
+        reinterpret_cast<imgui_font_atlas*>(atlas), path_str.c_str(),
+        jstring_or_null(env, name, name_str), merge_mode == JNI_TRUE, pixel_snap_h == JNI_TRUE,
+        oversample_h, oversample_v, size_pixels, glyph_offset_x, glyph_offset_y,
+        glyph_min_advance_x, glyph_max_advance_x, rasterizer_multiply, rasterizer_density, extra_size_scale,
+        ranges_ptr));
+}
+
 extern "C" JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_Jni_fontsAddFontDefault(JNIEnv*, jclass, jlong atlas) {
     return reinterpret_cast<jlong>(imgui_font_atlas_add_font_default(reinterpret_cast<imgui_font_atlas*>(atlas)));
 }

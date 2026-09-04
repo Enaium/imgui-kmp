@@ -415,6 +415,14 @@ internal object Jni {
         glyphOffsetX: Float, glyphOffsetY: Float, glyphMinAdvanceX: Float, glyphMaxAdvanceX: Float,
         rasterizerMultiply: Float, rasterizerDensity: Float, extraSizeScale: Float,
     ): Long
+
+    external fun fontsAddFontFromFileTTFRanges(
+        atlas: Long, path: String, name: String?, mergeMode: Boolean, pixelSnapH: Boolean,
+        oversampleH: Int, oversampleV: Int, sizePixels: Float,
+        glyphOffsetX: Float, glyphOffsetY: Float, glyphMinAdvanceX: Float, glyphMaxAdvanceX: Float,
+        rasterizerMultiply: Float, rasterizerDensity: Float, extraSizeScale: Float,
+        glyphRanges: IntArray,
+    ): Long
     external fun fontsAddFontDefault(atlas: Long): Long
     external fun fontsBuild(atlas: Long): Boolean
     external fun fontsGetTexDataAsRGBA32(atlas: Long, outDims: IntArray): ByteArray
@@ -558,15 +566,29 @@ internal class JvmImFontAtlas(internal val ptr: Long) : ImFontAtlas {
             ),
         )
 
-    override fun addFontFromFileTTF(path: String, config: ImFontConfig): ImFont =
-        JvmImFont(
-            Jni.fontsAddFontFromFileTTFConfig(
-                ptr, path, config.name, config.mergeMode, config.pixelSnapH,
-                config.oversampleH, config.oversampleV, config.sizePixels,
-                config.glyphOffsetX, config.glyphOffsetY, config.glyphMinAdvanceX, config.glyphMaxAdvanceX,
-                config.rasterizerMultiply, config.rasterizerDensity, config.extraSizeScale,
-            ),
-        )
+    override fun addFontFromFileTTF(path: String, config: ImFontConfig): ImFont {
+        val ranges = config.glyphRanges
+        return if (ranges != null) {
+            JvmImFont(
+                Jni.fontsAddFontFromFileTTFRanges(
+                    ptr, path, config.name, config.mergeMode, config.pixelSnapH,
+                    config.oversampleH, config.oversampleV, config.sizePixels,
+                    config.glyphOffsetX, config.glyphOffsetY, config.glyphMinAdvanceX, config.glyphMaxAdvanceX,
+                    config.rasterizerMultiply, config.rasterizerDensity, config.extraSizeScale,
+                    ranges,
+                ),
+            )
+        } else {
+            JvmImFont(
+                Jni.fontsAddFontFromFileTTFConfig(
+                    ptr, path, config.name, config.mergeMode, config.pixelSnapH,
+                    config.oversampleH, config.oversampleV, config.sizePixels,
+                    config.glyphOffsetX, config.glyphOffsetY, config.glyphMinAdvanceX, config.glyphMaxAdvanceX,
+                    config.rasterizerMultiply, config.rasterizerDensity, config.extraSizeScale,
+                ),
+            )
+        }
+    }
 
     override fun build(): Boolean = Jni.fontsBuild(ptr)
 
