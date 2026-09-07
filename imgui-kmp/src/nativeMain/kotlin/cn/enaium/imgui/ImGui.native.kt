@@ -1524,3 +1524,16 @@ actual object ImGui {
     actual fun setItemDefaultFocus() = imgui_set_item_default_focus()
     actual fun setTabItemClosed(tabOrDockedWindowLabel: String) = imgui_set_tab_item_closed(tabOrDockedWindowLabel)
 }
+
+/**
+ * UV coordinates of the 1x1 white pixel inside the font atlas (ImDrawList
+ * shared data). Solid-color primitives written through Prim* APIs must use
+ * this UV (like AddTriangleFilled does internally) instead of the atlas
+ * origin.
+ */
+public fun imguiTexUvWhitePixel(): FloatArray = memScoped {
+    val x = alloc<FloatVar>()
+    val y = alloc<FloatVar>()
+    imgui_get_tex_uv_white_pixel(x.ptr, y.ptr)
+    floatArrayOf(x.value, y.value)
+}
