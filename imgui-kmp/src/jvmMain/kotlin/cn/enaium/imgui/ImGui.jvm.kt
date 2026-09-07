@@ -456,6 +456,52 @@ internal object Jni {
     external fun drawListAddText(list: Long, x: Float, y: Float, col: Int, text: String)
     external fun drawListAddQuad(list: Long, p1X: Float, p1Y: Float, p2X: Float, p2Y: Float, p3X: Float, p3Y: Float, p4X: Float, p4Y: Float, col: Int, thickness: Float)
     external fun drawListAddTriangle(list: Long, p1X: Float, p1Y: Float, p2X: Float, p2Y: Float, p3X: Float, p3Y: Float, col: Int, thickness: Float)
+    external fun drawListAddTriangleFilled(list: Long, p1X: Float, p1Y: Float, p2X: Float, p2Y: Float, p3X: Float, p3Y: Float, col: Int)
+    external fun drawListAddRectFilledMultiColor(list: Long, pMinX: Float, pMinY: Float, pMaxX: Float, pMaxY: Float, colUprLeft: Int, colUprRight: Int, colBotRight: Int, colBotLeft: Int)
+    external fun drawListAddQuadFilled(list: Long, p1X: Float, p1Y: Float, p2X: Float, p2Y: Float, p3X: Float, p3Y: Float, p4X: Float, p4Y: Float, col: Int)
+    external fun drawListAddNgon(list: Long, centerX: Float, centerY: Float, radius: Float, col: Int, numSegments: Int, thickness: Float)
+    external fun drawListAddNgonFilled(list: Long, centerX: Float, centerY: Float, radius: Float, col: Int, numSegments: Int)
+    external fun drawListAddEllipse(list: Long, centerX: Float, centerY: Float, radiusX: Float, radiusY: Float, col: Int, rot: Float, numSegments: Int, thickness: Float)
+    external fun drawListAddEllipseFilled(list: Long, centerX: Float, centerY: Float, radiusX: Float, radiusY: Float, col: Int, rot: Float, numSegments: Int)
+    external fun drawListAddBezierCubic(list: Long, p1X: Float, p1Y: Float, p2X: Float, p2Y: Float, p3X: Float, p3Y: Float, p4X: Float, p4Y: Float, col: Int, thickness: Float, numSegments: Int)
+    external fun drawListAddBezierQuadratic(list: Long, p1X: Float, p1Y: Float, p2X: Float, p2Y: Float, p3X: Float, p3Y: Float, col: Int, thickness: Float, numSegments: Int)
+    external fun drawListAddConvexPolyFilled(list: Long, points: FloatArray, numPoints: Int, col: Int)
+    external fun drawListAddConcavePolyFilled(list: Long, points: FloatArray, numPoints: Int, col: Int)
+    external fun drawListAddImage(list: Long, texId: Long, pMinX: Float, pMinY: Float, pMaxX: Float, pMaxY: Float, uvMinX: Float, uvMinY: Float, uvMaxX: Float, uvMaxY: Float, col: Int)
+    external fun drawListAddDrawCmd(list: Long)
+    external fun drawListCloneOutput(list: Long): Long
+    external fun drawListPushClipRect(list: Long, clipRectMinX: Float, clipRectMinY: Float, clipRectMaxX: Float, clipRectMaxY: Float, intersectWithCurrentClipRect: Boolean)
+    external fun drawListPushClipRectFullScreen(list: Long)
+    external fun drawListPopClipRect(list: Long)
+    external fun drawListGetClipRectMin(list: Long): ImVec2
+    external fun drawListGetClipRectMax(list: Long): ImVec2
+    external fun drawListPushTextureId(list: Long, texId: Long)
+    external fun drawListPopTextureId(list: Long)
+    external fun drawListChannelsSplit(list: Long, count: Int)
+    external fun drawListChannelsMerge(list: Long)
+    external fun drawListChannelsSetCurrent(list: Long, n: Int)
+    external fun drawListPrimReserve(list: Long, idxCount: Int, vtxCount: Int)
+    external fun drawListGetVtxCurrentIdx(list: Long): Int
+    external fun getTexUvWhitePixel(): FloatArray
+    external fun drawListPrimUnreserve(list: Long, idxCount: Int, vtxCount: Int)
+    external fun drawListPrimRect(list: Long, aX: Float, aY: Float, bX: Float, bY: Float, col: Int)
+    external fun drawListPrimRectUV(list: Long, aX: Float, aY: Float, bX: Float, bY: Float, uvAX: Float, uvAY: Float, uvBX: Float, uvBY: Float, col: Int)
+    external fun drawListPrimQuadUV(list: Long, aX: Float, aY: Float, bX: Float, bY: Float, cX: Float, cY: Float, dX: Float, dY: Float, uvAX: Float, uvAY: Float, uvBX: Float, uvBY: Float, uvCX: Float, uvCY: Float, uvDX: Float, uvDY: Float, col: Int)
+    external fun drawListPrimWriteVtx(list: Long, posX: Float, posY: Float, uvX: Float, uvY: Float, col: Int)
+    external fun drawListPrimWriteIdx(list: Long, idx: Int)
+    external fun drawListPrimVtx(list: Long, posX: Float, posY: Float, uvX: Float, uvY: Float, col: Int)
+    external fun drawListPathClear(list: Long)
+    external fun drawListPathLineTo(list: Long, x: Float, y: Float)
+    external fun drawListPathLineToMergeDuplicate(list: Long, x: Float, y: Float)
+    external fun drawListPathArcTo(list: Long, centerX: Float, centerY: Float, radius: Float, aMin: Float, aMax: Float, numSegments: Int)
+    external fun drawListPathArcToFast(list: Long, centerX: Float, centerY: Float, radius: Float, aMinOf12: Int, aMaxOf12: Int)
+    external fun drawListPathEllipticalArcTo(list: Long, centerX: Float, centerY: Float, radiusX: Float, radiusY: Float, rot: Float, aMin: Float, aMax: Float, numSegments: Int)
+    external fun drawListPathBezierCubicCurveTo(list: Long, p2X: Float, p2Y: Float, p3X: Float, p3Y: Float, p4X: Float, p4Y: Float, numSegments: Int)
+    external fun drawListPathBezierQuadraticCurveTo(list: Long, p2X: Float, p2Y: Float, p3X: Float, p3Y: Float, numSegments: Int)
+    external fun drawListPathRect(list: Long, rectMinX: Float, rectMinY: Float, rectMaxX: Float, rectMaxY: Float, rounding: Float, flags: Int)
+    external fun drawListPathFillConvex(list: Long, col: Int)
+    external fun drawListPathFillConcave(list: Long, col: Int)
+    external fun drawListPathStroke(list: Long, col: Int, thickness: Float, flags: Int)
     external fun drawListAddPolyline(list: Long, points: FloatArray, col: Int, closed: Boolean, thickness: Float)
 
     // ---- Draw list getters ----
@@ -626,9 +672,21 @@ internal class JvmImDrawCmd(internal val ptr: Long) : ImDrawCmd {
         get() = Jni.drawCmdHasUserCallback(ptr)
 }
 
+private fun flatten(points: Array<ImVec2>): FloatArray {
+    val flat = FloatArray(points.size * 2)
+    for (i in points.indices) {
+        flat[i * 2] = points[i].x
+        flat[i * 2 + 1] = points[i].y
+    }
+    return flat
+}
+
 internal class JvmImDrawList(internal val ptr: Long) : ImDrawList {
     override val vtxCount: Int
         get() = Jni.drawListGetVtxCount(ptr)
+
+    override val vtxCurrentIdx: Int
+        get() = Jni.drawListGetVtxCurrentIdx(ptr)
 
     override val idxCount: Int
         get() = Jni.drawListGetIdxCount(ptr)
@@ -689,6 +747,115 @@ internal class JvmImDrawList(internal val ptr: Long) : ImDrawList {
     override fun DrawTriangle(p1: ImVec2, p2: ImVec2, p3: ImVec2, col: Int, thickness: Float) =
         Jni.drawListAddTriangle(ptr, p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, col, thickness)
 
+    override fun DrawTriangleFilled(p1: ImVec2, p2: ImVec2, p3: ImVec2, col: Int) =
+        Jni.drawListAddTriangleFilled(ptr, p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, col)
+
+    override fun DrawRectFilledMultiColor(pMin: ImVec2, pMax: ImVec2, colUprLeft: Int, colUprRight: Int, colBotRight: Int, colBotLeft: Int) =
+        Jni.drawListAddRectFilledMultiColor(ptr, pMin.x, pMin.y, pMax.x, pMax.y, colUprLeft, colUprRight, colBotRight, colBotLeft)
+
+    override fun DrawQuadFilled(p1: ImVec2, p2: ImVec2, p3: ImVec2, p4: ImVec2, col: Int) =
+        Jni.drawListAddQuadFilled(ptr, p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, p4.x, p4.y, col)
+
+    override fun DrawNgon(center: ImVec2, radius: Float, col: Int, numSegments: Int, thickness: Float) =
+        Jni.drawListAddNgon(ptr, center.x, center.y, radius, col, numSegments, thickness)
+
+    override fun DrawNgonFilled(center: ImVec2, radius: Float, col: Int, numSegments: Int) =
+        Jni.drawListAddNgonFilled(ptr, center.x, center.y, radius, col, numSegments)
+
+    override fun DrawEllipse(center: ImVec2, radius: ImVec2, col: Int, rot: Float, numSegments: Int, thickness: Float) =
+        Jni.drawListAddEllipse(ptr, center.x, center.y, radius.x, radius.y, col, rot, numSegments, thickness)
+
+    override fun DrawEllipseFilled(center: ImVec2, radius: ImVec2, col: Int, rot: Float, numSegments: Int) =
+        Jni.drawListAddEllipseFilled(ptr, center.x, center.y, radius.x, radius.y, col, rot, numSegments)
+
+    override fun DrawBezierCubic(p1: ImVec2, p2: ImVec2, p3: ImVec2, p4: ImVec2, col: Int, thickness: Float, numSegments: Int) =
+        Jni.drawListAddBezierCubic(ptr, p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, p4.x, p4.y, col, thickness, numSegments)
+
+    override fun DrawBezierQuadratic(p1: ImVec2, p2: ImVec2, p3: ImVec2, col: Int, thickness: Float, numSegments: Int) =
+        Jni.drawListAddBezierQuadratic(ptr, p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, col, thickness, numSegments)
+
+    override fun DrawConvexPolyFilled(points: Array<ImVec2>, col: Int) =
+        Jni.drawListAddConvexPolyFilled(ptr, flatten(points), points.size, col)
+
+    override fun DrawConcavePolyFilled(points: Array<ImVec2>, col: Int) =
+        Jni.drawListAddConcavePolyFilled(ptr, flatten(points), points.size, col)
+
+    override fun DrawImage(texId: Long, pMin: ImVec2, pMax: ImVec2, uvMin: ImVec2, uvMax: ImVec2, col: Int) =
+        Jni.drawListAddImage(ptr, texId, pMin.x, pMin.y, pMax.x, pMax.y, uvMin.x, uvMin.y, uvMax.x, uvMax.y, col)
+
+    override fun AddDrawCmd() = Jni.drawListAddDrawCmd(ptr)
+
+    override fun cloneOutput(): ImDrawList = JvmImDrawList(Jni.drawListCloneOutput(ptr))
+
+    override fun pushClipRect(clipRectMin: ImVec2, clipRectMax: ImVec2, intersectWithCurrentClipRect: Boolean) =
+        Jni.drawListPushClipRect(ptr, clipRectMin.x, clipRectMin.y, clipRectMax.x, clipRectMax.y, intersectWithCurrentClipRect)
+
+    override fun pushClipRectFullScreen() = Jni.drawListPushClipRectFullScreen(ptr)
+
+    override fun popClipRect() = Jni.drawListPopClipRect(ptr)
+
+    override fun getClipRectMin(): ImVec2 = Jni.drawListGetClipRectMin(ptr)
+
+    override fun getClipRectMax(): ImVec2 = Jni.drawListGetClipRectMax(ptr)
+
+    override fun pushTextureID(texId: Long) = Jni.drawListPushTextureId(ptr, texId)
+
+    override fun popTextureID() = Jni.drawListPopTextureId(ptr)
+
+    override fun channelsSplit(count: Int) = Jni.drawListChannelsSplit(ptr, count)
+
+    override fun channelsMerge() = Jni.drawListChannelsMerge(ptr)
+
+    override fun channelsSetCurrent(n: Int) = Jni.drawListChannelsSetCurrent(ptr, n)
+
+    override fun primReserve(idxCount: Int, vtxCount: Int) = Jni.drawListPrimReserve(ptr, idxCount, vtxCount)
+
+    override fun primUnreserve(idxCount: Int, vtxCount: Int) = Jni.drawListPrimUnreserve(ptr, idxCount, vtxCount)
+
+    override fun primRect(a: ImVec2, b: ImVec2, col: Int) = Jni.drawListPrimRect(ptr, a.x, a.y, b.x, b.y, col)
+
+    override fun primRectUV(a: ImVec2, b: ImVec2, uvA: ImVec2, uvB: ImVec2, col: Int) =
+        Jni.drawListPrimRectUV(ptr, a.x, a.y, b.x, b.y, uvA.x, uvA.y, uvB.x, uvB.y, col)
+
+    override fun primQuadUV(a: ImVec2, b: ImVec2, c: ImVec2, d: ImVec2, uvA: ImVec2, uvB: ImVec2, uvC: ImVec2, uvD: ImVec2, col: Int) =
+        Jni.drawListPrimQuadUV(ptr, a.x, a.y, b.x, b.y, c.x, c.y, d.x, d.y, uvA.x, uvA.y, uvB.x, uvB.y, uvC.x, uvC.y, uvD.x, uvD.y, col)
+
+    override fun primWriteVtx(pos: ImVec2, uv: ImVec2, col: Int) = Jni.drawListPrimWriteVtx(ptr, pos.x, pos.y, uv.x, uv.y, col)
+
+    override fun primWriteIdx(idx: Int) = Jni.drawListPrimWriteIdx(ptr, idx)
+
+    override fun primVtx(pos: ImVec2, uv: ImVec2, col: Int) = Jni.drawListPrimVtx(ptr, pos.x, pos.y, uv.x, uv.y, col)
+
+    override fun pathClear() = Jni.drawListPathClear(ptr)
+
+    override fun pathLineTo(pos: ImVec2) = Jni.drawListPathLineTo(ptr, pos.x, pos.y)
+
+    override fun pathLineToMergeDuplicate(pos: ImVec2) = Jni.drawListPathLineToMergeDuplicate(ptr, pos.x, pos.y)
+
+    override fun pathArcTo(center: ImVec2, radius: Float, aMin: Float, aMax: Float, numSegments: Int) =
+        Jni.drawListPathArcTo(ptr, center.x, center.y, radius, aMin, aMax, numSegments)
+
+    override fun pathArcToFast(center: ImVec2, radius: Float, aMinOf12: Int, aMaxOf12: Int) =
+        Jni.drawListPathArcToFast(ptr, center.x, center.y, radius, aMinOf12, aMaxOf12)
+
+    override fun pathEllipticalArcTo(center: ImVec2, radius: ImVec2, rot: Float, aMin: Float, aMax: Float, numSegments: Int) =
+        Jni.drawListPathEllipticalArcTo(ptr, center.x, center.y, radius.x, radius.y, rot, aMin, aMax, numSegments)
+
+    override fun pathBezierCubicCurveTo(p2: ImVec2, p3: ImVec2, p4: ImVec2, numSegments: Int) =
+        Jni.drawListPathBezierCubicCurveTo(ptr, p2.x, p2.y, p3.x, p3.y, p4.x, p4.y, numSegments)
+
+    override fun pathBezierQuadraticCurveTo(p2: ImVec2, p3: ImVec2, numSegments: Int) =
+        Jni.drawListPathBezierQuadraticCurveTo(ptr, p2.x, p2.y, p3.x, p3.y, numSegments)
+
+    override fun pathRect(rectMin: ImVec2, rectMax: ImVec2, rounding: Float, flags: Int) =
+        Jni.drawListPathRect(ptr, rectMin.x, rectMin.y, rectMax.x, rectMax.y, rounding, flags)
+
+    override fun pathFillConvex(col: Int) = Jni.drawListPathFillConvex(ptr, col)
+
+    override fun pathFillConcave(col: Int) = Jni.drawListPathFillConcave(ptr, col)
+
+    override fun pathStroke(col: Int, thickness: Float, flags: Int) = Jni.drawListPathStroke(ptr, col, thickness, flags)
+
     override fun DrawPolyline(points: Array<ImVec2>, col: Int, closed: Boolean, thickness: Float) {
         val flat = FloatArray(points.size * 2)
         for (i in points.indices) {
@@ -698,6 +865,14 @@ internal class JvmImDrawList(internal val ptr: Long) : ImDrawList {
         Jni.drawListAddPolyline(ptr, flat, col, closed, thickness)
     }
 }
+
+/**
+ * UV coordinates of the 1x1 white pixel inside the font atlas (ImDrawList
+ * shared data). Solid-color primitives written through Prim* APIs must use
+ * this UV (like AddTriangleFilled does internally) instead of the atlas
+ * origin.
+ */
+public fun imguiTexUvWhitePixel(): FloatArray = Jni.getTexUvWhitePixel()
 
 internal class JvmImDrawData(internal val ptr: Long) : ImDrawData {
     override val displayPos: ImVec2

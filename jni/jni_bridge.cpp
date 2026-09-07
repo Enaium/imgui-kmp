@@ -2452,6 +2452,284 @@ extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListAddTriangle(J
     imgui_draw_list_add_triangle(reinterpret_cast<imgui_draw_list*>(list), p1, p2, p3, (uint32_t)col, thickness);
 }
 
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListAddTriangleFilled(JNIEnv*, jclass, jlong list, jfloat p1_x, jfloat p1_y, jfloat p2_x, jfloat p2_y, jfloat p3_x, jfloat p3_y, jint col) {
+    imgui_vec2 p1;
+    p1.x = p1_x;
+    p1.y = p1_y;
+    imgui_vec2 p2;
+    p2.x = p2_x;
+    p2.y = p2_y;
+    imgui_vec2 p3;
+    p3.x = p3_x;
+    p3.y = p3_y;
+    imgui_draw_list_add_triangle_filled(reinterpret_cast<imgui_draw_list*>(list), p1, p2, p3, (uint32_t)col);
+}
+
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListAddRectFilledMultiColor(JNIEnv*, jclass, jlong list, jfloat p_min_x, jfloat p_min_y, jfloat p_max_x, jfloat p_max_y, jint col_upr_left, jint col_upr_right, jint col_bot_right, jint col_bot_left) {
+    imgui_vec2 p_min; p_min.x = p_min_x; p_min.y = p_min_y;
+    imgui_vec2 p_max; p_max.x = p_max_x; p_max.y = p_max_y;
+    imgui_draw_list_add_rect_filled_multi_color(reinterpret_cast<imgui_draw_list*>(list), p_min, p_max, (uint32_t)col_upr_left, (uint32_t)col_upr_right, (uint32_t)col_bot_right, (uint32_t)col_bot_left);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListAddQuadFilled(JNIEnv*, jclass, jlong list, jfloat p1_x, jfloat p1_y, jfloat p2_x, jfloat p2_y, jfloat p3_x, jfloat p3_y, jfloat p4_x, jfloat p4_y, jint col) {
+    imgui_vec2 p1; p1.x = p1_x; p1.y = p1_y;
+    imgui_vec2 p2; p2.x = p2_x; p2.y = p2_y;
+    imgui_vec2 p3; p3.x = p3_x; p3.y = p3_y;
+    imgui_vec2 p4; p4.x = p4_x; p4.y = p4_y;
+    imgui_draw_list_add_quad_filled(reinterpret_cast<imgui_draw_list*>(list), p1, p2, p3, p4, (uint32_t)col);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListAddNgon(JNIEnv*, jclass, jlong list, jfloat center_x, jfloat center_y, jfloat radius, jint col, jint num_segments, jfloat thickness) {
+    imgui_vec2 center; center.x = center_x; center.y = center_y;
+    imgui_draw_list_add_ngon(reinterpret_cast<imgui_draw_list*>(list), center, radius, (uint32_t)col, num_segments, thickness);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListAddNgonFilled(JNIEnv*, jclass, jlong list, jfloat center_x, jfloat center_y, jfloat radius, jint col, jint num_segments) {
+    imgui_vec2 center; center.x = center_x; center.y = center_y;
+    imgui_draw_list_add_ngon_filled(reinterpret_cast<imgui_draw_list*>(list), center, radius, (uint32_t)col, num_segments);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListAddEllipse(JNIEnv*, jclass, jlong list, jfloat center_x, jfloat center_y, jfloat radius_x, jfloat radius_y, jint col, jfloat rot, jint num_segments, jfloat thickness) {
+    imgui_vec2 center; center.x = center_x; center.y = center_y;
+    imgui_vec2 radius; radius.x = radius_x; radius.y = radius_y;
+    imgui_draw_list_add_ellipse(reinterpret_cast<imgui_draw_list*>(list), center, radius, (uint32_t)col, rot, num_segments, thickness);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListAddEllipseFilled(JNIEnv*, jclass, jlong list, jfloat center_x, jfloat center_y, jfloat radius_x, jfloat radius_y, jint col, jfloat rot, jint num_segments) {
+    imgui_vec2 center; center.x = center_x; center.y = center_y;
+    imgui_vec2 radius; radius.x = radius_x; radius.y = radius_y;
+    imgui_draw_list_add_ellipse_filled(reinterpret_cast<imgui_draw_list*>(list), center, radius, (uint32_t)col, rot, num_segments);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListAddBezierCubic(JNIEnv*, jclass, jlong list, jfloat p1_x, jfloat p1_y, jfloat p2_x, jfloat p2_y, jfloat p3_x, jfloat p3_y, jfloat p4_x, jfloat p4_y, jint col, jfloat thickness, jint num_segments) {
+    imgui_vec2 p1; p1.x = p1_x; p1.y = p1_y;
+    imgui_vec2 p2; p2.x = p2_x; p2.y = p2_y;
+    imgui_vec2 p3; p3.x = p3_x; p3.y = p3_y;
+    imgui_vec2 p4; p4.x = p4_x; p4.y = p4_y;
+    imgui_draw_list_add_bezier_cubic(reinterpret_cast<imgui_draw_list*>(list), p1, p2, p3, p4, (uint32_t)col, thickness, num_segments);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListAddBezierQuadratic(JNIEnv*, jclass, jlong list, jfloat p1_x, jfloat p1_y, jfloat p2_x, jfloat p2_y, jfloat p3_x, jfloat p3_y, jint col, jfloat thickness, jint num_segments) {
+    imgui_vec2 p1; p1.x = p1_x; p1.y = p1_y;
+    imgui_vec2 p2; p2.x = p2_x; p2.y = p2_y;
+    imgui_vec2 p3; p3.x = p3_x; p3.y = p3_y;
+    imgui_draw_list_add_bezier_quadratic(reinterpret_cast<imgui_draw_list*>(list), p1, p2, p3, (uint32_t)col, thickness, num_segments);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListAddConvexPolyFilled(JNIEnv* env, jclass, jlong list, jfloatArray points, jint num_points, jint col) {
+    jsize count = env->GetArrayLength(points) / 2;
+    jfloat* elems = env->GetFloatArrayElements(points, nullptr);
+    std::vector<imgui_vec2> pts;
+    pts.reserve(count);
+    for (jsize i = 0; i < count; i++) {
+        imgui_vec2 p; p.x = elems[i * 2]; p.y = elems[i * 2 + 1];
+        pts.push_back(p);
+    }
+    env->ReleaseFloatArrayElements(points, elems, JNI_ABORT);
+    imgui_draw_list_add_convex_poly_filled(reinterpret_cast<imgui_draw_list*>(list), pts.data(), (int)count, (uint32_t)col);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListAddConcavePolyFilled(JNIEnv* env, jclass, jlong list, jfloatArray points, jint num_points, jint col) {
+    jsize count = env->GetArrayLength(points) / 2;
+    jfloat* elems = env->GetFloatArrayElements(points, nullptr);
+    std::vector<imgui_vec2> pts;
+    pts.reserve(count);
+    for (jsize i = 0; i < count; i++) {
+        imgui_vec2 p; p.x = elems[i * 2]; p.y = elems[i * 2 + 1];
+        pts.push_back(p);
+    }
+    env->ReleaseFloatArrayElements(points, elems, JNI_ABORT);
+    imgui_draw_list_add_concave_poly_filled(reinterpret_cast<imgui_draw_list*>(list), pts.data(), (int)count, (uint32_t)col);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListAddImage(JNIEnv*, jclass, jlong list, jlong tex_id, jfloat p_min_x, jfloat p_min_y, jfloat p_max_x, jfloat p_max_y, jfloat uv_min_x, jfloat uv_min_y, jfloat uv_max_x, jfloat uv_max_y, jint col) {
+    imgui_vec2 p_min; p_min.x = p_min_x; p_min.y = p_min_y;
+    imgui_vec2 p_max; p_max.x = p_max_x; p_max.y = p_max_y;
+    imgui_vec2 uv_min; uv_min.x = uv_min_x; uv_min.y = uv_min_y;
+    imgui_vec2 uv_max; uv_max.x = uv_max_x; uv_max.y = uv_max_y;
+    imgui_draw_list_add_image(reinterpret_cast<imgui_draw_list*>(list), (uint64_t)tex_id, p_min, p_max, uv_min, uv_max, (uint32_t)col);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListAddDrawCmd(JNIEnv*, jclass, jlong list) {
+    imgui_draw_list_add_draw_cmd(reinterpret_cast<imgui_draw_list*>(list));
+}
+
+extern "C" JNIEXPORT jlong JNICALL Java_cn_enaium_imgui_Jni_drawListCloneOutput(JNIEnv*, jclass, jlong list) {
+    return (jlong)imgui_draw_list_clone_output(reinterpret_cast<imgui_draw_list*>(list));
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListPushClipRect(JNIEnv*, jclass, jlong list, jfloat clip_rect_min_x, jfloat clip_rect_min_y, jfloat clip_rect_max_x, jfloat clip_rect_max_y, jboolean intersect_with_current_clip_rect) {
+    imgui_vec2 min; min.x = clip_rect_min_x; min.y = clip_rect_min_y;
+    imgui_vec2 max; max.x = clip_rect_max_x; max.y = clip_rect_max_y;
+    imgui_draw_list_push_clip_rect(reinterpret_cast<imgui_draw_list*>(list), min, max, intersect_with_current_clip_rect == JNI_TRUE);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListPushClipRectFullScreen(JNIEnv*, jclass, jlong list) {
+    imgui_draw_list_push_clip_rect_full_screen(reinterpret_cast<imgui_draw_list*>(list));
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListPopClipRect(JNIEnv*, jclass, jlong list) {
+    imgui_draw_list_pop_clip_rect(reinterpret_cast<imgui_draw_list*>(list));
+}
+
+extern "C" JNIEXPORT jobject JNICALL Java_cn_enaium_imgui_Jni_drawListGetClipRectMin(JNIEnv* env, jclass, jlong list) {
+    imgui_vec2 v = imgui_draw_list_get_clip_rect_min(reinterpret_cast<imgui_draw_list*>(list));
+    jclass cls = env->FindClass("cn/enaium/imgui/ImVec2");
+    jmethodID ctor = env->GetMethodID(cls, "<init>", "(FF)V");
+    return env->NewObject(cls, ctor, v.x, v.y);
+}
+
+extern "C" JNIEXPORT jobject JNICALL Java_cn_enaium_imgui_Jni_drawListGetClipRectMax(JNIEnv* env, jclass, jlong list) {
+    imgui_vec2 v = imgui_draw_list_get_clip_rect_max(reinterpret_cast<imgui_draw_list*>(list));
+    jclass cls = env->FindClass("cn/enaium/imgui/ImVec2");
+    jmethodID ctor = env->GetMethodID(cls, "<init>", "(FF)V");
+    return env->NewObject(cls, ctor, v.x, v.y);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListPushTextureId(JNIEnv*, jclass, jlong list, jlong tex_id) {
+    imgui_draw_list_push_texture_id(reinterpret_cast<imgui_draw_list*>(list), (uint64_t)tex_id);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListPopTextureId(JNIEnv*, jclass, jlong list) {
+    imgui_draw_list_pop_texture_id(reinterpret_cast<imgui_draw_list*>(list));
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListChannelsSplit(JNIEnv*, jclass, jlong list, jint count) {
+    imgui_draw_list_channels_split(reinterpret_cast<imgui_draw_list*>(list), count);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListChannelsMerge(JNIEnv*, jclass, jlong list) {
+    imgui_draw_list_channels_merge(reinterpret_cast<imgui_draw_list*>(list));
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListChannelsSetCurrent(JNIEnv*, jclass, jlong list, jint n) {
+    imgui_draw_list_channels_set_current(reinterpret_cast<imgui_draw_list*>(list), n);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListPrimReserve(JNIEnv*, jclass, jlong list, jint idx_count, jint vtx_count) {
+    imgui_draw_list_prim_reserve(reinterpret_cast<imgui_draw_list*>(list), idx_count, vtx_count);
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_cn_enaium_imgui_Jni_drawListGetVtxCurrentIdx(JNIEnv*, jclass, jlong list) {
+    return imgui_draw_list_vtx_current_idx(reinterpret_cast<imgui_draw_list*>(list));
+}
+
+extern "C" JNIEXPORT jfloatArray JNICALL Java_cn_enaium_imgui_Jni_getTexUvWhitePixel(JNIEnv* env, jclass) {
+    float x, y;
+    imgui_get_tex_uv_white_pixel(&x, &y);
+    jfloatArray out = env->NewFloatArray(2);
+    float vals[2] = {x, y};
+    env->SetFloatArrayRegion(out, 0, 2, vals);
+    return out;
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListPrimUnreserve(JNIEnv*, jclass, jlong list, jint idx_count, jint vtx_count) {
+    imgui_draw_list_prim_unreserve(reinterpret_cast<imgui_draw_list*>(list), idx_count, vtx_count);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListPrimRect(JNIEnv*, jclass, jlong list, jfloat a_x, jfloat a_y, jfloat b_x, jfloat b_y, jint col) {
+    imgui_vec2 a; a.x = a_x; a.y = a_y;
+    imgui_vec2 b; b.x = b_x; b.y = b_y;
+    imgui_draw_list_prim_rect(reinterpret_cast<imgui_draw_list*>(list), a, b, (uint32_t)col);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListPrimRectUV(JNIEnv*, jclass, jlong list, jfloat a_x, jfloat a_y, jfloat b_x, jfloat b_y, jfloat uv_a_x, jfloat uv_a_y, jfloat uv_b_x, jfloat uv_b_y, jint col) {
+    imgui_vec2 a; a.x = a_x; a.y = a_y;
+    imgui_vec2 b; b.x = b_x; b.y = b_y;
+    imgui_vec2 uv_a; uv_a.x = uv_a_x; uv_a.y = uv_a_y;
+    imgui_vec2 uv_b; uv_b.x = uv_b_x; uv_b.y = uv_b_y;
+    imgui_draw_list_prim_rect_uv(reinterpret_cast<imgui_draw_list*>(list), a, b, uv_a, uv_b, (uint32_t)col);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListPrimQuadUV(JNIEnv*, jclass, jlong list, jfloat a_x, jfloat a_y, jfloat b_x, jfloat b_y, jfloat c_x, jfloat c_y, jfloat d_x, jfloat d_y, jfloat uv_a_x, jfloat uv_a_y, jfloat uv_b_x, jfloat uv_b_y, jfloat uv_c_x, jfloat uv_c_y, jfloat uv_d_x, jfloat uv_d_y, jint col) {
+    imgui_vec2 a; a.x = a_x; a.y = a_y;
+    imgui_vec2 b; b.x = b_x; b.y = b_y;
+    imgui_vec2 c; c.x = c_x; c.y = c_y;
+    imgui_vec2 d; d.x = d_x; d.y = d_y;
+    imgui_vec2 uv_a; uv_a.x = uv_a_x; uv_a.y = uv_a_y;
+    imgui_vec2 uv_b; uv_b.x = uv_b_x; uv_b.y = uv_b_y;
+    imgui_vec2 uv_c; uv_c.x = uv_c_x; uv_c.y = uv_c_y;
+    imgui_vec2 uv_d; uv_d.x = uv_d_x; uv_d.y = uv_d_y;
+    imgui_draw_list_prim_quad_uv(reinterpret_cast<imgui_draw_list*>(list), a, b, c, d, uv_a, uv_b, uv_c, uv_d, (uint32_t)col);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListPrimWriteVtx(JNIEnv*, jclass, jlong list, jfloat pos_x, jfloat pos_y, jfloat uv_x, jfloat uv_y, jint col) {
+    imgui_vec2 pos; pos.x = pos_x; pos.y = pos_y;
+    imgui_vec2 uv; uv.x = uv_x; uv.y = uv_y;
+    imgui_draw_list_prim_write_vtx(reinterpret_cast<imgui_draw_list*>(list), pos, uv, (uint32_t)col);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListPrimWriteIdx(JNIEnv*, jclass, jlong list, jint idx) {
+    imgui_draw_list_prim_write_idx(reinterpret_cast<imgui_draw_list*>(list), (uint32_t)idx);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListPrimVtx(JNIEnv*, jclass, jlong list, jfloat pos_x, jfloat pos_y, jfloat uv_x, jfloat uv_y, jint col) {
+    imgui_vec2 pos; pos.x = pos_x; pos.y = pos_y;
+    imgui_vec2 uv; uv.x = uv_x; uv.y = uv_y;
+    imgui_draw_list_prim_vtx(reinterpret_cast<imgui_draw_list*>(list), pos, uv, (uint32_t)col);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListPathClear(JNIEnv*, jclass, jlong list) {
+    imgui_draw_list_path_clear(reinterpret_cast<imgui_draw_list*>(list));
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListPathLineTo(JNIEnv*, jclass, jlong list, jfloat x, jfloat y) {
+    imgui_vec2 pos; pos.x = x; pos.y = y;
+    imgui_draw_list_path_line_to(reinterpret_cast<imgui_draw_list*>(list), pos);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListPathLineToMergeDuplicate(JNIEnv*, jclass, jlong list, jfloat x, jfloat y) {
+    imgui_vec2 pos; pos.x = x; pos.y = y;
+    imgui_draw_list_path_line_to_merge_duplicate(reinterpret_cast<imgui_draw_list*>(list), pos);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListPathArcTo(JNIEnv*, jclass, jlong list, jfloat center_x, jfloat center_y, jfloat radius, jfloat a_min, jfloat a_max, jint num_segments) {
+    imgui_vec2 center; center.x = center_x; center.y = center_y;
+    imgui_draw_list_path_arc_to(reinterpret_cast<imgui_draw_list*>(list), center, radius, a_min, a_max, num_segments);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListPathArcToFast(JNIEnv*, jclass, jlong list, jfloat center_x, jfloat center_y, jfloat radius, jint a_min_of_12, jint a_max_of_12) {
+    imgui_vec2 center; center.x = center_x; center.y = center_y;
+    imgui_draw_list_path_arc_to_fast(reinterpret_cast<imgui_draw_list*>(list), center, radius, a_min_of_12, a_max_of_12);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListPathEllipticalArcTo(JNIEnv*, jclass, jlong list, jfloat center_x, jfloat center_y, jfloat radius_x, jfloat radius_y, jfloat rot, jfloat a_min, jfloat a_max, jint num_segments) {
+    imgui_vec2 center; center.x = center_x; center.y = center_y;
+    imgui_vec2 radius; radius.x = radius_x; radius.y = radius_y;
+    imgui_draw_list_path_elliptical_arc_to(reinterpret_cast<imgui_draw_list*>(list), center, radius, rot, a_min, a_max, num_segments);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListPathBezierCubicCurveTo(JNIEnv*, jclass, jlong list, jfloat p2_x, jfloat p2_y, jfloat p3_x, jfloat p3_y, jfloat p4_x, jfloat p4_y, jint num_segments) {
+    imgui_vec2 p2; p2.x = p2_x; p2.y = p2_y;
+    imgui_vec2 p3; p3.x = p3_x; p3.y = p3_y;
+    imgui_vec2 p4; p4.x = p4_x; p4.y = p4_y;
+    imgui_draw_list_path_bezier_cubic_curve_to(reinterpret_cast<imgui_draw_list*>(list), p2, p3, p4, num_segments);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListPathBezierQuadraticCurveTo(JNIEnv*, jclass, jlong list, jfloat p2_x, jfloat p2_y, jfloat p3_x, jfloat p3_y, jint num_segments) {
+    imgui_vec2 p2; p2.x = p2_x; p2.y = p2_y;
+    imgui_vec2 p3; p3.x = p3_x; p3.y = p3_y;
+    imgui_draw_list_path_bezier_quadratic_curve_to(reinterpret_cast<imgui_draw_list*>(list), p2, p3, num_segments);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListPathRect(JNIEnv*, jclass, jlong list, jfloat rect_min_x, jfloat rect_min_y, jfloat rect_max_x, jfloat rect_max_y, jfloat rounding, jint flags) {
+    imgui_vec2 rect_min; rect_min.x = rect_min_x; rect_min.y = rect_min_y;
+    imgui_vec2 rect_max; rect_max.x = rect_max_x; rect_max.y = rect_max_y;
+    imgui_draw_list_path_rect(reinterpret_cast<imgui_draw_list*>(list), rect_min, rect_max, rounding, flags);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListPathFillConvex(JNIEnv*, jclass, jlong list, jint col) {
+    imgui_draw_list_path_fill_convex(reinterpret_cast<imgui_draw_list*>(list), (uint32_t)col);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListPathFillConcave(JNIEnv*, jclass, jlong list, jint col) {
+    imgui_draw_list_path_fill_concave(reinterpret_cast<imgui_draw_list*>(list), (uint32_t)col);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListPathStroke(JNIEnv*, jclass, jlong list, jint col, jfloat thickness, jint flags) {
+    imgui_draw_list_path_stroke(reinterpret_cast<imgui_draw_list*>(list), (uint32_t)col, thickness, flags);
+}
 extern "C" JNIEXPORT void JNICALL Java_cn_enaium_imgui_Jni_drawListAddPolyline(JNIEnv* env, jclass, jlong list, jfloatArray points, jint col, jboolean closed, jfloat thickness) {
     jsize count = env->GetArrayLength(points) / 2;
     jfloat* elems = env->GetFloatArrayElements(points, nullptr);

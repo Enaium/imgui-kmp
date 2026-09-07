@@ -126,8 +126,18 @@ class ImGuiSdlRendererBackend(private val renderer: SDLRenderer) {
 
                 val vtxOffset = cmd.vtxOffset
                 // The command's indices reference vertices relative to
-                // VtxOffset, spanning the rest of the list's vertex buffer.
-                val vtxCount = list.vtxCount - vtxOffset
+                // VtxOffset. Only the vertices actually referenced by this
+                // command's indices need to be copied; copying from
+                // VtxOffset to the end of the buffer for every command makes
+                // a many-command draw list O(n^2) in vertices and stalls the
+                // frame (hundreds of icons = hundreds of thousands of objects
+                // per frame).
+                var vtxEnd = vtxOffset
+                for (i in cmd.idxOffset until cmd.idxOffset + cmd.elemCount) {
+                    val v = indices[i]
+                    if (v > vtxEnd) vtxEnd = v
+                }
+                val vtxCount = vtxEnd - vtxOffset + 1
                 val vertexList = ArrayList<SDLVertex>(vtxCount)
                 for (i in 0 until vtxCount) {
                     val color = verts.colors[vtxOffset + i]
@@ -154,7 +164,7 @@ class ImGuiSdlRendererBackend(private val renderer: SDLRenderer) {
                         ),
                     )
                 }
-                val cmdIndices = IntArray(cmd.elemCount) { i -> indices[cmd.idxOffset + i] }
+                val cmdIndices = IntArray(cmd.elemCount) { i -> indices[cmd.idxOffset + i] - vtxOffset }
                 renderer.renderGeometry(texture, vertexList, cmdIndices)
             }
         }

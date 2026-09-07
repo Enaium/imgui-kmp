@@ -2046,6 +2046,195 @@ void imgui_draw_list_add_triangle(imgui_draw_list* list, imgui_vec2 p1, imgui_ve
     ((ImDrawList*)list)->AddTriangle(ImVec2(p1.x, p1.y), ImVec2(p2.x, p2.y), ImVec2(p3.x, p3.y), col, thickness);
 }
 
+void imgui_draw_list_add_triangle_filled(imgui_draw_list* list, imgui_vec2 p1, imgui_vec2 p2, imgui_vec2 p3, uint32_t col) {
+    ((ImDrawList*)list)->AddTriangleFilled(ImVec2(p1.x, p1.y), ImVec2(p2.x, p2.y), ImVec2(p3.x, p3.y), col);
+}
+
+
+void imgui_draw_list_add_rect_filled_multi_color(imgui_draw_list* list, imgui_vec2 p_min, imgui_vec2 p_max, uint32_t col_upr_left, uint32_t col_upr_right, uint32_t col_bot_right, uint32_t col_bot_left) {
+    ((ImDrawList*)list)->AddRectFilledMultiColor(ImVec2(p_min.x, p_min.y), ImVec2(p_max.x, p_max.y), col_upr_left, col_upr_right, col_bot_right, col_bot_left);
+}
+
+void imgui_draw_list_add_quad_filled(imgui_draw_list* list, imgui_vec2 p1, imgui_vec2 p2, imgui_vec2 p3, imgui_vec2 p4, uint32_t col) {
+    ((ImDrawList*)list)->AddQuadFilled(ImVec2(p1.x, p1.y), ImVec2(p2.x, p2.y), ImVec2(p3.x, p3.y), ImVec2(p4.x, p4.y), col);
+}
+
+void imgui_draw_list_add_ngon(imgui_draw_list* list, imgui_vec2 center, float radius, uint32_t col, int num_segments, float thickness) {
+    ((ImDrawList*)list)->AddNgon(ImVec2(center.x, center.y), radius, col, num_segments, thickness);
+}
+
+void imgui_draw_list_add_ngon_filled(imgui_draw_list* list, imgui_vec2 center, float radius, uint32_t col, int num_segments) {
+    ((ImDrawList*)list)->AddNgonFilled(ImVec2(center.x, center.y), radius, col, num_segments);
+}
+
+void imgui_draw_list_add_ellipse(imgui_draw_list* list, imgui_vec2 center, imgui_vec2 radius, uint32_t col, float rot, int num_segments, float thickness) {
+    ((ImDrawList*)list)->AddEllipse(ImVec2(center.x, center.y), ImVec2(radius.x, radius.y), col, rot, num_segments, thickness);
+}
+
+void imgui_draw_list_add_ellipse_filled(imgui_draw_list* list, imgui_vec2 center, imgui_vec2 radius, uint32_t col, float rot, int num_segments) {
+    ((ImDrawList*)list)->AddEllipseFilled(ImVec2(center.x, center.y), ImVec2(radius.x, radius.y), col, rot, num_segments);
+}
+
+void imgui_draw_list_add_bezier_cubic(imgui_draw_list* list, imgui_vec2 p1, imgui_vec2 p2, imgui_vec2 p3, imgui_vec2 p4, uint32_t col, float thickness, int num_segments) {
+    ((ImDrawList*)list)->AddBezierCubic(ImVec2(p1.x, p1.y), ImVec2(p2.x, p2.y), ImVec2(p3.x, p3.y), ImVec2(p4.x, p4.y), col, thickness, num_segments);
+}
+
+void imgui_draw_list_add_bezier_quadratic(imgui_draw_list* list, imgui_vec2 p1, imgui_vec2 p2, imgui_vec2 p3, uint32_t col, float thickness, int num_segments) {
+    ((ImDrawList*)list)->AddBezierQuadratic(ImVec2(p1.x, p1.y), ImVec2(p2.x, p2.y), ImVec2(p3.x, p3.y), col, thickness, num_segments);
+}
+
+void imgui_draw_list_add_convex_poly_filled(imgui_draw_list* list, const imgui_vec2* points, int num_points, uint32_t col) {
+    ((ImDrawList*)list)->AddConvexPolyFilled(reinterpret_cast<const ImVec2*>(points), num_points, col);
+}
+
+void imgui_draw_list_add_concave_poly_filled(imgui_draw_list* list, const imgui_vec2* points, int num_points, uint32_t col) {
+    ((ImDrawList*)list)->AddConcavePolyFilled(reinterpret_cast<const ImVec2*>(points), num_points, col);
+}
+
+void imgui_draw_list_add_image(imgui_draw_list* list, uint64_t tex_id, imgui_vec2 p_min, imgui_vec2 p_max, imgui_vec2 uv_min, imgui_vec2 uv_max, uint32_t col) {
+    ((ImDrawList*)list)->AddImage((ImTextureID)(uintptr_t)tex_id, ImVec2(p_min.x, p_min.y), ImVec2(p_max.x, p_max.y), ImVec2(uv_min.x, uv_min.y), ImVec2(uv_max.x, uv_max.y), col);
+}
+
+void imgui_draw_list_add_draw_cmd(imgui_draw_list* list) {
+    ((ImDrawList*)list)->AddDrawCmd();
+}
+
+imgui_draw_list* imgui_draw_list_clone_output(imgui_draw_list* list) {
+    return (imgui_draw_list*)((ImDrawList*)list)->CloneOutput();
+}
+
+void imgui_draw_list_push_clip_rect(imgui_draw_list* list, imgui_vec2 clip_rect_min, imgui_vec2 clip_rect_max, bool intersect_with_current_clip_rect) {
+    ((ImDrawList*)list)->PushClipRect(ImVec2(clip_rect_min.x, clip_rect_min.y), ImVec2(clip_rect_max.x, clip_rect_max.y), intersect_with_current_clip_rect);
+}
+
+void imgui_draw_list_push_clip_rect_full_screen(imgui_draw_list* list) {
+    ((ImDrawList*)list)->PushClipRectFullScreen();
+}
+
+void imgui_draw_list_pop_clip_rect(imgui_draw_list* list) {
+    ((ImDrawList*)list)->PopClipRect();
+}
+
+imgui_vec2 imgui_draw_list_get_clip_rect_min(imgui_draw_list* list) {
+    ImVec2 v = ((ImDrawList*)list)->GetClipRectMin();
+    imgui_vec2 out; out.x = v.x; out.y = v.y; return out;
+}
+
+imgui_vec2 imgui_draw_list_get_clip_rect_max(imgui_draw_list* list) {
+    ImVec2 v = ((ImDrawList*)list)->GetClipRectMax();
+    imgui_vec2 out; out.x = v.x; out.y = v.y; return out;
+}
+
+void imgui_draw_list_push_texture_id(imgui_draw_list* list, uint64_t tex_id) {
+    ((ImDrawList*)list)->PushTextureID((ImTextureID)(uintptr_t)tex_id);
+}
+
+void imgui_draw_list_pop_texture_id(imgui_draw_list* list) {
+    ((ImDrawList*)list)->PopTextureID();
+}
+
+void imgui_draw_list_channels_split(imgui_draw_list* list, int count) {
+    ((ImDrawList*)list)->ChannelsSplit(count);
+}
+
+void imgui_draw_list_channels_merge(imgui_draw_list* list) {
+    ((ImDrawList*)list)->ChannelsMerge();
+}
+
+void imgui_draw_list_channels_set_current(imgui_draw_list* list, int n) {
+    ((ImDrawList*)list)->ChannelsSetCurrent(n);
+}
+
+void imgui_draw_list_prim_reserve(imgui_draw_list* list, int idx_count, int vtx_count) {
+    ((ImDrawList*)list)->PrimReserve(idx_count, vtx_count);
+}
+
+int imgui_draw_list_vtx_current_idx(imgui_draw_list* list) {
+    return ((ImDrawList*)list)->_VtxCurrentIdx;
+}
+
+void imgui_get_tex_uv_white_pixel(float* out_x, float* out_y) {
+    ImVec2 uv = ImGui::GetDrawListSharedData()->TexUvWhitePixel;
+    *out_x = uv.x;
+    *out_y = uv.y;
+}
+
+void imgui_draw_list_prim_unreserve(imgui_draw_list* list, int idx_count, int vtx_count) {
+    ((ImDrawList*)list)->PrimUnreserve(idx_count, vtx_count);
+}
+
+void imgui_draw_list_prim_rect(imgui_draw_list* list, imgui_vec2 a, imgui_vec2 b, uint32_t col) {
+    ((ImDrawList*)list)->PrimRect(ImVec2(a.x, a.y), ImVec2(b.x, b.y), col);
+}
+
+void imgui_draw_list_prim_rect_uv(imgui_draw_list* list, imgui_vec2 a, imgui_vec2 b, imgui_vec2 uv_a, imgui_vec2 uv_b, uint32_t col) {
+    ((ImDrawList*)list)->PrimRectUV(ImVec2(a.x, a.y), ImVec2(b.x, b.y), ImVec2(uv_a.x, uv_a.y), ImVec2(uv_b.x, uv_b.y), col);
+}
+
+void imgui_draw_list_prim_quad_uv(imgui_draw_list* list, imgui_vec2 a, imgui_vec2 b, imgui_vec2 c, imgui_vec2 d, imgui_vec2 uv_a, imgui_vec2 uv_b, imgui_vec2 uv_c, imgui_vec2 uv_d, uint32_t col) {
+    ((ImDrawList*)list)->PrimQuadUV(ImVec2(a.x, a.y), ImVec2(b.x, b.y), ImVec2(c.x, c.y), ImVec2(d.x, d.y), ImVec2(uv_a.x, uv_a.y), ImVec2(uv_b.x, uv_b.y), ImVec2(uv_c.x, uv_c.y), ImVec2(uv_d.x, uv_d.y), col);
+}
+
+void imgui_draw_list_prim_write_vtx(imgui_draw_list* list, imgui_vec2 pos, imgui_vec2 uv, uint32_t col) {
+    ((ImDrawList*)list)->PrimWriteVtx(ImVec2(pos.x, pos.y), ImVec2(uv.x, uv.y), col);
+}
+
+void imgui_draw_list_prim_write_idx(imgui_draw_list* list, uint32_t idx) {
+    ((ImDrawList*)list)->PrimWriteIdx((ImDrawIdx)idx);
+}
+
+void imgui_draw_list_prim_vtx(imgui_draw_list* list, imgui_vec2 pos, imgui_vec2 uv, uint32_t col) {
+    ((ImDrawList*)list)->PrimVtx(ImVec2(pos.x, pos.y), ImVec2(uv.x, uv.y), col);
+}
+
+// Stateful path API
+void imgui_draw_list_path_clear(imgui_draw_list* list) {
+    ((ImDrawList*)list)->PathClear();
+}
+
+void imgui_draw_list_path_line_to(imgui_draw_list* list, imgui_vec2 pos) {
+    ((ImDrawList*)list)->PathLineTo(ImVec2(pos.x, pos.y));
+}
+
+void imgui_draw_list_path_line_to_merge_duplicate(imgui_draw_list* list, imgui_vec2 pos) {
+    ((ImDrawList*)list)->PathLineToMergeDuplicate(ImVec2(pos.x, pos.y));
+}
+
+void imgui_draw_list_path_arc_to(imgui_draw_list* list, imgui_vec2 center, float radius, float a_min, float a_max, int num_segments) {
+    ((ImDrawList*)list)->PathArcTo(ImVec2(center.x, center.y), radius, a_min, a_max, num_segments);
+}
+
+void imgui_draw_list_path_arc_to_fast(imgui_draw_list* list, imgui_vec2 center, float radius, int a_min_of_12, int a_max_of_12) {
+    ((ImDrawList*)list)->PathArcToFast(ImVec2(center.x, center.y), radius, a_min_of_12, a_max_of_12);
+}
+
+void imgui_draw_list_path_elliptical_arc_to(imgui_draw_list* list, imgui_vec2 center, imgui_vec2 radius, float rot, float a_min, float a_max, int num_segments) {
+    ((ImDrawList*)list)->PathEllipticalArcTo(ImVec2(center.x, center.y), ImVec2(radius.x, radius.y), rot, a_min, a_max, num_segments);
+}
+
+void imgui_draw_list_path_bezier_cubic_curve_to(imgui_draw_list* list, imgui_vec2 p2, imgui_vec2 p3, imgui_vec2 p4, int num_segments) {
+    ((ImDrawList*)list)->PathBezierCubicCurveTo(ImVec2(p2.x, p2.y), ImVec2(p3.x, p3.y), ImVec2(p4.x, p4.y), num_segments);
+}
+
+void imgui_draw_list_path_bezier_quadratic_curve_to(imgui_draw_list* list, imgui_vec2 p2, imgui_vec2 p3, int num_segments) {
+    ((ImDrawList*)list)->PathBezierQuadraticCurveTo(ImVec2(p2.x, p2.y), ImVec2(p3.x, p3.y), num_segments);
+}
+
+void imgui_draw_list_path_rect(imgui_draw_list* list, imgui_vec2 rect_min, imgui_vec2 rect_max, float rounding, int flags) {
+    ((ImDrawList*)list)->PathRect(ImVec2(rect_min.x, rect_min.y), ImVec2(rect_max.x, rect_max.y), rounding, (ImDrawFlags)flags);
+}
+
+void imgui_draw_list_path_fill_convex(imgui_draw_list* list, uint32_t col) {
+    ((ImDrawList*)list)->PathFillConvex(col);
+}
+
+void imgui_draw_list_path_fill_concave(imgui_draw_list* list, uint32_t col) {
+    ((ImDrawList*)list)->PathFillConcave(col);
+}
+
+void imgui_draw_list_path_stroke(imgui_draw_list* list, uint32_t col, float thickness, int flags) {
+    ((ImDrawList*)list)->PathStroke(col, thickness, (ImDrawFlags)flags);
+}
 void imgui_draw_list_add_polyline(imgui_draw_list* list, const imgui_vec2* points, int points_count, uint32_t col, bool closed, float thickness) {
     ImDrawFlags flags = closed ? ImDrawFlags_Closed : ImDrawFlags_None;
     ((ImDrawList*)list)->AddPolyline(reinterpret_cast<const ImVec2*>(points), points_count, col, thickness, flags);

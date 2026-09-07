@@ -207,6 +207,9 @@ internal class NativeImDrawList(internal val ptr: CPointer<imgui_draw_list>?) : 
     override val vtxCount: Int
         get() = imgui_draw_list_get_vtx_count(ptr)
 
+    override val vtxCurrentIdx: Int
+        get() = imgui_draw_list_vtx_current_idx(ptr)
+
     override val idxCount: Int
         get() = imgui_draw_list_get_idx_count(ptr)
 
@@ -316,6 +319,217 @@ internal class NativeImDrawList(internal val ptr: CPointer<imgui_draw_list>?) : 
         c.y = p3.y
         imgui_draw_list_add_triangle(ptr, a.readValue(), b.readValue(), c.readValue(), col.toUInt(), thickness)
     }
+
+    override fun DrawTriangleFilled(p1: ImVec2, p2: ImVec2, p3: ImVec2, col: Int) = memScoped {
+        val a = alloc<imgui_vec2>()
+        a.x = p1.x
+        a.y = p1.y
+        val b = alloc<imgui_vec2>()
+        b.x = p2.x
+        b.y = p2.y
+        val c = alloc<imgui_vec2>()
+        c.x = p3.x
+        c.y = p3.y
+        imgui_draw_list_add_triangle_filled(ptr, a.readValue(), b.readValue(), c.readValue(), col.toUInt())
+    }
+
+    override fun DrawRectFilledMultiColor(pMin: ImVec2, pMax: ImVec2, colUprLeft: Int, colUprRight: Int, colBotRight: Int, colBotLeft: Int) = memScoped {
+        val a = alloc<imgui_vec2>().apply { x = pMin.x; y = pMin.y }
+        val b = alloc<imgui_vec2>().apply { x = pMax.x; y = pMax.y }
+        imgui_draw_list_add_rect_filled_multi_color(ptr, a.readValue(), b.readValue(), colUprLeft.toUInt(), colUprRight.toUInt(), colBotRight.toUInt(), colBotLeft.toUInt())
+    }
+
+    override fun DrawQuadFilled(p1: ImVec2, p2: ImVec2, p3: ImVec2, p4: ImVec2, col: Int) = memScoped {
+        val a = alloc<imgui_vec2>().apply { x = p1.x; y = p1.y }
+        val b = alloc<imgui_vec2>().apply { x = p2.x; y = p2.y }
+        val c = alloc<imgui_vec2>().apply { x = p3.x; y = p3.y }
+        val d = alloc<imgui_vec2>().apply { x = p4.x; y = p4.y }
+        imgui_draw_list_add_quad_filled(ptr, a.readValue(), b.readValue(), c.readValue(), d.readValue(), col.toUInt())
+    }
+
+    override fun DrawNgon(center: ImVec2, radius: Float, col: Int, numSegments: Int, thickness: Float) = memScoped {
+        val c = alloc<imgui_vec2>().apply { x = center.x; y = center.y }
+        imgui_draw_list_add_ngon(ptr, c.readValue(), radius, col.toUInt(), numSegments, thickness)
+    }
+
+    override fun DrawNgonFilled(center: ImVec2, radius: Float, col: Int, numSegments: Int) = memScoped {
+        val c = alloc<imgui_vec2>().apply { x = center.x; y = center.y }
+        imgui_draw_list_add_ngon_filled(ptr, c.readValue(), radius, col.toUInt(), numSegments)
+    }
+
+    override fun DrawEllipse(center: ImVec2, radius: ImVec2, col: Int, rot: Float, numSegments: Int, thickness: Float) = memScoped {
+        val c = alloc<imgui_vec2>().apply { x = center.x; y = center.y }
+        val r = alloc<imgui_vec2>().apply { x = radius.x; y = radius.y }
+        imgui_draw_list_add_ellipse(ptr, c.readValue(), r.readValue(), col.toUInt(), rot, numSegments, thickness)
+    }
+
+    override fun DrawEllipseFilled(center: ImVec2, radius: ImVec2, col: Int, rot: Float, numSegments: Int) = memScoped {
+        val c = alloc<imgui_vec2>().apply { x = center.x; y = center.y }
+        val r = alloc<imgui_vec2>().apply { x = radius.x; y = radius.y }
+        imgui_draw_list_add_ellipse_filled(ptr, c.readValue(), r.readValue(), col.toUInt(), rot, numSegments)
+    }
+
+    override fun DrawBezierCubic(p1: ImVec2, p2: ImVec2, p3: ImVec2, p4: ImVec2, col: Int, thickness: Float, numSegments: Int) = memScoped {
+        val a = alloc<imgui_vec2>().apply { x = p1.x; y = p1.y }
+        val b = alloc<imgui_vec2>().apply { x = p2.x; y = p2.y }
+        val c = alloc<imgui_vec2>().apply { x = p3.x; y = p3.y }
+        val d = alloc<imgui_vec2>().apply { x = p4.x; y = p4.y }
+        imgui_draw_list_add_bezier_cubic(ptr, a.readValue(), b.readValue(), c.readValue(), d.readValue(), col.toUInt(), thickness, numSegments)
+    }
+
+    override fun DrawBezierQuadratic(p1: ImVec2, p2: ImVec2, p3: ImVec2, col: Int, thickness: Float, numSegments: Int) = memScoped {
+        val a = alloc<imgui_vec2>().apply { x = p1.x; y = p1.y }
+        val b = alloc<imgui_vec2>().apply { x = p2.x; y = p2.y }
+        val c = alloc<imgui_vec2>().apply { x = p3.x; y = p3.y }
+        imgui_draw_list_add_bezier_quadratic(ptr, a.readValue(), b.readValue(), c.readValue(), col.toUInt(), thickness, numSegments)
+    }
+
+    override fun DrawConvexPolyFilled(points: Array<ImVec2>, col: Int) = memScoped {
+        val pts = allocArray<imgui_vec2>(points.size)
+        points.forEachIndexed { i, p -> pts[i].x = p.x; pts[i].y = p.y }
+        imgui_draw_list_add_convex_poly_filled(ptr, pts, points.size, col.toUInt())
+    }
+
+    override fun DrawConcavePolyFilled(points: Array<ImVec2>, col: Int) = memScoped {
+        val pts = allocArray<imgui_vec2>(points.size)
+        points.forEachIndexed { i, p -> pts[i].x = p.x; pts[i].y = p.y }
+        imgui_draw_list_add_concave_poly_filled(ptr, pts, points.size, col.toUInt())
+    }
+
+    override fun DrawImage(texId: Long, pMin: ImVec2, pMax: ImVec2, uvMin: ImVec2, uvMax: ImVec2, col: Int) = memScoped {
+        val a = alloc<imgui_vec2>().apply { x = pMin.x; y = pMin.y }
+        val b = alloc<imgui_vec2>().apply { x = pMax.x; y = pMax.y }
+        val ua = alloc<imgui_vec2>().apply { x = uvMin.x; y = uvMin.y }
+        val ub = alloc<imgui_vec2>().apply { x = uvMax.x; y = uvMax.y }
+        imgui_draw_list_add_image(ptr, texId.toULong(), a.readValue(), b.readValue(), ua.readValue(), ub.readValue(), col.toUInt())
+    }
+
+    override fun AddDrawCmd() = imgui_draw_list_add_draw_cmd(ptr)
+
+    override fun cloneOutput(): ImDrawList = NativeImDrawList(imgui_draw_list_clone_output(ptr))
+
+    override fun pushClipRect(clipRectMin: ImVec2, clipRectMax: ImVec2, intersectWithCurrentClipRect: Boolean) = memScoped {
+        val a = alloc<imgui_vec2>().apply { x = clipRectMin.x; y = clipRectMin.y }
+        val b = alloc<imgui_vec2>().apply { x = clipRectMax.x; y = clipRectMax.y }
+        imgui_draw_list_push_clip_rect(ptr, a.readValue(), b.readValue(), intersectWithCurrentClipRect)
+    }
+
+    override fun pushClipRectFullScreen() = imgui_draw_list_push_clip_rect_full_screen(ptr)
+
+    override fun popClipRect() = imgui_draw_list_pop_clip_rect(ptr)
+
+    override fun getClipRectMin(): ImVec2 =
+        imgui_draw_list_get_clip_rect_min(ptr).useContents { ImVec2(x, y) }
+
+    override fun getClipRectMax(): ImVec2 =
+        imgui_draw_list_get_clip_rect_max(ptr).useContents { ImVec2(x, y) }
+
+    override fun pushTextureID(texId: Long) = imgui_draw_list_push_texture_id(ptr, texId.toULong())
+
+    override fun popTextureID() = imgui_draw_list_pop_texture_id(ptr)
+
+    override fun channelsSplit(count: Int) = imgui_draw_list_channels_split(ptr, count)
+
+    override fun channelsMerge() = imgui_draw_list_channels_merge(ptr)
+
+    override fun channelsSetCurrent(n: Int) = imgui_draw_list_channels_set_current(ptr, n)
+
+    override fun primReserve(idxCount: Int, vtxCount: Int) = imgui_draw_list_prim_reserve(ptr, idxCount, vtxCount)
+
+    override fun primUnreserve(idxCount: Int, vtxCount: Int) = imgui_draw_list_prim_unreserve(ptr, idxCount, vtxCount)
+
+    override fun primRect(a: ImVec2, b: ImVec2, col: Int) = memScoped {
+        val pa = alloc<imgui_vec2>().apply { x = a.x; y = a.y }
+        val pb = alloc<imgui_vec2>().apply { x = b.x; y = b.y }
+        imgui_draw_list_prim_rect(ptr, pa.readValue(), pb.readValue(), col.toUInt())
+    }
+
+    override fun primRectUV(a: ImVec2, b: ImVec2, uvA: ImVec2, uvB: ImVec2, col: Int) = memScoped {
+        val pa = alloc<imgui_vec2>().apply { x = a.x; y = a.y }
+        val pb = alloc<imgui_vec2>().apply { x = b.x; y = b.y }
+        val ua = alloc<imgui_vec2>().apply { x = uvA.x; y = uvA.y }
+        val ub = alloc<imgui_vec2>().apply { x = uvB.x; y = uvB.y }
+        imgui_draw_list_prim_rect_uv(ptr, pa.readValue(), pb.readValue(), ua.readValue(), ub.readValue(), col.toUInt())
+    }
+
+    override fun primQuadUV(a: ImVec2, b: ImVec2, c: ImVec2, d: ImVec2, uvA: ImVec2, uvB: ImVec2, uvC: ImVec2, uvD: ImVec2, col: Int) = memScoped {
+        val pa = alloc<imgui_vec2>().apply { x = a.x; y = a.y }
+        val pb = alloc<imgui_vec2>().apply { x = b.x; y = b.y }
+        val pc = alloc<imgui_vec2>().apply { x = c.x; y = c.y }
+        val pd = alloc<imgui_vec2>().apply { x = d.x; y = d.y }
+        val ua = alloc<imgui_vec2>().apply { x = uvA.x; y = uvA.y }
+        val ub = alloc<imgui_vec2>().apply { x = uvB.x; y = uvB.y }
+        val uc = alloc<imgui_vec2>().apply { x = uvC.x; y = uvC.y }
+        val ud = alloc<imgui_vec2>().apply { x = uvD.x; y = uvD.y }
+        imgui_draw_list_prim_quad_uv(ptr, pa.readValue(), pb.readValue(), pc.readValue(), pd.readValue(), ua.readValue(), ub.readValue(), uc.readValue(), ud.readValue(), col.toUInt())
+    }
+
+    override fun primWriteVtx(pos: ImVec2, uv: ImVec2, col: Int) = memScoped {
+        val p = alloc<imgui_vec2>().apply { x = pos.x; y = pos.y }
+        val u = alloc<imgui_vec2>().apply { x = uv.x; y = uv.y }
+        imgui_draw_list_prim_write_vtx(ptr, p.readValue(), u.readValue(), col.toUInt())
+    }
+
+    override fun primWriteIdx(idx: Int) = imgui_draw_list_prim_write_idx(ptr, idx.toUInt())
+
+    override fun primVtx(pos: ImVec2, uv: ImVec2, col: Int) = memScoped {
+        val p = alloc<imgui_vec2>().apply { x = pos.x; y = pos.y }
+        val u = alloc<imgui_vec2>().apply { x = uv.x; y = uv.y }
+        imgui_draw_list_prim_vtx(ptr, p.readValue(), u.readValue(), col.toUInt())
+    }
+
+    override fun pathClear() = imgui_draw_list_path_clear(ptr)
+
+    override fun pathLineTo(pos: ImVec2) = memScoped {
+        val p = alloc<imgui_vec2>().apply { x = pos.x; y = pos.y }
+        imgui_draw_list_path_line_to(ptr, p.readValue())
+    }
+
+    override fun pathLineToMergeDuplicate(pos: ImVec2) = memScoped {
+        val p = alloc<imgui_vec2>().apply { x = pos.x; y = pos.y }
+        imgui_draw_list_path_line_to_merge_duplicate(ptr, p.readValue())
+    }
+
+    override fun pathArcTo(center: ImVec2, radius: Float, aMin: Float, aMax: Float, numSegments: Int) = memScoped {
+        val c = alloc<imgui_vec2>().apply { x = center.x; y = center.y }
+        imgui_draw_list_path_arc_to(ptr, c.readValue(), radius, aMin, aMax, numSegments)
+    }
+
+    override fun pathArcToFast(center: ImVec2, radius: Float, aMinOf12: Int, aMaxOf12: Int) = memScoped {
+        val c = alloc<imgui_vec2>().apply { x = center.x; y = center.y }
+        imgui_draw_list_path_arc_to_fast(ptr, c.readValue(), radius, aMinOf12, aMaxOf12)
+    }
+
+    override fun pathEllipticalArcTo(center: ImVec2, radius: ImVec2, rot: Float, aMin: Float, aMax: Float, numSegments: Int) = memScoped {
+        val c = alloc<imgui_vec2>().apply { x = center.x; y = center.y }
+        val r = alloc<imgui_vec2>().apply { x = radius.x; y = radius.y }
+        imgui_draw_list_path_elliptical_arc_to(ptr, c.readValue(), r.readValue(), rot, aMin, aMax, numSegments)
+    }
+
+    override fun pathBezierCubicCurveTo(p2: ImVec2, p3: ImVec2, p4: ImVec2, numSegments: Int) = memScoped {
+        val b = alloc<imgui_vec2>().apply { x = p2.x; y = p2.y }
+        val c = alloc<imgui_vec2>().apply { x = p3.x; y = p3.y }
+        val d = alloc<imgui_vec2>().apply { x = p4.x; y = p4.y }
+        imgui_draw_list_path_bezier_cubic_curve_to(ptr, b.readValue(), c.readValue(), d.readValue(), numSegments)
+    }
+
+    override fun pathBezierQuadraticCurveTo(p2: ImVec2, p3: ImVec2, numSegments: Int) = memScoped {
+        val b = alloc<imgui_vec2>().apply { x = p2.x; y = p2.y }
+        val c = alloc<imgui_vec2>().apply { x = p3.x; y = p3.y }
+        imgui_draw_list_path_bezier_quadratic_curve_to(ptr, b.readValue(), c.readValue(), numSegments)
+    }
+
+    override fun pathRect(rectMin: ImVec2, rectMax: ImVec2, rounding: Float, flags: Int) = memScoped {
+        val a = alloc<imgui_vec2>().apply { x = rectMin.x; y = rectMin.y }
+        val b = alloc<imgui_vec2>().apply { x = rectMax.x; y = rectMax.y }
+        imgui_draw_list_path_rect(ptr, a.readValue(), b.readValue(), rounding, flags)
+    }
+
+    override fun pathFillConvex(col: Int) = imgui_draw_list_path_fill_convex(ptr, col.toUInt())
+
+    override fun pathFillConcave(col: Int) = imgui_draw_list_path_fill_concave(ptr, col.toUInt())
+
+    override fun pathStroke(col: Int, thickness: Float, flags: Int) = imgui_draw_list_path_stroke(ptr, col.toUInt(), thickness, flags)
 
     override fun DrawPolyline(points: Array<ImVec2>, col: Int, closed: Boolean, thickness: Float) = memScoped {
         val pts = allocArray<imgui_vec2>(points.size)

@@ -90,6 +90,9 @@ interface ImDrawCmd {
 interface ImDrawList {
     val vtxCount: Int
     val idxCount: Int
+
+    /** Current write index into the draw list's vertex buffer (ImDrawList::_VtxCurrentIdx). */
+    val vtxCurrentIdx: Int
     val cmdCount: Int
 
     fun cmd(index: Int): ImDrawCmd
@@ -113,7 +116,51 @@ interface ImDrawList {
     fun DrawText(pos: ImVec2, text: String, col: Int = 0xFFFFFFFF.toInt())
     fun DrawQuad(p1: ImVec2, p2: ImVec2, p3: ImVec2, p4: ImVec2, col: Int, thickness: Float = 1f)
     fun DrawTriangle(p1: ImVec2, p2: ImVec2, p3: ImVec2, col: Int, thickness: Float = 1f)
+    fun DrawTriangleFilled(p1: ImVec2, p2: ImVec2, p3: ImVec2, col: Int)
     fun DrawPolyline(points: Array<ImVec2>, col: Int, closed: Boolean = false, thickness: Float = 1f)
+    fun DrawRectFilledMultiColor(pMin: ImVec2, pMax: ImVec2, colUprLeft: Int, colUprRight: Int, colBotRight: Int, colBotLeft: Int)
+    fun DrawQuadFilled(p1: ImVec2, p2: ImVec2, p3: ImVec2, p4: ImVec2, col: Int)
+    fun DrawNgon(center: ImVec2, radius: Float, col: Int, numSegments: Int, thickness: Float = 1f)
+    fun DrawNgonFilled(center: ImVec2, radius: Float, col: Int, numSegments: Int)
+    fun DrawEllipse(center: ImVec2, radius: ImVec2, col: Int, rot: Float = 0f, numSegments: Int = 0, thickness: Float = 1f)
+    fun DrawEllipseFilled(center: ImVec2, radius: ImVec2, col: Int, rot: Float = 0f, numSegments: Int = 0)
+    fun DrawBezierCubic(p1: ImVec2, p2: ImVec2, p3: ImVec2, p4: ImVec2, col: Int, thickness: Float, numSegments: Int = 0)
+    fun DrawBezierQuadratic(p1: ImVec2, p2: ImVec2, p3: ImVec2, col: Int, thickness: Float, numSegments: Int = 0)
+    fun DrawConvexPolyFilled(points: Array<ImVec2>, col: Int)
+    fun DrawConcavePolyFilled(points: Array<ImVec2>, col: Int)
+    fun DrawImage(texId: Long, pMin: ImVec2, pMax: ImVec2, uvMin: ImVec2 = ImVec2(0f, 0f), uvMax: ImVec2 = ImVec2(1f, 1f), col: Int = 0xFFFFFFFF.toInt())
+    fun AddDrawCmd()
+    fun cloneOutput(): ImDrawList
+    fun pushClipRect(clipRectMin: ImVec2, clipRectMax: ImVec2, intersectWithCurrentClipRect: Boolean = false)
+    fun pushClipRectFullScreen()
+    fun popClipRect()
+    fun getClipRectMin(): ImVec2
+    fun getClipRectMax(): ImVec2
+    fun pushTextureID(texId: Long)
+    fun popTextureID()
+    fun channelsSplit(count: Int)
+    fun channelsMerge()
+    fun channelsSetCurrent(n: Int)
+    fun primReserve(idxCount: Int, vtxCount: Int)
+    fun primUnreserve(idxCount: Int, vtxCount: Int)
+    fun primRect(a: ImVec2, b: ImVec2, col: Int)
+    fun primRectUV(a: ImVec2, b: ImVec2, uvA: ImVec2, uvB: ImVec2, col: Int)
+    fun primQuadUV(a: ImVec2, b: ImVec2, c: ImVec2, d: ImVec2, uvA: ImVec2, uvB: ImVec2, uvC: ImVec2, uvD: ImVec2, col: Int)
+    fun primWriteVtx(pos: ImVec2, uv: ImVec2, col: Int)
+    fun primWriteIdx(idx: Int)
+    fun primVtx(pos: ImVec2, uv: ImVec2, col: Int)
+    fun pathClear()
+    fun pathLineTo(pos: ImVec2)
+    fun pathLineToMergeDuplicate(pos: ImVec2)
+    fun pathArcTo(center: ImVec2, radius: Float, aMin: Float, aMax: Float, numSegments: Int = 0)
+    fun pathArcToFast(center: ImVec2, radius: Float, aMinOf12: Int, aMaxOf12: Int)
+    fun pathEllipticalArcTo(center: ImVec2, radius: ImVec2, rot: Float, aMin: Float, aMax: Float, numSegments: Int = 0)
+    fun pathBezierCubicCurveTo(p2: ImVec2, p3: ImVec2, p4: ImVec2, numSegments: Int = 0)
+    fun pathBezierQuadraticCurveTo(p2: ImVec2, p3: ImVec2, numSegments: Int = 0)
+    fun pathRect(rectMin: ImVec2, rectMax: ImVec2, rounding: Float = 0f, flags: Int = 0)
+    fun pathFillConvex(col: Int)
+    fun pathFillConcave(col: Int)
+    fun pathStroke(col: Int, thickness: Float = 1f, flags: Int = 0)
 }
 
 /** All draw data of a rendered frame, obtained after [ImGui.render]. */

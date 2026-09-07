@@ -560,7 +560,55 @@ void imgui_draw_list_add_circle_filled(imgui_draw_list* list, imgui_vec2 center,
 void imgui_draw_list_add_text(imgui_draw_list* list, imgui_vec2 pos, uint32_t col, const char* text);
 void imgui_draw_list_add_quad(imgui_draw_list* list, imgui_vec2 p1, imgui_vec2 p2, imgui_vec2 p3, imgui_vec2 p4, uint32_t col, float thickness);
 void imgui_draw_list_add_triangle(imgui_draw_list* list, imgui_vec2 p1, imgui_vec2 p2, imgui_vec2 p3, uint32_t col, float thickness);
+void imgui_draw_list_add_triangle_filled(imgui_draw_list* list, imgui_vec2 p1, imgui_vec2 p2, imgui_vec2 p3, uint32_t col);
 void imgui_draw_list_add_polyline(imgui_draw_list* list, const imgui_vec2* points, int points_count, uint32_t col, bool closed, float thickness);
+void imgui_draw_list_add_rect_filled_multi_color(imgui_draw_list* list, imgui_vec2 p_min, imgui_vec2 p_max, uint32_t col_upr_left, uint32_t col_upr_right, uint32_t col_bot_right, uint32_t col_bot_left);
+void imgui_draw_list_add_quad_filled(imgui_draw_list* list, imgui_vec2 p1, imgui_vec2 p2, imgui_vec2 p3, imgui_vec2 p4, uint32_t col);
+void imgui_draw_list_add_ngon(imgui_draw_list* list, imgui_vec2 center, float radius, uint32_t col, int num_segments, float thickness);
+void imgui_draw_list_add_ngon_filled(imgui_draw_list* list, imgui_vec2 center, float radius, uint32_t col, int num_segments);
+void imgui_draw_list_add_ellipse(imgui_draw_list* list, imgui_vec2 center, imgui_vec2 radius, uint32_t col, float rot, int num_segments, float thickness);
+void imgui_draw_list_add_ellipse_filled(imgui_draw_list* list, imgui_vec2 center, imgui_vec2 radius, uint32_t col, float rot, int num_segments);
+void imgui_draw_list_add_bezier_cubic(imgui_draw_list* list, imgui_vec2 p1, imgui_vec2 p2, imgui_vec2 p3, imgui_vec2 p4, uint32_t col, float thickness, int num_segments);
+void imgui_draw_list_add_bezier_quadratic(imgui_draw_list* list, imgui_vec2 p1, imgui_vec2 p2, imgui_vec2 p3, uint32_t col, float thickness, int num_segments);
+void imgui_draw_list_add_convex_poly_filled(imgui_draw_list* list, const imgui_vec2* points, int num_points, uint32_t col);
+void imgui_draw_list_add_concave_poly_filled(imgui_draw_list* list, const imgui_vec2* points, int num_points, uint32_t col);
+void imgui_draw_list_add_image(imgui_draw_list* list, uint64_t tex_id, imgui_vec2 p_min, imgui_vec2 p_max, imgui_vec2 uv_min, imgui_vec2 uv_max, uint32_t col);
+void imgui_draw_list_add_draw_cmd(imgui_draw_list* list);
+imgui_draw_list* imgui_draw_list_clone_output(imgui_draw_list* list);
+void imgui_draw_list_push_clip_rect(imgui_draw_list* list, imgui_vec2 clip_rect_min, imgui_vec2 clip_rect_max, bool intersect_with_current_clip_rect);
+void imgui_draw_list_push_clip_rect_full_screen(imgui_draw_list* list);
+void imgui_draw_list_pop_clip_rect(imgui_draw_list* list);
+imgui_vec2 imgui_draw_list_get_clip_rect_min(imgui_draw_list* list);
+imgui_vec2 imgui_draw_list_get_clip_rect_max(imgui_draw_list* list);
+void imgui_draw_list_push_texture_id(imgui_draw_list* list, uint64_t tex_id);
+void imgui_draw_list_pop_texture_id(imgui_draw_list* list);
+void imgui_draw_list_channels_split(imgui_draw_list* list, int count);
+void imgui_draw_list_channels_merge(imgui_draw_list* list);
+void imgui_draw_list_channels_set_current(imgui_draw_list* list, int n);
+void imgui_draw_list_prim_reserve(imgui_draw_list* list, int idx_count, int vtx_count);
+int imgui_draw_list_vtx_current_idx(imgui_draw_list* list);
+void imgui_get_tex_uv_white_pixel(float* out_x, float* out_y);
+void imgui_draw_list_prim_unreserve(imgui_draw_list* list, int idx_count, int vtx_count);
+void imgui_draw_list_prim_rect(imgui_draw_list* list, imgui_vec2 a, imgui_vec2 b, uint32_t col);
+void imgui_draw_list_prim_rect_uv(imgui_draw_list* list, imgui_vec2 a, imgui_vec2 b, imgui_vec2 uv_a, imgui_vec2 uv_b, uint32_t col);
+void imgui_draw_list_prim_quad_uv(imgui_draw_list* list, imgui_vec2 a, imgui_vec2 b, imgui_vec2 c, imgui_vec2 d, imgui_vec2 uv_a, imgui_vec2 uv_b, imgui_vec2 uv_c, imgui_vec2 uv_d, uint32_t col);
+void imgui_draw_list_prim_write_vtx(imgui_draw_list* list, imgui_vec2 pos, imgui_vec2 uv, uint32_t col);
+void imgui_draw_list_prim_write_idx(imgui_draw_list* list, uint32_t idx);
+void imgui_draw_list_prim_vtx(imgui_draw_list* list, imgui_vec2 pos, imgui_vec2 uv, uint32_t col);
+// Stateful path API
+void imgui_draw_list_path_clear(imgui_draw_list* list);
+void imgui_draw_list_path_line_to(imgui_draw_list* list, imgui_vec2 pos);
+void imgui_draw_list_path_line_to_merge_duplicate(imgui_draw_list* list, imgui_vec2 pos);
+void imgui_draw_list_path_arc_to(imgui_draw_list* list, imgui_vec2 center, float radius, float a_min, float a_max, int num_segments);
+void imgui_draw_list_path_arc_to_fast(imgui_draw_list* list, imgui_vec2 center, float radius, int a_min_of_12, int a_max_of_12);
+void imgui_draw_list_path_elliptical_arc_to(imgui_draw_list* list, imgui_vec2 center, imgui_vec2 radius, float rot, float a_min, float a_max, int num_segments);
+void imgui_draw_list_path_bezier_cubic_curve_to(imgui_draw_list* list, imgui_vec2 p2, imgui_vec2 p3, imgui_vec2 p4, int num_segments);
+void imgui_draw_list_path_bezier_quadratic_curve_to(imgui_draw_list* list, imgui_vec2 p2, imgui_vec2 p3, int num_segments);
+void imgui_draw_list_path_rect(imgui_draw_list* list, imgui_vec2 rect_min, imgui_vec2 rect_max, float rounding, int flags);
+void imgui_draw_list_path_fill_convex(imgui_draw_list* list, uint32_t col);
+void imgui_draw_list_path_fill_concave(imgui_draw_list* list, uint32_t col);
+void imgui_draw_list_path_stroke(imgui_draw_list* list, uint32_t col, float thickness, int flags);
+
 
 #ifdef __cplusplus
 }
