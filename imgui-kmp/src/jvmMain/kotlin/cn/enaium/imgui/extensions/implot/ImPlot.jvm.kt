@@ -24,6 +24,7 @@ package cn.enaium.imgui.extensions.implot
 
 import cn.enaium.imgui.ImDrawList
 import cn.enaium.imgui.ImGuiContext
+import cn.enaium.imgui.ImTextureID
 import cn.enaium.imgui.ImVec2
 import cn.enaium.imgui.ImVec4
 import cn.enaium.imgui.JvmImDrawList
@@ -361,7 +362,7 @@ actual object ImPlot {
 
     actual fun plotImage(
         labelId: String,
-        texId: Long,
+        textureId: ImTextureID,
         xMin: Double,
         yMin: Double,
         xMax: Double,
@@ -370,7 +371,7 @@ actual object ImPlot {
         uvMax: ImVec2,
         tintCol: ImVec4,
         spec: ImPlotSpec,
-    ) = Jni.plotImage(labelId, texId, xMin, yMin, xMax, yMax, uvMin.x, uvMin.y, uvMax.x, uvMax.y, tintCol.x, tintCol.y, tintCol.z, tintCol.w, encodeSpec(spec))
+    ) = Jni.plotImage(labelId, textureId.value.toLong(), xMin, yMin, xMax, yMax, uvMin.x, uvMin.y, uvMax.x, uvMax.y, tintCol.x, tintCol.y, tintCol.z, tintCol.w, encodeSpec(spec))
 
     actual fun beginSubplots(titleId: String, rows: Int, cols: Int, size: ImVec2, flags: Int): Boolean =
         Jni.beginSubplots(titleId, rows, cols, size.x, size.y, flags)

@@ -25,6 +25,7 @@ package cn.enaium.imgui.backends.sdl
 import cn.enaium.imgui.ImDrawData
 import cn.enaium.imgui.ImDrawVertData
 import cn.enaium.imgui.ImGui
+import cn.enaium.imgui.ImTextureID
 import cn.enaium.imgui.ImVec2
 import cn.enaium.sdl.SDL
 import cn.enaium.sdl.SDLColor
@@ -192,8 +193,16 @@ class ImGuiSdlGpuBackend(
         textures[texture.ptr] = texture
     }
 
-    /** Uploads the font atlas pixels and returns the texture id. */
-    fun uploadFontTexture(pixels: ByteArray, width: Int, height: Int): Long {        val texture = device.createTexture(
+    /** Releases a previously registered texture (no-op if unknown). */
+    fun unregisterTexture(texture: SDLGPUTexture) {
+        if (textures.remove(texture.ptr) != null) {
+            texture.close()
+        }
+    }
+
+    /** Uploads the font atlas pixels and returns the [ImTextureID]. */
+    fun uploadFontTexture(pixels: ByteArray, width: Int, height: Int): ImTextureID {
+        val texture = device.createTexture(
             SDLGPUTextureCreateInfo(
                 format = SDLGPUTextureFormat.R8G8B8A8_UNORM,
                 usage = SDLGPUTextureUsage.SAMPLE,
@@ -205,8 +214,8 @@ class ImGuiSdlGpuBackend(
         check(texture.upload(pixels, width * 4, 0, 0, width, height)) {
             "font texture upload failed: ${SDL.error()}"
         }
-        textures[texture.ptr] = texture
-        return texture.ptr
+        registerTexture(texture)
+        return texture.toImTextureID()
     }
 
     private fun ensureBuffers(vtxCount: Int, idxCount: Int) {
@@ -355,7 +364,7 @@ class ImGuiSdlGpuBackend(
             for (cmdIndex in 0 until list.cmdCount) {
                 val cmd = list.cmd(cmdIndex)
                 if (cmd.hasUserCallback) continue
-                val texture = textures[cmd.texId] ?: continue
+                val texture = textures[cmd.textureId.value.toLong()] ?: continue
 
                 // Project the clip rect from logical into framebuffer space and
                 // clamp to the viewport (SDL_SetGPUScissor rejects out-of-bounds

@@ -178,8 +178,8 @@ internal class NativeImFontAtlas(internal val ptr: CPointer<imgui_font_atlas>?) 
         FontTexData(data, width.value, height.value, bpp.value)
     }
 
-    override fun setTexID(id: Long) {
-        imgui_font_atlas_set_tex_id(ptr, id.convert())
+    override fun setTexID(id: ImTextureID) {
+        imgui_font_atlas_set_tex_id(ptr, id.value.convert())
     }
 }
 
@@ -187,8 +187,8 @@ internal class NativeImDrawCmd(internal val ptr: CPointer<imgui_draw_cmd>?) : Im
     override val clipRect: ImVec4
         get() = imgui_draw_cmd_get_clip_rect(ptr).useContents { ImVec4(x, y, z, w) }
 
-    override val texId: Long
-        get() = imgui_draw_cmd_get_tex_id(ptr).toLong()
+    override val textureId: ImTextureID
+        get() = ImTextureID.fromLong(imgui_draw_cmd_get_tex_id(ptr).toLong())
 
     override val vtxOffset: Int
         get() = imgui_draw_cmd_get_vtx_offset(ptr).toInt()
@@ -396,12 +396,12 @@ internal class NativeImDrawList(internal val ptr: CPointer<imgui_draw_list>?) : 
         imgui_draw_list_add_concave_poly_filled(ptr, pts, points.size, col.toUInt())
     }
 
-    override fun DrawImage(texId: Long, pMin: ImVec2, pMax: ImVec2, uvMin: ImVec2, uvMax: ImVec2, col: Int) = memScoped {
+    override fun DrawImage(textureId: ImTextureID, pMin: ImVec2, pMax: ImVec2, uvMin: ImVec2, uvMax: ImVec2, col: Int) = memScoped {
         val a = alloc<imgui_vec2>().apply { x = pMin.x; y = pMin.y }
         val b = alloc<imgui_vec2>().apply { x = pMax.x; y = pMax.y }
         val ua = alloc<imgui_vec2>().apply { x = uvMin.x; y = uvMin.y }
         val ub = alloc<imgui_vec2>().apply { x = uvMax.x; y = uvMax.y }
-        imgui_draw_list_add_image(ptr, texId.toULong(), a.readValue(), b.readValue(), ua.readValue(), ub.readValue(), col.toUInt())
+        imgui_draw_list_add_image(ptr, textureId.value.convert(), a.readValue(), b.readValue(), ua.readValue(), ub.readValue(), col.toUInt())
     }
 
     override fun AddDrawCmd() = imgui_draw_list_add_draw_cmd(ptr)
@@ -424,7 +424,7 @@ internal class NativeImDrawList(internal val ptr: CPointer<imgui_draw_list>?) : 
     override fun getClipRectMax(): ImVec2 =
         imgui_draw_list_get_clip_rect_max(ptr).useContents { ImVec2(x, y) }
 
-    override fun pushTextureID(texId: Long) = imgui_draw_list_push_texture_id(ptr, texId.toULong())
+    override fun pushTextureID(textureId: ImTextureID) = imgui_draw_list_push_texture_id(ptr, textureId.value.convert())
 
     override fun popTextureID() = imgui_draw_list_pop_texture_id(ptr)
 
@@ -798,7 +798,7 @@ actual object ImGui {
     actual fun getDragDropPayload(): String? = imgui_get_drag_drop_payload_type()?.toKString()
 
     // ---- Images ----
-    actual fun image(texId: Long, size: ImVec2, uv0: ImVec2, uv1: ImVec2, tintColor: ImVec4, borderColor: ImVec4) = memScoped {
+    actual fun image(textureId: ImTextureID, size: ImVec2, uv0: ImVec2, uv1: ImVec2, tintColor: ImVec4, borderColor: ImVec4) = memScoped {
         val s = alloc<imgui_vec2>()
         s.x = size.x
         s.y = size.y
@@ -818,10 +818,10 @@ actual object ImGui {
         border.y = borderColor.y
         border.z = borderColor.z
         border.w = borderColor.w
-        imgui_image(texId.convert(), s.readValue(), u0.readValue(), u1.readValue(), tint.readValue(), border.readValue())
+        imgui_image(textureId.value.convert(), s.readValue(), u0.readValue(), u1.readValue(), tint.readValue(), border.readValue())
     }
 
-    actual fun imageButton(texId: Long, size: ImVec2, uv0: ImVec2, uv1: ImVec2, framePadding: Int, bgColor: ImVec4, tintColor: ImVec4): Boolean = memScoped {
+    actual fun imageButton(textureId: ImTextureID, size: ImVec2, uv0: ImVec2, uv1: ImVec2, framePadding: Int, bgColor: ImVec4, tintColor: ImVec4): Boolean = memScoped {
         val s = alloc<imgui_vec2>()
         s.x = size.x
         s.y = size.y
@@ -841,10 +841,10 @@ actual object ImGui {
         tint.y = tintColor.y
         tint.z = tintColor.z
         tint.w = tintColor.w
-        imgui_image_button(texId.convert(), s.readValue(), u0.readValue(), u1.readValue(), framePadding, bg.readValue(), tint.readValue())
+        imgui_image_button(textureId.value.convert(), s.readValue(), u0.readValue(), u1.readValue(), framePadding, bg.readValue(), tint.readValue())
     }
 
-    actual fun imageWithBg(texId: Long, size: ImVec2, bgColor: ImVec4, uv0: ImVec2, uv1: ImVec2) = memScoped {
+    actual fun imageWithBg(textureId: ImTextureID, size: ImVec2, bgColor: ImVec4, uv0: ImVec2, uv1: ImVec2) = memScoped {
         val s = alloc<imgui_vec2>()
         s.x = size.x
         s.y = size.y
@@ -859,7 +859,7 @@ actual object ImGui {
         val u1 = alloc<imgui_vec2>()
         u1.x = uv1.x
         u1.y = uv1.y
-        imgui_image_with_bg(texId.convert(), s.readValue(), bg.readValue(), u0.readValue(), u1.readValue())
+        imgui_image_with_bg(textureId.value.convert(), s.readValue(), bg.readValue(), u0.readValue(), u1.readValue())
     }
 
     // ---- ListBox ----

@@ -24,6 +24,7 @@ package cn.enaium.imgui.extensions.implot
 
 import cn.enaium.imgui.ImDrawList
 import cn.enaium.imgui.ImGuiContext
+import cn.enaium.imgui.ImTextureID
 import cn.enaium.imgui.ImVec2
 import cn.enaium.imgui.ImVec4
 
@@ -140,7 +141,7 @@ expect object ImPlot {
     fun plotPolygon(labelId: String, xs: FloatArray, ys: FloatArray, spec: ImPlotSpec = ImPlotSpec())
     fun plotImage(
         labelId: String,
-        texId: Long,
+        textureId: ImTextureID,
         xMin: Double,
         yMin: Double,
         xMax: Double,

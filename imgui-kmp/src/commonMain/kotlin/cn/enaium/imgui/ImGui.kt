@@ -70,8 +70,8 @@ interface ImDrawCmd {
     /** Clipping rectangle (x1, y1, x2, y2) in display coordinates. */
     val clipRect: ImVec4
 
-    /** The backend texture id the command samples. */
-    val texId: Long
+    /** The backend texture id the command samples ([ImTextureID]). */
+    val textureId: ImTextureID
 
     /** Start offset in the draw list's vertex buffer. */
     val vtxOffset: Int
@@ -128,7 +128,7 @@ interface ImDrawList {
     fun DrawBezierQuadratic(p1: ImVec2, p2: ImVec2, p3: ImVec2, col: Int, thickness: Float, numSegments: Int = 0)
     fun DrawConvexPolyFilled(points: Array<ImVec2>, col: Int)
     fun DrawConcavePolyFilled(points: Array<ImVec2>, col: Int)
-    fun DrawImage(texId: Long, pMin: ImVec2, pMax: ImVec2, uvMin: ImVec2 = ImVec2(0f, 0f), uvMax: ImVec2 = ImVec2(1f, 1f), col: Int = 0xFFFFFFFF.toInt())
+    fun DrawImage(textureId: ImTextureID, pMin: ImVec2, pMax: ImVec2, uvMin: ImVec2 = ImVec2(0f, 0f), uvMax: ImVec2 = ImVec2(1f, 1f), col: Int = 0xFFFFFFFF.toInt())
     fun AddDrawCmd()
     fun cloneOutput(): ImDrawList
     fun pushClipRect(clipRectMin: ImVec2, clipRectMax: ImVec2, intersectWithCurrentClipRect: Boolean = false)
@@ -136,7 +136,7 @@ interface ImDrawList {
     fun popClipRect()
     fun getClipRectMin(): ImVec2
     fun getClipRectMax(): ImVec2
-    fun pushTextureID(texId: Long)
+    fun pushTextureID(textureId: ImTextureID)
     fun popTextureID()
     fun channelsSplit(count: Int)
     fun channelsMerge()
@@ -345,7 +345,7 @@ interface ImFontAtlas {
 
     fun build(): Boolean
     fun getTexDataAsRGBA32(): FontTexData
-    fun setTexID(id: Long)
+    fun setTexID(id: ImTextureID)
 }
 
 /** The per-context IO structure; carries input events and display settings. */
@@ -464,8 +464,12 @@ expect object ImGui {
     fun getDragDropPayload(): String?
 
     // ==================== Images ====================
+    /**
+     * Draws the texture referenced by [textureId] ([ImTextureID] — an opaque
+     * handle produced by the renderer backend, see [ImGuiTextureIdProvider]).
+     */
     fun image(
-        texId: Long,
+        textureId: ImTextureID,
         size: ImVec2,
         uv0: ImVec2 = ImVec2(0f, 0f),
         uv1: ImVec2 = ImVec2(1f, 1f),
@@ -474,7 +478,7 @@ expect object ImGui {
     )
 
     fun imageWithBg(
-        texId: Long,
+        textureId: ImTextureID,
         size: ImVec2,
         bgColor: ImVec4,
         uv0: ImVec2 = ImVec2(0f, 0f),
@@ -482,7 +486,7 @@ expect object ImGui {
     )
 
     fun imageButton(
-        texId: Long,
+        textureId: ImTextureID,
         size: ImVec2,
         uv0: ImVec2 = ImVec2(0f, 0f),
         uv1: ImVec2 = ImVec2(1f, 1f),

@@ -23,6 +23,7 @@
 package cn.enaium.imgui.example.common
 
 import cn.enaium.imgui.ImFontConfig
+import cn.enaium.imgui.ImTextureID
 import cn.enaium.imgui.ImGui
 import cn.enaium.imgui.backends.sdl.ImGuiSdlBackend
 import cn.enaium.imgui.backends.sdl.ImGuiSdlRendererBackend
@@ -52,7 +53,7 @@ object SdlRendererApp {
     fun run(
         title: String,
         frames: Int,
-        init: (fontTextureId: Long) -> Unit,
+        init: (fontTextureId: ImTextureID) -> Unit,
         draw: (frame: Int) -> Unit,
         close: () -> Unit,
         fontSetup: (cn.enaium.imgui.ImFontAtlas, density: Float) -> Unit = { _, _ -> },

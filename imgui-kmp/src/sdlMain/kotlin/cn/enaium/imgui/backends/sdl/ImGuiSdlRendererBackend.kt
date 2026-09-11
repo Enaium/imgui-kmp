@@ -24,6 +24,7 @@ package cn.enaium.imgui.backends.sdl
 
 import cn.enaium.imgui.ImDrawData
 import cn.enaium.imgui.ImGui
+import cn.enaium.imgui.ImTextureID
 import cn.enaium.sdl.SDLColor
 import cn.enaium.sdl.SDLFloatPoint
 import cn.enaium.sdl.SDLPixelFormat
@@ -50,9 +51,9 @@ class ImGuiSdlRendererBackend(private val renderer: SDLRenderer) {
 
     /**
      * Creates the font texture from the imgui font atlas pixels and returns
-     * the texture id to hand to [cn.enaium.imgui.ImGuiIO.fonts.setTexID].
+     * the [ImTextureID] to hand to [cn.enaium.imgui.ImGuiIO.fonts.setTexID].
      */
-    fun uploadFontTexture(pixels: ByteArray, width: Int, height: Int): Long {
+    fun uploadFontTexture(pixels: ByteArray, width: Int, height: Int): ImTextureID {
         // imgui's GetTexDataAsRGBA32() returns an in-memory R,G,B,A byte
         // array, so the texture must use SDL_PIXELFORMAT_RGBA32 (ABGR8888 on
         // little-endian). RGBA8888 would swap the channels and break the
@@ -73,8 +74,24 @@ class ImGuiSdlRendererBackend(private val renderer: SDLRenderer) {
         // scaling (otherwise glyphs look chunky/aliased when scaled).
         texture.blendMode = cn.enaium.sdl.SDLBlendMode.BLEND
         texture.scaleMode = cn.enaium.sdl.SDLScaleMode.LINEAR
+        registerTexture(texture)
+        return texture.toImTextureID()
+    }
+
+    /**
+     * Registers a texture under its [ImTextureID] so draw commands
+     * referencing it can render. The backend takes ownership: [close]
+     * releases every registered texture.
+     */
+    fun registerTexture(texture: SDLTexture) {
         textures[texture.ptr] = texture
-        return texture.ptr
+    }
+
+    /** Releases a previously registered texture (no-op if unknown). */
+    fun unregisterTexture(texture: SDLTexture) {
+        if (textures.remove(texture.ptr) != null) {
+            texture.close()
+        }
     }
 
     /** Issues the actual draw calls for the frame. */
@@ -112,7 +129,7 @@ class ImGuiSdlRendererBackend(private val renderer: SDLRenderer) {
                 val cmd = list.cmd(cmdIndex)
                 if (cmd.hasUserCallback) continue
 
-                val texture = textures[cmd.texId] ?: continue
+                val texture = textures[cmd.textureId.value.toLong()] ?: continue
                 val clip = cmd.clipRect
 
                 // Project the clipping rectangle into framebuffer space and

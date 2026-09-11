@@ -47,6 +47,7 @@ import cn.enaium.imgui.ImGuiTableFlags
 import cn.enaium.imgui.ImGuiTableRowFlags
 import cn.enaium.imgui.ImGuiTreeNodeFlags
 import cn.enaium.imgui.ImGuiWindowFlags
+import cn.enaium.imgui.ImTextureID
 import cn.enaium.imgui.ImVec2
 import cn.enaium.imgui.ImVec4
 import cn.enaium.imgui.extensions.implot.ImPlot
@@ -84,7 +85,7 @@ class DemoUi {
     // =====================================================================
 
     /** The font atlas texture id, wired up by the app after upload. Used by the image demos. */
-    var fontTextureId: Long = 0
+    var fontTextureId: ImTextureID = ImTextureID.fromLong(0)
 
     /** Auto-advances through every demo section (handy for CI/headless runs). */
     var autoCycle = false
@@ -1560,7 +1561,7 @@ class DemoUi {
         }
 
         ImGui.separatorText("Image")
-        if (fontTextureId != 0L) {
+        if (fontTextureId.value != 0uL) {
             plotWithAxes("Font atlas image", 220f, null, null) {
                 ImPlot.setupAxesLimits(0.0, 1.0, 0.0, 1.0, ImPlotCond.ONCE)
                 ImPlot.plotImage(
@@ -1575,7 +1576,7 @@ class DemoUi {
         }
 
         ImGui.separatorText("ImGui image widgets")
-        if (fontTextureId != 0L) {
+        if (fontTextureId.value != 0uL) {
             ImGui.image(fontTextureId, ImVec2(64f, 64f))
             ImGui.sameLine()
             ImGui.imageWithBg(fontTextureId, ImVec2(64f, 64f), ImVec4(0.2f, 0.2f, 0.2f, 1f))

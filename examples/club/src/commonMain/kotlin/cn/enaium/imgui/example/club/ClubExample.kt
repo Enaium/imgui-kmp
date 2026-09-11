@@ -27,6 +27,7 @@ import cn.enaium.imgui.ImGui
 import cn.enaium.imgui.ImGuiCol
 import cn.enaium.imgui.ImGuiCond
 import cn.enaium.imgui.ImGuiWindowFlags
+import cn.enaium.imgui.ImTextureID
 import cn.enaium.imgui.ImVec2
 import cn.enaium.imgui.ImVec4
 import cn.enaium.imgui.backends.sdl.ImGuiSdlBackend
@@ -199,7 +200,7 @@ fun runClubExample(frames: Int = Int.MAX_VALUE) {
  * the atlas is baked at `sizePixels * density` physical px so text stays crisp
  * when the backend renders at the framebuffer scale.
  */
-private fun uploadFontTexture(backend: ImGuiSdlRendererBackend, density: Float): Long {
+private fun uploadFontTexture(backend: ImGuiSdlRendererBackend, density: Float): ImTextureID {
     val fonts = ImGui.getIO().fonts
     fonts.addFontDefault(
         ImFontConfig(
@@ -343,7 +344,7 @@ private fun drawMain(
 
 /** Overlay context: a small always-on-top window rendered over the main UI. */
 private fun drawOverlay(
-    fontTextureId: Long,
+    fontTextureId: ImTextureID,
     slider: FloatArray,
     check: BooleanArray,
     showMccDebug: BooleanArray,
@@ -365,7 +366,7 @@ private fun drawOverlay(
     ImGui.text("frame: $frameCount")
     ImGui.image(fontTextureId, ImVec2(48f, 48f))
     ImGui.sameLine()
-    ImGui.textWrapped("This overlay renders with its own font atlas texture (id $fontTextureId).")
+    ImGui.textWrapped("This overlay renders with its own font atlas texture (id ${fontTextureId.value}).")
     ImGui.sliderFloat("slider", slider, 0f, 1f)
     ImGui.checkbox("checkbox", check)
     if (ImGui.button("Randomize main data")) {

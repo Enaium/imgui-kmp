@@ -644,8 +644,8 @@ internal class JvmImFontAtlas(internal val ptr: Long) : ImFontAtlas {
         return FontTexData(pixels, dims[0], dims[1], dims[2])
     }
 
-    override fun setTexID(id: Long) {
-        Jni.fontsSetTexId(ptr, id)
+    override fun setTexID(id: ImTextureID) {
+        Jni.fontsSetTexId(ptr, id.value.toLong())
     }
 }
 
@@ -656,8 +656,8 @@ internal class JvmImDrawCmd(internal val ptr: Long) : ImDrawCmd {
             return ImVec4(r[0], r[1], r[2], r[3])
         }
 
-    override val texId: Long
-        get() = Jni.drawCmdGetTexId(ptr)
+    override val textureId: ImTextureID
+        get() = ImTextureID.fromLong(Jni.drawCmdGetTexId(ptr))
 
     override val vtxOffset: Int
         get() = Jni.drawCmdGetVtxOffset(ptr)
@@ -780,8 +780,8 @@ internal class JvmImDrawList(internal val ptr: Long) : ImDrawList {
     override fun DrawConcavePolyFilled(points: Array<ImVec2>, col: Int) =
         Jni.drawListAddConcavePolyFilled(ptr, flatten(points), points.size, col)
 
-    override fun DrawImage(texId: Long, pMin: ImVec2, pMax: ImVec2, uvMin: ImVec2, uvMax: ImVec2, col: Int) =
-        Jni.drawListAddImage(ptr, texId, pMin.x, pMin.y, pMax.x, pMax.y, uvMin.x, uvMin.y, uvMax.x, uvMax.y, col)
+    override fun DrawImage(textureId: ImTextureID, pMin: ImVec2, pMax: ImVec2, uvMin: ImVec2, uvMax: ImVec2, col: Int) =
+        Jni.drawListAddImage(ptr, textureId.value.toLong(), pMin.x, pMin.y, pMax.x, pMax.y, uvMin.x, uvMin.y, uvMax.x, uvMax.y, col)
 
     override fun AddDrawCmd() = Jni.drawListAddDrawCmd(ptr)
 
@@ -798,7 +798,7 @@ internal class JvmImDrawList(internal val ptr: Long) : ImDrawList {
 
     override fun getClipRectMax(): ImVec2 = Jni.drawListGetClipRectMax(ptr)
 
-    override fun pushTextureID(texId: Long) = Jni.drawListPushTextureId(ptr, texId)
+    override fun pushTextureID(textureId: ImTextureID) = Jni.drawListPushTextureId(ptr, textureId.value.toLong())
 
     override fun popTextureID() = Jni.drawListPopTextureId(ptr)
 
@@ -1002,14 +1002,14 @@ actual object ImGui {
     actual fun getDragDropPayload(): String? = Jni.getDragDropPayload()
 
     // ---- Images ----
-    actual fun image(texId: Long, size: ImVec2, uv0: ImVec2, uv1: ImVec2, tintColor: ImVec4, borderColor: ImVec4) =
-        Jni.image(texId, size.x, size.y, uv0.x, uv0.y, uv1.x, uv1.y, tintColor.x, tintColor.y, tintColor.z, tintColor.w, borderColor.x, borderColor.y, borderColor.z, borderColor.w)
+    actual fun image(textureId: ImTextureID, size: ImVec2, uv0: ImVec2, uv1: ImVec2, tintColor: ImVec4, borderColor: ImVec4) =
+        Jni.image(textureId.value.toLong(), size.x, size.y, uv0.x, uv0.y, uv1.x, uv1.y, tintColor.x, tintColor.y, tintColor.z, tintColor.w, borderColor.x, borderColor.y, borderColor.z, borderColor.w)
 
-    actual fun imageButton(texId: Long, size: ImVec2, uv0: ImVec2, uv1: ImVec2, framePadding: Int, bgColor: ImVec4, tintColor: ImVec4): Boolean =
-        Jni.imageButton(texId, size.x, size.y, uv0.x, uv0.y, uv1.x, uv1.y, framePadding, bgColor.x, bgColor.y, bgColor.z, bgColor.w, tintColor.x, tintColor.y, tintColor.z, tintColor.w)
+    actual fun imageButton(textureId: ImTextureID, size: ImVec2, uv0: ImVec2, uv1: ImVec2, framePadding: Int, bgColor: ImVec4, tintColor: ImVec4): Boolean =
+        Jni.imageButton(textureId.value.toLong(), size.x, size.y, uv0.x, uv0.y, uv1.x, uv1.y, framePadding, bgColor.x, bgColor.y, bgColor.z, bgColor.w, tintColor.x, tintColor.y, tintColor.z, tintColor.w)
 
-    actual fun imageWithBg(texId: Long, size: ImVec2, bgColor: ImVec4, uv0: ImVec2, uv1: ImVec2) =
-        Jni.imageWithBg(texId, size.x, size.y, bgColor.x, bgColor.y, bgColor.z, bgColor.w, uv0.x, uv0.y, uv1.x, uv1.y)
+    actual fun imageWithBg(textureId: ImTextureID, size: ImVec2, bgColor: ImVec4, uv0: ImVec2, uv1: ImVec2) =
+        Jni.imageWithBg(textureId.value.toLong(), size.x, size.y, bgColor.x, bgColor.y, bgColor.z, bgColor.w, uv0.x, uv0.y, uv1.x, uv1.y)
 
     // ---- ListBox ----
     actual fun beginListBox(label: String, size: ImVec2): Boolean = Jni.beginListBox(label, size.x, size.y)

@@ -28,6 +28,7 @@
 package cn.enaium.imgui.extensions.implot
 
 import cn.enaium.imgui.ImDrawList
+import cn.enaium.imgui.ImTextureID
 import cn.enaium.imgui.ImGuiContext
 import cn.enaium.imgui.ImVec2
 import cn.enaium.imgui.ImVec4
@@ -488,7 +489,7 @@ actual object ImPlot {
 
     actual fun plotImage(
         labelId: String,
-        texId: Long,
+        textureId: ImTextureID,
         xMin: Double,
         yMin: Double,
         xMax: Double,
@@ -501,7 +502,7 @@ actual object ImPlot {
         withVec2(uvMin) { uv0 ->
             withVec2(uvMax) { uv1 ->
                 withVec4(tintCol) { tint ->
-                    implot_plot_image(labelId, texId.toULong(), xMin, yMin, xMax, yMax, uv0, uv1, tint, s)
+                    implot_plot_image(labelId, textureId.value.convert(), xMin, yMin, xMax, yMax, uv0, uv1, tint, s)
                 }
             }
         }

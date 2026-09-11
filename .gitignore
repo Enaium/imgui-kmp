@@ -50,3 +50,5 @@ local.properties
 # JNI/CMake build output
 jni/jvm/*/build/
 imgui.ini
+# Runtime-generated demo assets
+gradient-triangle.png
