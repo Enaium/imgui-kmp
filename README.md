@@ -87,7 +87,6 @@ fun main() {
 The draw data is plain vertex/index buffers (20 bytes per vertex: pos, uv, color), so it can be fed into any renderer. The `examples` directory holds the following modules written in Kotlin on top of [sdl-kmp](https://github.com/Enaium/sdl-kmp):
 
 - `examples/common` — the shared demo UI (`DemoUi`), the SDL platform backend (`ImGuiSdlBackend`) and the reusable `SdlRendererApp` frame-loop bootstrap used by the renderer-based examples.
-- `examples/android-sdl` — the vendored `org.libsdl.app` Android glue (`SDLActivity`, ...) shared by every example Android app.
 - `examples/sdl_renderer` — **SDL renderer** (`ImGuiSdlRendererBackend`), mirrors `imgui_impl_sdlrenderer3.cpp` using `SDL_RenderGeometry`.
 - `examples/sdl_gpu` — **SDL GPU** (`ImGuiSdlGpuBackend`), mirrors `imgui_impl_sdlgpu3.cpp` using the SDL3 GPU API with the precompiled SPIR-V/MSL shaders shipped with Dear ImGui.
 - `examples/docking` — an IDE-style dockable layout: a full-screen `DockSpace` host with a menu bar, a default `DockBuilder` tree (Hierarchy / Viewport / Inspector / Console) and a Layout menu to reset the tree or toggle DockSpace flags.
@@ -176,7 +175,7 @@ git submodule update --init --recursive
 - `jni/` — CMake build of the static library (`libimgui.a`) and the JNI bridge, plus the per-OS/arch JVM JNI artifact projects.
 - `jni/c_api/` — the C API consumed by both the JNI bridge and the cinterop bindings.
 - `imgui-kmp/` — the multiplatform module: `cn.enaium.imgui` for ImGui, `cn.enaium.imgui.extensions.implot` for ImPlot, `...extensions.implot3d` for ImPlot3D, `...extensions.nodeeditor` for imgui-node-editor, `...extensions.filedialog` for ImGuiFileDialog, `...extensions.colortextedit` for ImGuiColorTextEdit (TextEditor + TrieAutoComplete + Notifications + event hooks), `...extensions.markdown` for imgui_markdown and `...extensions.memoryeditor` / `...extensions.mcc` / `...extensions.threadedrendering` for imgui_club, plus the SDL backends under `cn.enaium.imgui.backends.sdl`.
-- `examples/` — the shared demo UI (`examples/common`), the shared SDL Android glue (`examples/android-sdl`) and the SDL renderer (`examples/sdl_renderer`), SDL GPU (`examples/sdl_gpu`), node editor (`examples/node_editor`), imgui_club (`examples/club`), ImPlot3D (`examples/implot3d`), file dialog (`examples/filedialog`), text editor (`examples/colortextedit`) and Markdown (`examples/markdown`) demos, shared across JVM, desktop native and Android native targets.
+- `examples/` — the shared demo UI (`examples/common`) and the SDL renderer (`examples/sdl_renderer`), SDL GPU (`examples/sdl_gpu`), docking (`examples/docking`), node editor (`examples/node_editor`), imgui_club (`examples/club`), ImPlot3D (`examples/implot3d`), file dialog (`examples/filedialog`), text editor (`examples/colortextedit`) and Markdown (`examples/markdown`) demos, shared across JVM, desktop native and Android native targets. The Android APKs get their `org.libsdl.app.SDLActivity` glue from sdl-kmp's `sdl-kmp-android` AAR (1.0.11+).
 
 ```bash
 ./gradlew :imgui-kmp:jvmTest          # JVM tests (uses the host JNI artifact)

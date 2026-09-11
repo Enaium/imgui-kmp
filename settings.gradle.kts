@@ -23,7 +23,6 @@ rootProject.name = "imgui-kmp"
 
 include(":imgui-kmp")
 include(":examples:common")
-include(":examples:android-sdl")
 include(":examples:sdl_renderer")
 include(":examples:sdl_gpu")
 include(":examples:sdl_renderer:android")
