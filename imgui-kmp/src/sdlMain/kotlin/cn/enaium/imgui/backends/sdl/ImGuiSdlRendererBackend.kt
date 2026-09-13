@@ -143,24 +143,24 @@ class ImGuiSdlRendererBackend(private val renderer: SDLRenderer) {
 
                 // Only the vertices this command actually references are
                 // copied, and they are rebased so the indices stay valid.
-                // ImGui only fills in `VtxOffset` once a draw list exceeds
-                // 64K vertices; for the usual list it is `0`, so spanning
-                // from it would copy everything up to this command again for
-                // every command - O(n^2) in vertices, which stalls a frame
-                // with only a few thousand vertices (hundreds of objects per
-                // frame become hundreds of thousands).
-                var vtxFirst = Int.MAX_VALUE
-                var vtxLast = -1
-                for (i in cmd.idxOffset until cmd.idxOffset + cmd.elemCount) {
-                    val v = indices[i]
-                    if (v < vtxFirst) vtxFirst = v
-                    if (v > vtxLast) vtxLast = v
-                }
-                if (vtxLast < vtxFirst) continue
-                val vtxCount = vtxLast - vtxFirst + 1
+                //
+                // ImGui keeps its indices 16-bit: the values in the index
+                // buffer are relative to `VtxOffset`, which is the absolute
+                // base of the vertex block the command draws from. It is 0
+                // for a normal draw list and only becomes non-zero once a
+                // list exceeds 64K vertices (large meshes), so both the
+                // offset and the referenced range have to be taken into
+                // account. Spanning from `VtxOffset` instead - the values are
+                // what the buffer holds, not the vertices they point at -
+                // copies everything up to this command again for every
+                // command, which is O(n^2) in vertices and stalls a frame
+                // with only a few thousand of them.
+                val range = referencedVertices(indices, cmd.idxOffset, cmd.elemCount, cmd.vtxOffset) ?: continue
+                val vtxFirst = range.first - cmd.vtxOffset
+                val vtxCount = range.last - range.first + 1
                 val vertexList = ArrayList<SDLVertex>(vtxCount)
                 for (i in 0 until vtxCount) {
-                    val vertex = vtxFirst + i
+                    val vertex = range.first + i
                     val color = verts.colors[vertex]
                     vertexList.add(
                         SDLVertex(
@@ -196,4 +196,33 @@ class ImGuiSdlRendererBackend(private val renderer: SDLRenderer) {
         textures.values.forEach { it.close() }
         textures.clear()
     }
+}
+
+/**
+ * The absolute range of vertices [cmd]'s indices reference.
+ *
+ * The index buffer holds 16-bit values relative to `vtxOffset`, the absolute
+ * base of the vertex block the command draws from, so the referenced vertices
+ * are `vtxOffset + index`. Only that range has to be copied - copying from
+ * `vtxOffset` up to the last referenced vertex instead re-copies everything
+ * before the command for every command, which is O(n^2) in the number of
+ * commands and stalls a frame that only draws a few thousand vertices.
+ *
+ * Returns `null` when the command draws nothing.
+ */
+internal fun referencedVertices(
+    indices: IntArray,
+    idxOffset: Int,
+    elemCount: Int,
+    vtxOffset: Int,
+): IntRange? {
+    var first = Int.MAX_VALUE
+    var last = -1
+    for (i in idxOffset until idxOffset + elemCount) {
+        val v = indices[i]
+        if (v < first) first = v
+        if (v > last) last = v
+    }
+    if (last < first) return null
+    return (vtxOffset + first)..(vtxOffset + last)
 }
