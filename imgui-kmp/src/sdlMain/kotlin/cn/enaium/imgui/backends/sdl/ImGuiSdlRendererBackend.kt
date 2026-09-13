@@ -141,30 +141,34 @@ class ImGuiSdlRendererBackend(private val renderer: SDLRenderer) {
                 if (clipX2 <= clipX1 || clipY2 <= clipY1) continue
                 renderer.clipRect = SDLRect(clipX1, clipY1, clipX2 - clipX1, clipY2 - clipY1)
 
-                val vtxOffset = cmd.vtxOffset
-                // The command's indices reference vertices relative to
-                // VtxOffset. Only the vertices actually referenced by this
-                // command's indices need to be copied; copying from
-                // VtxOffset to the end of the buffer for every command makes
-                // a many-command draw list O(n^2) in vertices and stalls the
-                // frame (hundreds of icons = hundreds of thousands of objects
-                // per frame).
-                var vtxEnd = vtxOffset
+                // Only the vertices this command actually references are
+                // copied, and they are rebased so the indices stay valid.
+                // ImGui only fills in `VtxOffset` once a draw list exceeds
+                // 64K vertices; for the usual list it is `0`, so spanning
+                // from it would copy everything up to this command again for
+                // every command - O(n^2) in vertices, which stalls a frame
+                // with only a few thousand vertices (hundreds of objects per
+                // frame become hundreds of thousands).
+                var vtxFirst = Int.MAX_VALUE
+                var vtxLast = -1
                 for (i in cmd.idxOffset until cmd.idxOffset + cmd.elemCount) {
                     val v = indices[i]
-                    if (v > vtxEnd) vtxEnd = v
+                    if (v < vtxFirst) vtxFirst = v
+                    if (v > vtxLast) vtxLast = v
                 }
-                val vtxCount = vtxEnd - vtxOffset + 1
+                if (vtxLast < vtxFirst) continue
+                val vtxCount = vtxLast - vtxFirst + 1
                 val vertexList = ArrayList<SDLVertex>(vtxCount)
                 for (i in 0 until vtxCount) {
-                    val color = verts.colors[vtxOffset + i]
+                    val vertex = vtxFirst + i
+                    val color = verts.colors[vertex]
                     vertexList.add(
                         SDLVertex(
                             // Project the ImGui logical vertex position into
                             // framebuffer pixels (same factor as the clip rect).
                             position = SDLFloatPoint(
-                                x = (verts.positions[(vtxOffset + i) * 2] - drawData.displayPos.x) * scaleX,
-                                y = (verts.positions[(vtxOffset + i) * 2 + 1] - drawData.displayPos.y) * scaleY,
+                                x = (verts.positions[vertex * 2] - drawData.displayPos.x) * scaleX,
+                                y = (verts.positions[vertex * 2 + 1] - drawData.displayPos.y) * scaleY,
                             ),
                             color = SDLColor(
                                 // ImDrawVert::col is packed as 0xAABBGGRR
@@ -175,13 +179,13 @@ class ImGuiSdlRendererBackend(private val renderer: SDLRenderer) {
                                 a = (color shr 24) and 0xFF,
                             ),
                             texCoord = SDLFloatPoint(
-                                x = verts.uvs[(vtxOffset + i) * 2],
-                                y = verts.uvs[(vtxOffset + i) * 2 + 1],
+                                x = verts.uvs[vertex * 2],
+                                y = verts.uvs[vertex * 2 + 1],
                             ),
                         ),
                     )
                 }
-                val cmdIndices = IntArray(cmd.elemCount) { i -> indices[cmd.idxOffset + i] - vtxOffset }
+                val cmdIndices = IntArray(cmd.elemCount) { i -> indices[cmd.idxOffset + i] - vtxFirst }
                 renderer.renderGeometry(texture, vertexList, cmdIndices)
             }
         }
