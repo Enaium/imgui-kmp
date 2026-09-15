@@ -113,8 +113,16 @@ class ImGuiSdlRendererBackend(private val renderer: SDLRenderer) {
         // from drifting). The same factor is applied to the vertices below
         // and to the clip rects, so both live in framebuffer-pixel space and
         // SDL renders the whole frame 1:1.
-        val scaleX = outputSize.x.toFloat() / drawData.displaySize.x
-        val scaleY = outputSize.y.toFloat() / drawData.displaySize.y
+        //
+        // DisplayPos/DisplaySize are binding calls, not fields: every read
+        // crosses into the native library (and on the cinterop bindings
+        // marshals the struct), so they are read once here instead of once
+        // per command and once per vertex.
+        val displaySize = drawData.displaySize
+        val displayPosX = drawData.displayPos.x
+        val displayPosY = drawData.displayPos.y
+        val scaleX = outputSize.x.toFloat() / displaySize.x
+        val scaleY = outputSize.y.toFloat() / displaySize.y
         val displayW = outputSize.x
         val displayH = outputSize.y
 
@@ -134,10 +142,10 @@ class ImGuiSdlRendererBackend(private val renderer: SDLRenderer) {
 
                 // Project the clipping rectangle into framebuffer space and
                 // clamp it to the render target.
-                val clipX1 = max(0, ((clip.x - drawData.displayPos.x) * scaleX).toInt())
-                val clipY1 = max(0, ((clip.y - drawData.displayPos.y) * scaleY).toInt())
-                val clipX2 = min(displayW, ((clip.z - drawData.displayPos.x) * scaleX).toInt())
-                val clipY2 = min(displayH, ((clip.w - drawData.displayPos.y) * scaleY).toInt())
+                val clipX1 = max(0, ((clip.x - displayPosX) * scaleX).toInt())
+                val clipY1 = max(0, ((clip.y - displayPosY) * scaleY).toInt())
+                val clipX2 = min(displayW, ((clip.z - displayPosX) * scaleX).toInt())
+                val clipY2 = min(displayH, ((clip.w - displayPosY) * scaleY).toInt())
                 if (clipX2 <= clipX1 || clipY2 <= clipY1) continue
                 renderer.clipRect = SDLRect(clipX1, clipY1, clipX2 - clipX1, clipY2 - clipY1)
 
@@ -167,8 +175,8 @@ class ImGuiSdlRendererBackend(private val renderer: SDLRenderer) {
                             // Project the ImGui logical vertex position into
                             // framebuffer pixels (same factor as the clip rect).
                             position = SDLFloatPoint(
-                                x = (verts.positions[vertex * 2] - drawData.displayPos.x) * scaleX,
-                                y = (verts.positions[vertex * 2 + 1] - drawData.displayPos.y) * scaleY,
+                                x = (verts.positions[vertex * 2] - displayPosX) * scaleX,
+                                y = (verts.positions[vertex * 2 + 1] - displayPosY) * scaleY,
                             ),
                             color = SDLColor(
                                 // ImDrawVert::col is packed as 0xAABBGGRR
