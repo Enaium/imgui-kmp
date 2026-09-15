@@ -28,7 +28,7 @@ Android has **two independent APIs**: the JVM API (an AAR with per-ABI JNI `.so`
 **Kotlin Multiplatform / Android / native:**
 
 ```kotlin
-implementation("cn.enaium.imgui:imgui-kmp:1.0.15")
+implementation("cn.enaium.imgui:imgui-kmp:1.0.16")
 ```
 
 **JVM:** the right native binary is resolved automatically — the `imgui-kmp-jvm` artifact pulls in the matching `:jni-jvm-*` sibling on the classpath:
@@ -113,8 +113,9 @@ SDL_VIDEO_DRIVER=dummy ./gradlew :examples:docking:jvmRun --args="--frames 120"
 # JVM (image textures; GPU window needs a real display)
 ./gradlew :examples:image:jvmRun --args="--frames 120"
 
-# Native macOS (headless)
-SDL_VIDEO_DRIVER=dummy IMGUI_KMP_FRAMES=120 ./examples/sdl_renderer/build/bin/macosArm64/debugExecutable/sdl_renderer.kexe
+# Native macOS (headless; build the release binary first — see the note below)
+./gradlew :examples:sdl_renderer:linkReleaseExecutableMacosArm64
+SDL_VIDEO_DRIVER=dummy IMGUI_KMP_FRAMES=120 ./examples/sdl_renderer/build/bin/macosArm64/releaseExecutable/sdl_renderer.kexe
 
 # JVM (node editor)
 SDL_VIDEO_DRIVER=dummy ./gradlew :examples:node_editor:jvmRun --args="--frames 120"
@@ -129,7 +130,13 @@ SDL_VIDEO_DRIVER=dummy ./gradlew :examples:colortextedit:jvmRun --args="--frames
 SDL_VIDEO_DRIVER=dummy ./gradlew :examples:markdown:jvmRun --args="--frames 120"
 ```
 
-The examples consume `:imgui-kmp` as a project dependency, so they always build against the local source. (Standalone consumers use `cn.enaium.imgui:imgui-kmp:1.0.15` from Maven Central or Maven Local.)
+Kotlin/Native emits both a `debugExecutable` and a `releaseExecutable`. Debug binaries are
+compiled without optimizations (managed frames, safepoints, un-elided boxing and type
+checks), which costs an order of magnitude on UI-heavy frames: the `sdl_renderer` demo
+measures ~4 ms/frame as a release binary and ~90 ms/frame as a debug one on an M5. Use the
+release binary for anything frame-rate related; keep the debug one for stack traces.
+
+The examples consume `:imgui-kmp` as a project dependency, so they always build against the local source. (Standalone consumers use `cn.enaium.imgui:imgui-kmp:1.0.16` from Maven Central or Maven Local.)
 
 ## API Overview
 
