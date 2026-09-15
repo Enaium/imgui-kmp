@@ -8,6 +8,11 @@ plugins {
 // for each ABI because the stock Android emulator system image doesn't ship
 // the shared C++ runtime, and libmain.so exports a `libc++_shared.so`
 // dependency via Kotlin/Native's toolchain.
+// Each Android build type packages the matching Kotlin/Native binary: the debug
+// APK gets the unoptimized `mainDebugShared` library, the release APK the
+// optimized `mainReleaseShared` one. Kotlin/Native debug code is an order of
+// magnitude slower on frame-heavy code, so device/emulator frame-rate runs want
+// `assembleRelease` (signed with the debug keystore, see `buildTypes`).
 val androidAbis = mapOf(
     "androidNativeArm64" to "arm64-v8a",
     "androidNativeArm32" to "armeabi-v7a",
@@ -31,6 +36,9 @@ abstract class PrepareJniLibsTask : DefaultTask() {
 
     @get:Input
     abstract val cxxSharedTriples: MapProperty<String, String>
+
+    @get:Input
+    abstract val buildType: Property<String>
 
     @TaskAction
     fun run() {
@@ -66,9 +74,9 @@ abstract class PrepareJniLibsTask : DefaultTask() {
         }
 
         abis.get().forEach { (target, abi) ->
-            val src = File(bin, "$target/mainDebugShared/libmain.so")
+            val src = File(bin, "$target/main${buildType.get().replaceFirstChar { it.uppercase() }}Shared/libmain.so")
             if (!src.exists()) {
-                throw GradleException("Expected $src — did linkMainDebugShared$target fail in :examples:club?")
+                throw GradleException("Expected $src — did the ${buildType.get()} Kotlin/Native link task fail in :examples:club?")
             }
             val dstDir = File(outputDir.get().asFile, abi)
             dstDir.mkdirs()
@@ -80,24 +88,6 @@ abstract class PrepareJniLibsTask : DefaultTask() {
                 logger.warn("No libc++_shared.so found for $abi; the APK may fail to load libmain.so at runtime.")
             }
         }
-    }
-}
-
-val prepareJniLibs = tasks.register<PrepareJniLibsTask>("prepareJniLibs") {
-    outputDir.set(layout.buildDirectory.dir("generated/jniLibs"))
-    abis.set(androidAbis)
-    cxxSharedTriples.set(cxxSharedTriple)
-}
-prepareJniLibs.configure {
-    androidAbis.keys.forEach { target ->
-        val linkTask = project(":examples:club").tasks.named(
-            "linkMainDebugShared${target.replaceFirstChar { it.uppercase() }}",
-        )
-        dependsOn(linkTask)
-        // Re-run packaging whenever the linked libmain.so changes; otherwise the
-        // task is silently UP-TO-DATE after its first run and a rebuilt libmain.so
-        // never reaches the APK.
-        inputs.files(linkTask.flatMap { (it as org.jetbrains.kotlin.gradle.tasks.KotlinNativeLink).outputFile })
     }
 }
 
@@ -114,6 +104,9 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            // Local device/emulator runs: sign the release APK with the debug
+            // keystore so it installs without a release key.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     compileOptions {
@@ -122,10 +115,31 @@ android {
     }
 }
 
-// Register the generated libmain.so directory with AGP's Variant API.
+// One jniLibs preparation task per build type, wired to that build type's
+// Kotlin/Native link tasks and registered with AGP's Variant API.
 androidComponents {
     onVariants { variant ->
-        variant.sources.jniLibs?.addGeneratedSourceDirectory(prepareJniLibs) { it.outputDir }
+        val variantBuildType = requireNotNull(variant.buildType) { "application variant has no build type" }
+        val capitalizedBuildType = variantBuildType.replaceFirstChar { it.uppercase() }
+        val prepare = tasks.register<PrepareJniLibsTask>("prepareJniLibs$capitalizedBuildType") {
+            outputDir.set(layout.buildDirectory.dir("generated/jniLibs/$variantBuildType"))
+            abis.set(androidAbis)
+            cxxSharedTriples.set(cxxSharedTriple)
+            buildType.set(variantBuildType)
+        }
+        androidAbis.keys.forEach { target ->
+            val linkTask = project(":examples:club").tasks.named(
+                "linkMain${capitalizedBuildType}Shared${target.replaceFirstChar { it.uppercase() }}",
+            )
+            prepare.configure {
+                dependsOn(linkTask)
+                // Re-run packaging whenever the linked libmain.so changes; otherwise the
+                // task is silently UP-TO-DATE after its first run and a rebuilt libmain.so
+                // never reaches the APK.
+                inputs.files(linkTask.flatMap { (it as org.jetbrains.kotlin.gradle.tasks.KotlinNativeLink).outputFile })
+            }
+        }
+        variant.sources.jniLibs?.addGeneratedSourceDirectory(prepare) { it.outputDir }
     }
 }
 
