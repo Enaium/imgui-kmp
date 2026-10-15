@@ -52,6 +52,9 @@ fun canBuildNativeTarget(targetName: String): Boolean {
         hostOs.isLinux && targetName == "linuxX64" -> true
         hostOs.isLinux && targetName == "linuxArm64" -> isAarch64Host() || hasAarch64CrossToolchain()
         hostOs.isLinux && targetName == "mingwX64" && hasMingwCrossToolchain() -> true
+        // mingwX64 also cross-compiles from macOS with the Homebrew MinGW-w64
+        // toolchain (`brew install mingw-w64`), same as the Linux branch below.
+        hostOs.isMacOsX && targetName == "mingwX64" && hasMingwCrossToolchain() -> true
         // androidNative targets cross-compile the C++ library with the Android
         // NDK toolchain (MSVC hosts are excluded: the default CMake generator
         // cannot drive the NDK toolchain).
@@ -499,6 +502,19 @@ if (hostOs.isMacOsX) {
             "-DCMAKE_OSX_ARCHITECTURES=arm64",
             "-DCMAKE_OSX_SYSROOT=watchos",
             "-DCMAKE_OSX_DEPLOYMENT_TARGET=5.0",
+        ),
+    )
+    // mingwX64 cross-compiles with the Homebrew MinGW-w64 toolchain
+    // (`brew install mingw-w64`); the produced libimgui.a is embedded into the
+    // mingwX64 cinterop klib, exactly like the Linux branch does it.
+    registerNativeBuildTasks(
+        "mingwX64",
+        listOf(
+            "-DCMAKE_SYSTEM_NAME=Windows",
+            "-DCMAKE_SYSTEM_PROCESSOR=x86_64",
+            "-DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc",
+            "-DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++",
+            "-DCMAKE_RC_COMPILER=x86_64-w64-mingw32-windres",
         ),
     )
 } else if (hostOs.isLinux) {
