@@ -28,7 +28,7 @@ Android has **two independent APIs**: the JVM API (an AAR with per-ABI JNI `.so`
 **Kotlin Multiplatform / Android / native:**
 
 ```kotlin
-implementation("cn.enaium.imgui:imgui-kmp:1.0.16")
+implementation("cn.enaium.imgui:imgui-kmp:1.93.0.1")
 ```
 
 **JVM:** the right native binary is resolved automatically — the `imgui-kmp-jvm` artifact pulls in the matching `:jni-jvm-*` sibling on the classpath:
@@ -136,7 +136,7 @@ checks), which costs an order of magnitude on UI-heavy frames: the `sdl_renderer
 measures ~4 ms/frame as a release binary and ~90 ms/frame as a debug one on an M5. Use the
 release binary for anything frame-rate related; keep the debug one for stack traces.
 
-The examples consume `:imgui-kmp` as a project dependency, so they always build against the local source. (Standalone consumers use `cn.enaium.imgui:imgui-kmp:1.0.16` from Maven Central or Maven Local.)
+The examples consume `:imgui-kmp` as a project dependency, so they always build against the local source. (Standalone consumers use `cn.enaium.imgui:imgui-kmp:1.93.0.1` from Maven Central or Maven Local.)
 
 ## API Overview
 
