@@ -40,6 +40,12 @@ import cn.enaium.sdl.SDLWindowFlags
  * only carries its own demo UI. The window runs headless (SDL dummy video
  * driver) when no display is available, which is what the CI runs use.
  */
+/**
+ * Host-owned frame loop: run [step] until it returns false, then call [done].
+ * Browsers drive it from requestAnimationFrame; JVM/native pass null.
+ */
+typealias AppFrameDriver = (step: () -> Boolean, done: () -> Unit) -> Unit
+
 object SdlRendererApp {
 
     /**
@@ -57,6 +63,12 @@ object SdlRendererApp {
         draw: (frame: Int) -> Unit,
         close: () -> Unit,
         fontSetup: (cn.enaium.imgui.ImFontAtlas, density: Float) -> Unit = { _, _ -> },
+        /**
+         * Host-owned frame loop. Browsers cannot block, so a wasm host drives
+         * [step] from requestAnimationFrame and calls [done] when it returns
+         * false. When null the loop spins in place (JVM, native).
+         */
+        driver: AppFrameDriver? = null,
     ) {
         SDL.setMainReady()
         // Fall back to the dummy video driver (headless CI runners, SSH
@@ -72,74 +84,93 @@ object SdlRendererApp {
         println("SDL ${SDL.version()} (${SDL.revision()})")
         println("Video driver: ${SDL.getCurrentVideoDriver()}")
 
-        SDL.createWindow(
+        val window = SDL.createWindow(
             title = title,
             width = 1280,
             height = 800,
             flags = SDLWindowFlags.RESIZABLE or SDLWindowFlags.HIGH_PIXEL_DENSITY,
-        ).use { window ->
-            SDL.createRenderer(window).use { renderer ->
-                val context = ImGui.createContext()
-                try {
-                    val imgui = ImGuiSdlBackend(window)
-                    val backend = ImGuiSdlRendererBackend(renderer)
-                    imgui.init()
+        )
+        val renderer = SDL.createRenderer(window)
+        val context = ImGui.createContext()
+        val imgui = ImGuiSdlBackend(window)
+        val backend = ImGuiSdlRendererBackend(renderer)
+        var finished = false
 
-                    // On high-DPI displays (Retina, ...) the atlas is baked at
-                    // `sizePixels * rasterizerDensity` physical px while keeping
-                    // logical metrics at `sizePixels`, so text stays crisp when
-                    // the backend renders at the framebuffer scale.
-                    val fonts = ImGui.getIO().fonts
-                    val density = maxOf(imgui.framebufferScale.x, imgui.framebufferScale.y, 1f)
-                    // Font examples add their own faces (TTF with custom glyph
-                    // ranges) before the atlas is built.
-                    fontSetup(fonts, density)
-                    fonts.addFontDefault(
-                        ImFontConfig(
-                            sizePixels = 13f * density,
-                            rasterizerDensity = density,
-                        ),
-                    )
-                    check(fonts.build()) { "font atlas build failed" }
-                    val texData = fonts.getTexDataAsRGBA32()
-                    val fontTextureId = backend.uploadFontTexture(texData.pixels, texData.width, texData.height)
-                    fonts.setTexID(fontTextureId)
-
-                    init(fontTextureId)
-
-                    var running = true
-                    var frameCount = 0
-                    while (running && frameCount < frames) {
-                        // ---- events ----
-                        while (true) {
-                            val event = SDL.pollEvent() ?: break
-                            when (event) {
-                                is cn.enaium.sdl.SDLEvent.Quit -> running = false
-                                is cn.enaium.sdl.SDLEvent.Window ->
-                                    if (event.type == cn.enaium.sdl.SDLWindowEventType.CLOSE_REQUESTED) running = false
-                                else -> imgui.processEvent(event)
-                            }
-                        }
-
-                        // ---- imgui frame ----
-                        imgui.newFrame()
-                        draw(frameCount)
-                        ImGui.render()
-
-                        renderer.drawColor = SDLColor(18, 18, 24, 255)
-                        renderer.clear()
-                        backend.renderDrawData(ImGui.getDrawData())
-                        renderer.present()
-                        frameCount++
-                    }
-
-                    close()
-                    backend.close()
-                } finally {
-                    ImGui.destroyContext(context)
-                }
-            }
+        fun finish() {
+            if (finished) return
+            finished = true
+            close()
+            backend.close()
+            ImGui.destroyContext(context)
+            renderer.close()
+            window.close()
+            SDL.quit()
         }
-        SDL.quit()
+
+        try {
+            imgui.init()
+
+            // On high-DPI displays (Retina, ...) the atlas is baked at
+            // `sizePixels * rasterizerDensity` physical px while keeping
+            // logical metrics at `sizePixels`, so text stays crisp when
+            // the backend renders at the framebuffer scale.
+            val fonts = ImGui.getIO().fonts
+            val density = maxOf(imgui.framebufferScale.x, imgui.framebufferScale.y, 1f)
+            // Font examples add their own faces (TTF with custom glyph
+            // ranges) before the atlas is built.
+            fontSetup(fonts, density)
+            fonts.addFontDefault(
+                ImFontConfig(
+                    sizePixels = 13f * density,
+                    rasterizerDensity = density,
+                ),
+            )
+            check(fonts.build()) { "font atlas build failed" }
+            val texData = fonts.getTexDataAsRGBA32()
+            val fontTextureId = backend.uploadFontTexture(texData.pixels, texData.width, texData.height)
+            fonts.setTexID(fontTextureId)
+
+            init(fontTextureId)
+
+            var running = true
+            var frameCount = 0
+
+            fun step(): Boolean {
+                // ---- events ----
+                while (true) {
+                    val event = SDL.pollEvent() ?: break
+                    when (event) {
+                        is cn.enaium.sdl.SDLEvent.Quit -> running = false
+                        is cn.enaium.sdl.SDLEvent.Window ->
+                            if (event.type == cn.enaium.sdl.SDLWindowEventType.CLOSE_REQUESTED) running = false
+                        else -> imgui.processEvent(event)
+                    }
+                }
+
+                // ---- imgui frame ----
+                imgui.newFrame()
+                draw(frameCount)
+                ImGui.render()
+                frameCount++
+
+                renderer.drawColor = SDLColor(18, 18, 24, 255)
+                renderer.clear()
+                backend.renderDrawData(ImGui.getDrawData())
+                renderer.present()
+                return running && frameCount < frames
+            }
+
+            if (driver != null) {
+                // The host owns the loop (and calls done() at the end).
+                driver(::step, ::finish)
+            } else {
+                while (step()) {
+                }
+                finish()
+            }
+        } catch (t: Throwable) {
+            finish()
+            throw t
+        }
     }
 }

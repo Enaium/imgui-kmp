@@ -22,6 +22,7 @@
 
 package cn.enaium.imgui.example.club
 
+import cn.enaium.imgui.example.common.AppFrameDriver
 import cn.enaium.imgui.ImFontConfig
 import cn.enaium.imgui.ImGui
 import cn.enaium.imgui.ImGuiCol
@@ -57,7 +58,7 @@ import kotlin.random.Random
  * Run with `./gradlew :examples:club:jvmRun` (JVM) or the per-target native
  * binaries; pass `--frames N` / `IMGUI_KMP_FRAMES=N` to exit after N frames.
  */
-fun runClubExample(frames: Int = Int.MAX_VALUE) {
+fun runClubExample(frames: Int = Int.MAX_VALUE, driver: AppFrameDriver? = null) {
     SDL.setMainReady()
     // Fall back to the dummy video driver (headless CI runners, SSH sessions).
     if (!SDL.init(SDLInitFlags.VIDEO or SDLInitFlags.EVENTS)) {
@@ -71,15 +72,15 @@ fun runClubExample(frames: Int = Int.MAX_VALUE) {
     println("SDL ${SDL.version()} (${SDL.revision()})")
     println("Video driver: ${SDL.getCurrentVideoDriver()}")
 
-    SDL.createWindow(
+    val window = SDL.createWindow(
         title = "imgui-kmp club example",
         width = 1280,
         height = 800,
         flags = SDLWindowFlags.RESIZABLE or SDLWindowFlags.HIGH_PIXEL_DENSITY,
-    ).use { window ->
-        SDL.createRenderer(window).use { renderer ->
-            // Two ImGui contexts: the main demo UI and an overlay context that
-            // the compositor stacks on top of it.
+    )
+    val renderer = SDL.createRenderer(window)
+    // Two ImGui contexts: the main demo UI and an overlay context that
+    // the compositor stacks on top of it.
             val mainContext = ImGui.createContext()
             val overlayContext = ImGui.createContext()
             try {
@@ -129,7 +130,19 @@ fun runClubExample(frames: Int = Int.MAX_VALUE) {
 
                 var running = true
                 var frameCount = 0
-                while (running && frameCount < frames) {
+
+                fun finish() {
+                    memoryEditor.close()
+                    compositor.close()
+                    backend.close()
+                    ImGui.destroyContext(mainContext)
+                    ImGui.destroyContext(overlayContext)
+                    renderer.close()
+                    window.close()
+                    SDL.quit()
+                }
+
+                fun step(): Boolean {
                     // ---- events (fed to both contexts; the compositor routes) ----
                     while (true) {
                         val event = SDL.pollEvent() ?: break
@@ -180,18 +193,27 @@ fun runClubExample(frames: Int = Int.MAX_VALUE) {
                     backend.renderDrawData(ImGui.getDrawData())
                     renderer.present()
                     frameCount++
+                    return running && frameCount < frames
                 }
 
-                memoryEditor.close()
-                compositor.close()
-                backend.close()
-            } finally {
+                if (driver != null) {
+                    // The host owns the loop and calls finish() when done.
+                    driver(::step, ::finish)
+                } else {
+                    while (step()) {
+                    }
+                    finish()
+                }
+            } catch (t: Throwable) {
+                // finish() only lives inside the try scope (it closes the
+                // resources created there), so unwind by hand.
                 ImGui.destroyContext(mainContext)
                 ImGui.destroyContext(overlayContext)
+                renderer.close()
+                window.close()
+                SDL.quit()
+                throw t
             }
-        }
-    }
-    SDL.quit()
 }
 
 /**

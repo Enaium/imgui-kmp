@@ -22,6 +22,7 @@
 
 package cn.enaium.imgui.example.docking
 
+import cn.enaium.imgui.example.common.AppFrameDriver
 import cn.enaium.imgui.ImGui
 import cn.enaium.imgui.ImGuiChildFlags
 import cn.enaium.imgui.ImGuiConfigFlags
@@ -55,9 +56,10 @@ import kotlin.random.Random
  * native binaries; pass `--frames N` / `IMGUI_KMP_FRAMES=N` to exit after N
  * frames (headless CI runs).
  */
-fun runDockingExample(frames: Int = Int.MAX_VALUE) {
+fun runDockingExample(frames: Int = Int.MAX_VALUE, driver: AppFrameDriver? = null) {
     var demo: DockingDemo? = null
     SdlRendererApp.run(
+        driver = driver,
         title = "imgui-kmp docking example",
         frames = frames,
         init = {

@@ -23,7 +23,7 @@
 package cn.enaium.imgui.extensions.threadedrendering
 
 import cn.enaium.imgui.ImDrawData
-import cn.enaium.imgui.JvmImDrawData
+import cn.enaium.imgui.JniImDrawData
 
 // =========================================================================
 // JNI bridge
@@ -66,13 +66,13 @@ actual object TextureQueue {
     actual fun queueRequests(q: TextureQueueInstance, src: ImDrawData) =
         Jni.queueQueueRequests(
             (q as JvmTextureQueueInstance).ptr,
-            (src as JvmImDrawData).ptr,
+            (src as JniImDrawData).ptr,
         )
 
     actual fun processRequests(q: TextureQueueInstance, src: ImDrawData?) =
         Jni.queueProcessRequests(
             (q as JvmTextureQueueInstance).ptr,
-            (src as? JvmImDrawData)?.ptr ?: 0L,
+            (src as? JniImDrawData)?.ptr ?: 0L,
         )
 
     actual fun shutdown(q: TextureQueueInstance) =

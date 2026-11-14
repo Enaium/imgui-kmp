@@ -36,6 +36,15 @@ kotlin {
         binaries.executable()
     }
 
+    wasmJs {
+        binaries.executable()
+        browser {
+            commonWebpackConfig {
+                outputFileName = "sdl_renderer.js"
+            }
+        }
+    }
+
     linuxX64 {
         binaries.executable()
     }
@@ -81,6 +90,11 @@ kotlin {
     }
 
     sourceSets {
+        wasmJsMain {
+            dependencies {
+                implementation(libs.kotlinx.browser)
+            }
+        }
         commonMain {
             dependencies {
                 implementation(project(":examples:common"))
@@ -98,4 +112,33 @@ tasks.withType(JavaExec::class.java).configureEach {
     if (org.gradle.internal.os.OperatingSystem.current().isMacOsX && name == "jvmRun") {
         jvmArgs("--enable-native-access=ALL-UNNAMED", "-XstartOnFirstThread")
     }
+}
+
+// The browser build serves the Emscripten modules (imgui + SDL) next to the
+// Kotlin module; both are copied into the webpack resources. The SDL runtime
+// comes from the @enaium/sdl-kmp npm package installed by the JS toolchain.
+val copyWasmAssets by tasks.registering {
+    description = "Copies the imgui and SDL Emscripten runtime into the web resources"
+    dependsOn(":imgui-kmp:assembleWasmAssets", ":kotlinWasmNpmInstall")
+    val imguiAssets = rootProject.layout.projectDirectory.dir("imgui-kmp/build/wasm/assets")
+    val sdlAssets = rootProject.layout.buildDirectory.dir("wasm/node_modules/@enaium/sdl-kmp")
+    val output = layout.buildDirectory.dir("generated/wasmResources")
+    outputs.dir(output)
+    doLast {
+        val dir = output.get().asFile
+        dir.mkdirs()
+        copy {
+            from(imguiAssets)
+            into(dir)
+        }
+        copy {
+            from(sdlAssets)
+            into(dir)
+        }
+    }
+}
+
+tasks.named<ProcessResources>("wasmJsProcessResources") {
+    dependsOn(copyWasmAssets)
+    from(copyWasmAssets)
 }

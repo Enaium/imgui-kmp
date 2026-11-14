@@ -22,7 +22,7 @@
 
 package cn.enaium.imgui
 
-/** JVM backing of [ImTextureID]: a box-less `ULong`-wrapped handle. */
+/** JVM backing of [ImTextureID]: a box-less ULong handle. */
 @JvmInline
 actual value class ImTextureID actual constructor(val value: ULong) {
     actual companion object {

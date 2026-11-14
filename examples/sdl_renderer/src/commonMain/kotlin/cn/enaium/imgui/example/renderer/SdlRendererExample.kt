@@ -35,7 +35,10 @@ import cn.enaium.imgui.extensions.implot.ImPlotContext
  * native binaries. Pass `--frames N` to exit after N frames (useful for
  * headless CI runs). The SDL bootstrap lives in [SdlRendererApp].
  */
-fun runSdlRendererExample(frames: Int = Int.MAX_VALUE) {
+fun runSdlRendererExample(
+    frames: Int = Int.MAX_VALUE,
+    driver: ((step: () -> Boolean, done: () -> Unit) -> Unit)? = null,
+) {
     var demoUi: DemoUi? = null
     var plotContext: ImPlotContext? = null
     SdlRendererApp.run(
@@ -53,5 +56,6 @@ fun runSdlRendererExample(frames: Int = Int.MAX_VALUE) {
             demoUi?.close()
             plotContext?.let { ImPlot.destroyContext(it) }
         },
+        driver = driver,
     )
 }

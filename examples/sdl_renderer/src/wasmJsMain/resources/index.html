@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>imgui-kmp sdl_renderer (wasm)</title>
+    <style>
+        html, body { margin: 0; height: 100%; background: #12121a; overflow: hidden; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+    </style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<script type="module">
+    // Both Emscripten modules live in the same page: SDL owns the canvas and
+    // the renderer, imgui produces draw data that the Kotlin backend copies
+    // into SDL's geometry API.
+    import { initSdlKmp } from './sdl_kmp_glue.js';
+    import { initImguiKmp } from './imgui_kmp_glue.js';
+
+    const canvas = document.getElementById('canvas');
+
+    // ImGui/SDL consume the right button themselves (context menus, drag
+    // handles); without this the browser's context menu opens on top of the
+    // canvas and swallows the button-up that ImGui needs.
+    canvas.addEventListener('contextmenu', (event) => event.preventDefault());
+    canvas.addEventListener('auxclick', (event) => {
+        if (event.button === 1) event.preventDefault();
+    });
+
+    await initSdlKmp({ canvas });
+    await initImguiKmp();
+    await import('./sdl_renderer.js');
+</script>
+</body>
+</html>

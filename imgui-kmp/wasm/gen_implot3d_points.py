@@ -1,0 +1,158 @@
+#!/usr/bin/env python3
+"""Generates the by-value struct glue for ImPlot3D.
+
+`implot3d_point` and `implot3d_quat` cross the C API by value, which the
+Emscripten boundary cannot express. This derives, from the Kotlin declarations
+and `implot3d_c.h`, one flat wrapper per affected function (scalars in, out
+buffer for struct results) - the same shape `jni_bridge.cpp` uses for JNI - and
+writes:
+
+  jni/c_api/imgui_kmp_structs.h        the wrappers
+  imgui-kmp/wasm/implot3d_points.json  what gen_wasm_bridge.py must specialise
+"""
+import json
+import re
+from pathlib import Path
+
+HEADER = Path("jni/c_api/implot3d_c.h")
+DECLS = Path("imgui-kmp/src/jvmMain/kotlin/cn/enaium/imgui/extensions/implot3d/Jni.jvm.kt")
+OUT_H = Path("jni/c_api/imgui_kmp_structs.h")
+OUT_JSON = Path("imgui-kmp/wasm/implot3d_points.json")
+
+# By-value structs that need flattening. imgui_vec2 is listed only so the
+# argument grouping can map a Kotlin (x, y) pair onto one C parameter; its
+# return handling stays on the generic path.
+STRUCTS = {
+    "implot3d_point": ("double", ["x", "y", "z"]),
+    "implot3d_quat": ("double", ["w", "x", "y", "z"]),
+    "imgui_vec2": ("float", ["x", "y"]),
+    # Composites returned by value; the fields are dotted paths.
+    "implot3d_ray": ("double", ["origin.x", "origin.y", "origin.z",
+                                "direction.x", "direction.y", "direction.z"]),
+    "implot3d_plane": ("double", ["point.x", "point.y", "point.z",
+                                  "normal.x", "normal.y", "normal.z"]),
+}
+# Only functions touching these need a hand-written wrapper.
+FLATTENED = {"implot3d_point", "implot3d_quat", "implot3d_ray", "implot3d_plane"}
+
+OVERRIDES = {
+    "pointIsNaN": "implot3d_point_is_nan",
+    "pointMulScalar": "implot3d_point_mul_double",
+    "pointDivScalar": "implot3d_point_div_double",
+    "getStyleColor": "implot3d_get_style_color_vec4",
+}
+CT = {"Double": "double", "Float": "float", "Int": "int", "Boolean": "int", "Long": "uint64_t"}
+
+
+def strip_comments(t):
+    return re.sub(r"//[^\n]*", "", re.sub(r"/\*.*?\*/", "", t, flags=re.S))
+
+
+def snake(n):
+    s = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", n)
+    s = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", s).lower()
+    return "implot3d_" + s
+
+
+def parse_c(text):
+    out = {}
+    for m in re.finditer(r"^[ \t]*([A-Za-z_][\w \t\*]*?)\s+(implot3d_\w+)\s*\(([^;{]*?)\)\s*;", text, re.M | re.S):
+        ret, name, params = " ".join(m.group(1).split()), m.group(2), m.group(3)
+        plist = []
+        if params.strip() and params.strip() != "void":
+            depth, cur = 0, ""
+            for ch in params:
+                if ch in "([":
+                    depth += 1
+                elif ch in ")]":
+                    depth -= 1
+                if ch == "," and depth == 0:
+                    plist.append(" ".join(cur.split()))
+                    cur = ""
+                else:
+                    cur += ch
+            if cur.strip():
+                plist.append(" ".join(cur.split()))
+        out[name] = {"ret": ret, "params": plist}
+    return out
+
+
+def parse_decls(text):
+    out = []
+    for m in re.finditer(r"actual external fun (\w+)\(([^)]*)\)\s*(?::\s*([\w?]+))?", text):
+        plist = [p.strip() for p in re.split(r",(?![^<]*>)", m.group(2)) if p.strip()]
+        out.append((m.group(1), plist, m.group(3) or "Unit"))
+    return out
+
+
+def main():
+    funcs = parse_c(strip_comments(HEADER.read_text()))
+    entries = []
+    for name, plist, ret in parse_decls(DECLS.read_text()):
+        cname = OVERRIDES.get(name, snake(name))
+        f = funcs.get(cname)
+        if not f:
+            print(f"  (skipped, no C symbol: {name} -> {cname})")
+            continue
+        bases = [" ".join(p.split()[:-1]).replace("const ", "").strip() for p in f["params"]]
+        if not (any(b in FLATTENED for b in bases) or f["ret"] in FLATTENED):
+            continue
+        args, i = [], 0
+        for b in bases:
+            if b in STRUCTS:
+                fields = STRUCTS[b][1]
+                vals = [plist[i + k].split(":")[0].strip() for k in range(len(fields))]
+                i += len(fields)
+                args.append(f"({b}){{{', '.join(vals)}}}")
+            else:
+                args.append(plist[i].split(":")[0].strip())
+                i += 1
+        if i != len(plist):
+            raise SystemExit(f"{name}: {len(plist)} Kotlin params vs {i} C params")
+        if f["ret"] in STRUCTS:
+            out_type, fields = STRUCTS[f["ret"]]
+        else:
+            out_type, fields = None, None
+        entries.append({
+            "jvm": name,
+            "c": cname,
+            "kparams": ", ".join(plist),
+            "call": f"{cname}({', '.join(args)})",
+            "out": fields,
+            "outType": out_type,
+            "cret": funcs[cname]["ret"],
+        })
+    OUT_JSON.write_text(json.dumps(entries, indent=2))
+
+    lines = ["/* Generated by imgui-kmp/wasm/gen_implot3d_points.py - do not edit.",
+             " * By-value implot3d_point/implot3d_quat cannot cross the JS boundary:",
+             " * each affected C function is wrapped into flat scalars plus an out",
+             " * buffer, mirroring jni_bridge.cpp's JNI flattening. */",
+             "#pragma once",
+             '#include "implot3d_c.h"',
+             ""]
+    for e in entries:
+        ps = [p.strip() for p in e["kparams"].split(",")]
+        sig = ", ".join(f"{CT[p.split(':', 1)[1].strip().split()[0]]} {p.split(':')[0].strip()}" for p in ps)
+        if e["out"]:
+            lines.append(f'extern "C" void imgui_kmp_i3d_{e["jvm"]}({sig}, {e["outType"]}* out) {{')
+            lines.append(f'    {STRUCTS[e["c"]] if False else ""}{""}'.rstrip())
+            lines.pop()
+            ret_type = next(r for r in STRUCTS if e["c"].startswith("implot3d_") and STRUCTS[r][1] == e["out"])
+            lines.append(f"    {ret_type} r = {e['call']};")
+            for i, f in enumerate(e["out"]):
+                lines.append(f"    out[{i}] = r.{f};")
+            lines.append("}")
+        else:
+            rt = funcs[e["c"]]["ret"]
+            lines.append(f'extern "C" {"int" if rt == "bool" else rt} imgui_kmp_i3d_{e["jvm"]}({sig}) {{')
+            lines.append(f"    return {e['call']};")
+            lines.append("}")
+        lines.append("")
+    OUT_H.write_text("\n".join(lines))
+    print(f"{len(entries)} struct wrappers")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

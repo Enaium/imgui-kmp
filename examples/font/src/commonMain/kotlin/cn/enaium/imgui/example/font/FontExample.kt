@@ -22,6 +22,7 @@
 
 package cn.enaium.imgui.example.font
 
+import cn.enaium.imgui.example.common.AppFrameDriver
 import cn.enaium.imgui.ImFont
 import cn.enaium.imgui.ImFontConfig
 import cn.enaium.imgui.ImFontGlyphRanges
@@ -50,11 +51,12 @@ import cn.enaium.imgui.example.common.SdlRendererApp
  * native binaries; pass `--frames N` / `IMGUI_KMP_FRAMES=N` to exit after N
  * frames (headless CI runs).
  */
-fun runFontExample(frames: Int = Int.MAX_VALUE) {
+fun runFontExample(frames: Int = Int.MAX_VALUE, driver: AppFrameDriver? = null) {
     var regular: ImFont? = null
     var large: ImFont? = null
 
     SdlRendererApp.run(
+        driver = driver,
         title = "imgui-kmp font example",
         frames = frames,
         fontSetup = { fonts, density ->

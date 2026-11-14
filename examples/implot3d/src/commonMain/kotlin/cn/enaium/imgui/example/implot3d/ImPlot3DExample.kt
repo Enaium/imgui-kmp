@@ -22,6 +22,7 @@
 
 package cn.enaium.imgui.example.implot3d
 
+import cn.enaium.imgui.example.common.AppFrameDriver
 import cn.enaium.imgui.ImGui
 import cn.enaium.imgui.ImGuiCond
 import cn.enaium.imgui.ImGuiWindowFlags
@@ -62,9 +63,10 @@ import kotlin.random.Random
  * the per-target native binaries; pass `--frames N` / `IMGUI_KMP_FRAMES=N` to
  * exit after N frames (headless CI runs).
  */
-fun runImPlot3DExample(frames: Int = Int.MAX_VALUE) {
+fun runImPlot3DExample(frames: Int = Int.MAX_VALUE, driver: AppFrameDriver? = null) {
     var demo: ImPlot3DDemo? = null
     SdlRendererApp.run(
+        driver = driver,
         title = "imgui-kmp implot3d example",
         frames = frames,
         init = { demo = ImPlot3DDemo() },

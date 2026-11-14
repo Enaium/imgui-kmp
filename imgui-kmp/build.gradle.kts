@@ -147,6 +147,12 @@ kotlin {
         }
     }
 
+    // ==================== wasm (JS) ====================
+    wasmJs {
+        // Enables the JS plugin so consumers can bundle the wasm module.
+        nodejs()
+    }
+
     // ==================== Android ====================
     android {
         namespace = "cn.enaium.imgui"
@@ -246,6 +252,13 @@ kotlin {
         // Two variants are needed because the native one must sit on top of
         // nativeMain (to see the expect/actual declarations) while the JVM one
         // sits on top of commonMain. Both share the src/sdlMain/kotlin sources.
+        // The flat bridge (expect object Jni + shared adapters, ImGuiJni.kt) is
+        // shared by the JVM and wasm targets; each supplies an `actual object
+        // Jni` backed by its own FFI (JNI, or the Emscripten module on wasm).
+        val jniMain by creating {
+            dependsOn(getByName("commonMain"))
+        }
+
         val sdlMain by creating {
             dependsOn(getByName("commonMain"))
             dependencies {
@@ -262,7 +275,21 @@ kotlin {
 
         // All targets sdl-kmp supports: desktop, mobile Apple and Android.
         getByName("jvmMain").dependsOn(sdlMain)
+        getByName("jvmMain").dependsOn(jniMain)
+        getByName("wasmJsMain").dependsOn(jniMain)
+
+        // SDL backends on top of the wasm actuals (sdlMain already carries the
+        // src/sdlMain/kotlin sources and the sdl-kmp dependency).
+        getByName("wasmJsMain").dependsOn(sdlMain)
+        getByName("wasmJsMain") {
+            dependencies {
+                implementation(libs.kotlinx.browser)
+            }
+        }
         getByName("androidMain").dependsOn(sdlMain)
+        // androidMain reuses the JVM actuals (src/jvmMain) through the srcDir
+        // below, so it also needs the shared expect/shared-adapter layer.
+        getByName("androidMain").dependsOn(jniMain)
         listOf(
             "macosArm64",
             "macosX64",
@@ -627,6 +654,217 @@ androidComponents {
 
 tasks.matching { it.name.startsWith("merge") && it.name.contains("JniLibFolders") }
     .configureEach { dependsOn(buildAndroidJniLibs) }
+
+// ==================== wasm: build the imgui module for the wasmJs target ====================
+// The C API (+ extensions) is cross-compiled with Emscripten and linked into a
+// standalone ES module (imgui_wasm.js + imgui_wasm.wasm) that the wasmJs
+// actuals drive through a JS glue layer (see wasm/imgui_kmp_glue.js). The
+// emsdk is located via EMSDK, the `wasm.emsdk` Gradle property, or ~/emsdk -
+// the same convention as sdl-kmp.
+fun emsdkPath(): String {
+    System.getenv("EMSDK")?.takeIf { it.isNotBlank() }?.let { return it }
+    providers.gradleProperty("wasm.emsdk").orNull?.takeIf { it.isNotBlank() }?.let { return it }
+    val home = System.getProperty("user.home")
+    listOf(File(home, "emsdk"), File(home, "sdk/emsdk"))
+        .forEach { if (it.isDirectory()) return it.absolutePath }
+    return ""
+}
+
+val wasmEmsdk = emsdkPath()
+val wasmEmxx = File(wasmEmsdk, "upstream/emscripten/em++")
+val wasmToolchain = File(wasmEmsdk, "upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake")
+val wasmSourceDir = projectDir.resolve("wasm")
+val wasmOutput = layout.buildDirectory.dir("wasm").get().asFile
+val wasmNativeOutput = layout.buildDirectory.dir("native/wasm").get().asFile
+val wasmCmakeDir = layout.buildDirectory.dir("cmake-wasm").get().asFile
+
+// The emsdk ships its own python/node; emcc refuses the system python 3.9 that
+// macOS resolves by default.
+fun wasmEnv(): Map<String, String> {
+    val pythonDir = File(wasmEmsdk, "python").listFiles()?.firstOrNull { it.isDirectory }
+    val nodeDir = File(wasmEmsdk, "node").listFiles()?.firstOrNull { it.isDirectory }?.resolve("bin")
+    val path = listOfNotNull(
+        File(wasmEmsdk, "upstream/emscripten").absolutePath,
+        pythonDir?.resolve("bin")?.absolutePath,
+        nodeDir?.absolutePath,
+        System.getenv("PATH"),
+    ).joinToString(File.pathSeparator)
+    return mapOf("EMSDK" to wasmEmsdk, "EM_CONFIG" to File(wasmEmsdk, ".emscripten").absolutePath, "PATH" to path)
+}
+
+val configureWasmImgui = tasks.register<Exec>("configureWasmImgui") {
+    group = "wasm"
+    description = "Configures the Emscripten build of the imgui C API."
+    onlyIf { wasmEmsdk.isNotEmpty() }
+    dependsOn(rootProject.tasks.named("applySubmodulePatches"))
+    doFirst {
+        wasmCmakeDir.mkdirs()
+        wasmNativeOutput.mkdirs()
+    }
+    workingDir = wasmCmakeDir
+    environment(wasmEnv())
+    val makeProgram = if (OperatingSystem.current().isWindows) "nmake" else "/usr/bin/make"
+    commandLine(
+        cmakeExecutable, jniDir.absolutePath,
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_TOOLCHAIN_FILE=${wasmToolchain.absolutePath}",
+        "-DCMAKE_MAKE_PROGRAM=$makeProgram",
+        "-DBUILD_JNI=OFF",
+        "-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=${wasmNativeOutput.absolutePath}",
+    )
+}
+
+val buildWasmImgui = tasks.register<Exec>("buildWasmImgui") {
+    group = "wasm"
+    description = "Builds libimgui.a for the wasm target with Emscripten."
+    onlyIf { wasmEmsdk.isNotEmpty() }
+    dependsOn(configureWasmImgui)
+    workingDir = wasmCmakeDir
+    environment(wasmEnv())
+    commandLine(cmakeExecutable, "--build", ".", "--config", "Release")
+    inputs.files(
+        fileTree(jniDir) {
+            include("**/*.cc", "**/*.h", "CMakeLists.txt")
+            // jni/jvm holds the per-OS JNI artifact projects; their build
+            // outputs must not be treated as sources of this task.
+            exclude("jvm/**")
+        },
+    )
+    outputs.file(File(wasmNativeOutput, "libimgui.a"))
+}
+
+val generateWasmShim = tasks.register<Exec>("generateWasmShim") {
+    group = "wasm"
+    description = "Generates the wasm shim + export list from the imgui C API headers."
+    workingDir = rootDir
+    commandLine(
+        "/usr/bin/env", "python3",
+        wasmSourceDir.resolve("gen_wasm_shim.py").absolutePath,
+        rootDir.absolutePath,
+        wasmOutput.absolutePath,
+    )
+    inputs.file(jniDir.resolve("c_api/imgui_c.h"))
+    inputs.file(wasmSourceDir.resolve("gen_wasm_shim.py"))
+    outputs.file(File(wasmOutput, "imgui_kmp_shim.cpp"))
+    outputs.file(File(wasmOutput, "imgui_kmp_exports.js"))
+}
+
+val linkWasmImgui = tasks.register<Exec>("linkWasmImgui") {
+    group = "wasm"
+    description = "Links libimgui.a + the generated shim into imgui_wasm.js/.wasm."
+    onlyIf { wasmEmsdk.isNotEmpty() }
+    dependsOn(buildWasmImgui, generateWasmShim)
+    workingDir = wasmSourceDir
+    environment(wasmEnv())
+    doFirst {
+        wasmOutput.mkdirs()
+        val exports = Regex("\"([A-Za-z_]\\w*)\"")
+            .findAll(File(wasmOutput, "imgui_kmp_exports.js").readText())
+            .map { it.groupValues[1] }
+            .distinct()
+            .joinToString(",") { "_$it" }
+        commandLine(
+            wasmEmxx.absolutePath,
+            File(wasmOutput, "imgui_kmp_shim.cpp").absolutePath,
+            File(wasmNativeOutput, "libimgui.a").absolutePath,
+            "-I${jniDir.resolve("c_api").absolutePath}",
+            "-I${rootProject.file("includes/imgui").absolutePath}",
+            "-o", File(wasmOutput, "imgui_wasm.js").absolutePath,
+            "-sMODULARIZE=1", "-sEXPORT_NAME=ImguiModule", "-sEXPORT_ES6=1",
+            "-sEXPORTED_FUNCTIONS=$exports,_malloc,_free",
+            "-sEXPORTED_RUNTIME_METHODS=stringToUTF8,lengthBytesUTF8,UTF8ToString,HEAPU8,HEAPU16,HEAP32,HEAPF32,HEAPF64,HEAP8",
+            "-sALLOW_MEMORY_GROWTH=1", "-sINITIAL_MEMORY=67108864",
+            "-sENVIRONMENT=web,worker,node", "--no-entry",
+            "-sDISABLE_EXCEPTION_CATCHING=1",
+        )
+    }
+    inputs.file(File(wasmOutput, "imgui_kmp_shim.cpp"))
+    inputs.file(File(wasmNativeOutput, "libimgui.a"))
+    outputs.file(File(wasmOutput, "imgui_wasm.js"))
+    outputs.file(File(wasmOutput, "imgui_wasm.wasm"))
+}
+
+// The glue + export list are the runtime assets a host page imports.
+val assembleWasmAssets = tasks.register<Copy>("assembleWasmAssets") {
+    group = "wasm"
+    description = "Copies the wasm module + glue into build/wasm/assets."
+    dependsOn(linkWasmImgui)
+    from(wasmOutput) { include("imgui_wasm.js", "imgui_wasm.wasm", "imgui_kmp_exports.js") }
+    from(wasmSourceDir) { include("imgui_kmp_glue.js") }
+    into(layout.buildDirectory.dir("wasm/assets"))
+}
+
+// ==================== npm package ====================
+// The Emscripten module cannot ride inside the klib, so it ships as an npm
+// package next to it (same layout as sdl-kmp's @enaium/sdl-kmp).
+val wasmNpmDir = layout.buildDirectory.dir("wasm/npm").get().asFile
+val npmPackageVersion = version.toString().replaceFirst(Regex("""\.(\d+)$"""), "-$1")
+
+tasks.register("assembleWasmNpm") {
+    group = "build"
+    description = "Stages the @enaium/imgui-kmp npm package in build/wasm/npm."
+    dependsOn(assembleWasmAssets)
+    inputs.dir(layout.buildDirectory.dir("wasm/assets"))
+    inputs.property("npmPackageVersion", npmPackageVersion)
+    outputs.dir(wasmNpmDir)
+    doLast {
+        wasmNpmDir.deleteRecursively()
+        wasmNpmDir.mkdirs()
+        copy {
+            from(layout.buildDirectory.dir("wasm/assets"))
+            into(wasmNpmDir)
+        }
+        wasmNpmDir.resolve("package.json").writeText(
+            """
+            {
+              "name": "@enaium/imgui-kmp",
+              "version": "$npmPackageVersion",
+              "description": "Emscripten-compiled Dear ImGui + ImPlot module and JS glue for the imgui-kmp wasmJs target",
+              "license": "MIT",
+              "type": "module",
+              "exports": {
+                ".": "./imgui_kmp_glue.js",
+                "./imgui_wasm.js": "./imgui_wasm.js",
+                "./package.json": "./package.json"
+              },
+              "files": ["imgui_kmp_glue.js", "imgui_kmp_exports.js", "imgui_wasm.js", "imgui_wasm.wasm"],
+              "homepage": "https://github.com/Enaium/imgui-kmp",
+              "repository": {
+                "type": "git",
+                "url": "git+https://github.com/Enaium/imgui-kmp.git"
+              }
+            }
+            """.trimIndent() + "\n",
+        )
+    }
+}
+
+tasks.register<Exec>("publishWasmNpm") {
+    group = "publishing"
+    description = "Publishes @enaium/imgui-kmp to npm (token: npm.publish.key)."
+    dependsOn("assembleWasmNpm")
+    workingDir = wasmNpmDir
+    // The token lives in ~/.gradle/gradle.properties (next to the Maven
+    // Central entries); CI writes it there from the NPM_PUBLISH_KEY secret.
+    // -Pnpm.publish.key=<token> overrides it for one-off runs.
+    val npmKey = providers.gradleProperty("npm.publish.key")
+    doFirst {
+        val key = npmKey.orNull?.takeIf { it.isNotBlank() }
+            ?: throw GradleException(
+                "npm.publish.key is not set: add it to ~/.gradle/gradle.properties " +
+                    "or pass -Pnpm.publish.key=<token>",
+            )
+        // Expanded by npm from the environment, so the token never lands in
+        // package.json or the tarball.
+        environment("NODE_AUTH_TOKEN", key)
+        wasmNpmDir.resolve(".npmrc").writeText(
+            "//registry.npmjs.org/:_authToken=\${NODE_AUTH_TOKEN}\n",
+        )
+    }
+    // The revision-bearing version (1.93.0-2) is a semver prerelease, so npm
+    // needs an explicit tag; `latest` keeps `npm i @enaium/imgui-kmp` working.
+    commandLine("npm", "publish", "--access", "public", "--tag", "latest")
+}
 
 // ==================== Publishing ====================
 mavenPublishing {

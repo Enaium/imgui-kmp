@@ -22,6 +22,15 @@ fun konanAndroidLibDir(abi: String): String? {
     return "$toolchain/sysroot/usr/lib/$triple/26"
 }
 
+// Browser target: shared wiring in gradle/wasm-example.gradle. The PNG demo
+// runs with SDL_image's Emscripten module (@enaium/sdl-image-kmp npm package).
+// The extras are read by the script at evaluation time, so they go first.
+extra["wasmNpmRuntime"] = "@enaium/sdl-image-kmp"
+extra["wasmNpmRuntimeVersion"] = "sdl-image-kmp-npm"
+extra["wasmNpmRuntimeInit"] = "initSdlImageKmp"
+extra["wasmNpmRuntimeGlue"] = "sdl_image_glue.js"
+apply(from = rootProject.file("gradle/wasm-example.gradle"))
+
 kotlin {
     jvm {
         compilerOptions {

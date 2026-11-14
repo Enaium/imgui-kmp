@@ -22,6 +22,7 @@
 
 package cn.enaium.imgui.example.nodeeditor
 
+import cn.enaium.imgui.example.common.AppFrameDriver
 import cn.enaium.imgui.ImGui
 import cn.enaium.imgui.ImGuiCond
 import cn.enaium.imgui.ImGuiWindowFlags
@@ -44,9 +45,10 @@ import kotlin.math.max
  * native binaries; pass `--frames N` / `IMGUI_KMP_FRAMES=N` to exit after N
  * frames (headless CI runs).
  */
-fun runNodeEditorExample(frames: Int = Int.MAX_VALUE) {
+fun runNodeEditorExample(frames: Int = Int.MAX_VALUE, driver: AppFrameDriver? = null) {
     var demo: NodeEditorDemo? = null
     SdlRendererApp.run(
+        driver = driver,
         title = "imgui-kmp node editor example",
         frames = frames,
         init = { demo = NodeEditorDemo() },

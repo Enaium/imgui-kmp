@@ -20,6 +20,7 @@ Kotlin Multiplatform bindings for [Dear ImGui](https://github.com/ocornut/imgui)
 | **Windows**    | mingwX64                                                     | Kotlin/Native cinterop (static library)    |
 | **tvOS**       | arm64, simulatorArm64                                        | Kotlin/Native cinterop (static library)    |
 | **watchOS**    | arm64, simulatorArm64, deviceArm64                           | Kotlin/Native cinterop (static library)    |
+| **WebAssembly**| `wasmJs` (browsers)                                          | Emscripten module (`imgui_wasm.wasm`) imported by Kotlin/Wasm |
 
 Android has **two independent APIs**: the JVM API (an AAR with per-ABI JNI `.so` files, loaded via `System.loadLibrary`) and the Kotlin/Native API (`androidNative*` targets, linked as a static library into your `libmain.so`). Use the JVM API from an Android app written in Kotlin/JVM; use the native API when your Android app is Kotlin/Native (e.g. via [sdl-kmp](https://github.com/Enaium/sdl-kmp)'s `libmain.so`), since a JVM `.so` and a native `libmain.so` cannot be loaded side by side.
 
@@ -183,7 +184,8 @@ The Dear ImGui, ImPlot, ImPlot3D, imgui-node-editor, ImGuiFileDialog, ImGuiColor
 git submodule update --init --recursive
 ```
 
-- `jni/` — CMake build of the static library (`libimgui.a`) and the JNI bridge, plus the per-OS/arch JVM JNI artifact projects.
+- `jni/` — CMake build of the static library (`libimgui.a`) and the JNI bridge, plus the per-OS/arch JVM JNI artifact projects. On Android the JNI library is linked with 16 KB page alignment for Android 15+ devices.
+- `imgui-kmp/wasm/` — the Emscripten build: `gen_wasm_shim.py` (C shim + export list from `jni/c_api/*.h`), `gen_wasm_bridge.py` (Kotlin/Wasm `external` bridge from the JNI declarations) and `imgui_kmp_glue.js` (instantiates the module and publishes its exports).
 - `jni/c_api/` — the C API consumed by both the JNI bridge and the cinterop bindings.
 - `imgui-kmp/` — the multiplatform module: `cn.enaium.imgui` for ImGui, `cn.enaium.imgui.extensions.implot` for ImPlot, `...extensions.implot3d` for ImPlot3D, `...extensions.nodeeditor` for imgui-node-editor, `...extensions.filedialog` for ImGuiFileDialog, `...extensions.colortextedit` for ImGuiColorTextEdit (TextEditor + TrieAutoComplete + Notifications + event hooks), `...extensions.markdown` for imgui_markdown and `...extensions.memoryeditor` / `...extensions.mcc` / `...extensions.threadedrendering` for imgui_club, plus the SDL backends under `cn.enaium.imgui.backends.sdl`.
 - `examples/` — the shared demo UI (`examples/common`) and the SDL renderer (`examples/sdl_renderer`), SDL GPU (`examples/sdl_gpu`), docking (`examples/docking`), node editor (`examples/node_editor`), imgui_club (`examples/club`), ImPlot3D (`examples/implot3d`), file dialog (`examples/filedialog`), text editor (`examples/colortextedit`) and Markdown (`examples/markdown`) demos, shared across JVM, desktop native and Android native targets. The Android APKs get their `org.libsdl.app.SDLActivity` glue from sdl-kmp's `sdl-kmp-android` AAR (1.0.11+).
@@ -191,7 +193,9 @@ git submodule update --init --recursive
 ```bash
 ./gradlew :imgui-kmp:jvmTest          # JVM tests (uses the host JNI artifact)
 ./gradlew :imgui-kmp:macosArm64Test   # native tests
-./gradlew :imgui-kmp:buildAndroidJniLibs  # all four Android ABI .so files
+./gradlew :imgui-kmp:buildAndroidJniLibs  # all four Android ABI .so files (16 KB page aligned)
+./gradlew :imgui-kmp:assembleWasmAssets   # imgui_wasm.js/.wasm + the JS glue (needs EMSDK)
+./gradlew :examples:sdl_renderer:wasmJsBrowserDevelopmentRun  # ImGui + ImPlot in the browser
 ./gradlew :imgui-kmp:publishToMavenLocal # publish everything to Maven Local
 ```
 

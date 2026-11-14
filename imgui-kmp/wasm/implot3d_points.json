@@ -1,0 +1,404 @@
+[
+  {
+    "jvm": "setupBoxRotationQuat",
+    "c": "implot3d_setup_box_rotation_quat",
+    "kparams": "x: Double, y: Double, z: Double, w: Double, animate: Boolean, cond: Int",
+    "call": "implot3d_setup_box_rotation_quat((implot3d_quat){x, y, z, w}, animate, cond)",
+    "out": null,
+    "outType": null,
+    "cret": "void"
+  },
+  {
+    "jvm": "setupBoxInitialRotationQuat",
+    "c": "implot3d_setup_box_initial_rotation_quat",
+    "kparams": "x: Double, y: Double, z: Double, w: Double",
+    "call": "implot3d_setup_box_initial_rotation_quat((implot3d_quat){x, y, z, w})",
+    "out": null,
+    "outType": null,
+    "cret": "void"
+  },
+  {
+    "jvm": "plotToPixelsPoint",
+    "c": "implot3d_plot_to_pixels_point",
+    "kparams": "x: Double, y: Double, z: Double",
+    "call": "implot3d_plot_to_pixels_point((implot3d_point){x, y, z})",
+    "out": [
+      "x",
+      "y"
+    ],
+    "outType": "float",
+    "cret": "imgui_vec2"
+  },
+  {
+    "jvm": "pixelsToPlotRayVec2",
+    "c": "implot3d_pixels_to_plot_ray_vec2",
+    "kparams": "pixX: Float, pixY: Float",
+    "call": "implot3d_pixels_to_plot_ray_vec2((imgui_vec2){pixX, pixY})",
+    "out": [
+      "origin.x",
+      "origin.y",
+      "origin.z",
+      "direction.x",
+      "direction.y",
+      "direction.z"
+    ],
+    "outType": "double",
+    "cret": "implot3d_ray"
+  },
+  {
+    "jvm": "pixelsToPlotRayXy",
+    "c": "implot3d_pixels_to_plot_ray_xy",
+    "kparams": "x: Double, y: Double",
+    "call": "implot3d_pixels_to_plot_ray_xy(x, y)",
+    "out": [
+      "origin.x",
+      "origin.y",
+      "origin.z",
+      "direction.x",
+      "direction.y",
+      "direction.z"
+    ],
+    "outType": "double",
+    "cret": "implot3d_ray"
+  },
+  {
+    "jvm": "pixelsToPlotPlaneVec2",
+    "c": "implot3d_pixels_to_plot_plane_vec2",
+    "kparams": "pixX: Float, pixY: Float, plane: Int, mask: Boolean",
+    "call": "implot3d_pixels_to_plot_plane_vec2((imgui_vec2){pixX, pixY}, plane, mask)",
+    "out": [
+      "x",
+      "y",
+      "z"
+    ],
+    "outType": "double",
+    "cret": "implot3d_point"
+  },
+  {
+    "jvm": "pixelsToPlotPlaneXy",
+    "c": "implot3d_pixels_to_plot_plane_xy",
+    "kparams": "x: Double, y: Double, plane: Int, mask: Boolean",
+    "call": "implot3d_pixels_to_plot_plane_xy(x, y, plane, mask)",
+    "out": [
+      "x",
+      "y",
+      "z"
+    ],
+    "outType": "double",
+    "cret": "implot3d_point"
+  },
+  {
+    "jvm": "pointAdd",
+    "c": "implot3d_point_add",
+    "kparams": "ax: Double, ay: Double, az: Double, bx: Double, by: Double, bz: Double",
+    "call": "implot3d_point_add((implot3d_point){ax, ay, az}, (implot3d_point){bx, by, bz})",
+    "out": [
+      "x",
+      "y",
+      "z"
+    ],
+    "outType": "double",
+    "cret": "implot3d_point"
+  },
+  {
+    "jvm": "pointSub",
+    "c": "implot3d_point_sub",
+    "kparams": "ax: Double, ay: Double, az: Double, bx: Double, by: Double, bz: Double",
+    "call": "implot3d_point_sub((implot3d_point){ax, ay, az}, (implot3d_point){bx, by, bz})",
+    "out": [
+      "x",
+      "y",
+      "z"
+    ],
+    "outType": "double",
+    "cret": "implot3d_point"
+  },
+  {
+    "jvm": "pointMul",
+    "c": "implot3d_point_mul",
+    "kparams": "ax: Double, ay: Double, az: Double, bx: Double, by: Double, bz: Double",
+    "call": "implot3d_point_mul((implot3d_point){ax, ay, az}, (implot3d_point){bx, by, bz})",
+    "out": [
+      "x",
+      "y",
+      "z"
+    ],
+    "outType": "double",
+    "cret": "implot3d_point"
+  },
+  {
+    "jvm": "pointDiv",
+    "c": "implot3d_point_div",
+    "kparams": "ax: Double, ay: Double, az: Double, bx: Double, by: Double, bz: Double",
+    "call": "implot3d_point_div((implot3d_point){ax, ay, az}, (implot3d_point){bx, by, bz})",
+    "out": [
+      "x",
+      "y",
+      "z"
+    ],
+    "outType": "double",
+    "cret": "implot3d_point"
+  },
+  {
+    "jvm": "pointMulScalar",
+    "c": "implot3d_point_mul_double",
+    "kparams": "x: Double, y: Double, z: Double, scalar: Double",
+    "call": "implot3d_point_mul_double((implot3d_point){x, y, z}, scalar)",
+    "out": [
+      "x",
+      "y",
+      "z"
+    ],
+    "outType": "double",
+    "cret": "implot3d_point"
+  },
+  {
+    "jvm": "pointDivScalar",
+    "c": "implot3d_point_div_double",
+    "kparams": "x: Double, y: Double, z: Double, scalar: Double",
+    "call": "implot3d_point_div_double((implot3d_point){x, y, z}, scalar)",
+    "out": [
+      "x",
+      "y",
+      "z"
+    ],
+    "outType": "double",
+    "cret": "implot3d_point"
+  },
+  {
+    "jvm": "pointNeg",
+    "c": "implot3d_point_neg",
+    "kparams": "x: Double, y: Double, z: Double",
+    "call": "implot3d_point_neg((implot3d_point){x, y, z})",
+    "out": [
+      "x",
+      "y",
+      "z"
+    ],
+    "outType": "double",
+    "cret": "implot3d_point"
+  },
+  {
+    "jvm": "pointDot",
+    "c": "implot3d_point_dot",
+    "kparams": "ax: Double, ay: Double, az: Double, bx: Double, by: Double, bz: Double",
+    "call": "implot3d_point_dot((implot3d_point){ax, ay, az}, (implot3d_point){bx, by, bz})",
+    "out": null,
+    "outType": null,
+    "cret": "double"
+  },
+  {
+    "jvm": "pointCross",
+    "c": "implot3d_point_cross",
+    "kparams": "ax: Double, ay: Double, az: Double, bx: Double, by: Double, bz: Double",
+    "call": "implot3d_point_cross((implot3d_point){ax, ay, az}, (implot3d_point){bx, by, bz})",
+    "out": [
+      "x",
+      "y",
+      "z"
+    ],
+    "outType": "double",
+    "cret": "implot3d_point"
+  },
+  {
+    "jvm": "pointLength",
+    "c": "implot3d_point_length",
+    "kparams": "x: Double, y: Double, z: Double",
+    "call": "implot3d_point_length((implot3d_point){x, y, z})",
+    "out": null,
+    "outType": null,
+    "cret": "double"
+  },
+  {
+    "jvm": "pointLengthSquared",
+    "c": "implot3d_point_length_squared",
+    "kparams": "x: Double, y: Double, z: Double",
+    "call": "implot3d_point_length_squared((implot3d_point){x, y, z})",
+    "out": null,
+    "outType": null,
+    "cret": "double"
+  },
+  {
+    "jvm": "pointNormalized",
+    "c": "implot3d_point_normalized",
+    "kparams": "x: Double, y: Double, z: Double",
+    "call": "implot3d_point_normalized((implot3d_point){x, y, z})",
+    "out": [
+      "x",
+      "y",
+      "z"
+    ],
+    "outType": "double",
+    "cret": "implot3d_point"
+  },
+  {
+    "jvm": "pointIsNaN",
+    "c": "implot3d_point_is_nan",
+    "kparams": "x: Double, y: Double, z: Double",
+    "call": "implot3d_point_is_nan((implot3d_point){x, y, z})",
+    "out": null,
+    "outType": null,
+    "cret": "bool"
+  },
+  {
+    "jvm": "pointEq",
+    "c": "implot3d_point_eq",
+    "kparams": "ax: Double, ay: Double, az: Double, bx: Double, by: Double, bz: Double",
+    "call": "implot3d_point_eq((implot3d_point){ax, ay, az}, (implot3d_point){bx, by, bz})",
+    "out": null,
+    "outType": null,
+    "cret": "bool"
+  },
+  {
+    "jvm": "quatFromAngleAxis",
+    "c": "implot3d_quat_from_angle_axis",
+    "kparams": "angle: Double, ax: Double, ay: Double, az: Double",
+    "call": "implot3d_quat_from_angle_axis(angle, (implot3d_point){ax, ay, az})",
+    "out": [
+      "w",
+      "x",
+      "y",
+      "z"
+    ],
+    "outType": "double",
+    "cret": "implot3d_quat"
+  },
+  {
+    "jvm": "quatFromTwoVectors",
+    "c": "implot3d_quat_from_two_vectors",
+    "kparams": "ax: Double, ay: Double, az: Double, bx: Double, by: Double, bz: Double",
+    "call": "implot3d_quat_from_two_vectors((implot3d_point){ax, ay, az}, (implot3d_point){bx, by, bz})",
+    "out": [
+      "w",
+      "x",
+      "y",
+      "z"
+    ],
+    "outType": "double",
+    "cret": "implot3d_quat"
+  },
+  {
+    "jvm": "quatFromElAz",
+    "c": "implot3d_quat_from_el_az",
+    "kparams": "elevation: Double, azimuth: Double",
+    "call": "implot3d_quat_from_el_az(elevation, azimuth)",
+    "out": [
+      "w",
+      "x",
+      "y",
+      "z"
+    ],
+    "outType": "double",
+    "cret": "implot3d_quat"
+  },
+  {
+    "jvm": "quatMul",
+    "c": "implot3d_quat_mul",
+    "kparams": "ax: Double, ay: Double, az: Double, aw: Double, bx: Double, by: Double, bz: Double, bw: Double",
+    "call": "implot3d_quat_mul((implot3d_quat){ax, ay, az, aw}, (implot3d_quat){bx, by, bz, bw})",
+    "out": [
+      "w",
+      "x",
+      "y",
+      "z"
+    ],
+    "outType": "double",
+    "cret": "implot3d_quat"
+  },
+  {
+    "jvm": "quatRotatePoint",
+    "c": "implot3d_quat_rotate_point",
+    "kparams": "qx: Double, qy: Double, qz: Double, qw: Double, px: Double, py: Double, pz: Double",
+    "call": "implot3d_quat_rotate_point((implot3d_quat){qx, qy, qz, qw}, (implot3d_point){px, py, pz})",
+    "out": [
+      "x",
+      "y",
+      "z"
+    ],
+    "outType": "double",
+    "cret": "implot3d_point"
+  },
+  {
+    "jvm": "quatNormalized",
+    "c": "implot3d_quat_normalized",
+    "kparams": "x: Double, y: Double, z: Double, w: Double",
+    "call": "implot3d_quat_normalized((implot3d_quat){x, y, z, w})",
+    "out": [
+      "w",
+      "x",
+      "y",
+      "z"
+    ],
+    "outType": "double",
+    "cret": "implot3d_quat"
+  },
+  {
+    "jvm": "quatConjugate",
+    "c": "implot3d_quat_conjugate",
+    "kparams": "x: Double, y: Double, z: Double, w: Double",
+    "call": "implot3d_quat_conjugate((implot3d_quat){x, y, z, w})",
+    "out": [
+      "w",
+      "x",
+      "y",
+      "z"
+    ],
+    "outType": "double",
+    "cret": "implot3d_quat"
+  },
+  {
+    "jvm": "quatInverse",
+    "c": "implot3d_quat_inverse",
+    "kparams": "x: Double, y: Double, z: Double, w: Double",
+    "call": "implot3d_quat_inverse((implot3d_quat){x, y, z, w})",
+    "out": [
+      "w",
+      "x",
+      "y",
+      "z"
+    ],
+    "outType": "double",
+    "cret": "implot3d_quat"
+  },
+  {
+    "jvm": "quatLength",
+    "c": "implot3d_quat_length",
+    "kparams": "x: Double, y: Double, z: Double, w: Double",
+    "call": "implot3d_quat_length((implot3d_quat){x, y, z, w})",
+    "out": null,
+    "outType": null,
+    "cret": "double"
+  },
+  {
+    "jvm": "quatDot",
+    "c": "implot3d_quat_dot",
+    "kparams": "ax: Double, ay: Double, az: Double, aw: Double, bx: Double, by: Double, bz: Double, bw: Double",
+    "call": "implot3d_quat_dot((implot3d_quat){ax, ay, az, aw}, (implot3d_quat){bx, by, bz, bw})",
+    "out": null,
+    "outType": null,
+    "cret": "double"
+  },
+  {
+    "jvm": "quatSlerp",
+    "c": "implot3d_quat_slerp",
+    "kparams": "ax: Double, ay: Double, az: Double, aw: Double, bx: Double, by: Double, bz: Double, bw: Double, t: Double",
+    "call": "implot3d_quat_slerp((implot3d_quat){ax, ay, az, aw}, (implot3d_quat){bx, by, bz, bw}, t)",
+    "out": [
+      "w",
+      "x",
+      "y",
+      "z"
+    ],
+    "outType": "double",
+    "cret": "implot3d_quat"
+  },
+  {
+    "jvm": "quatEq",
+    "c": "implot3d_quat_eq",
+    "kparams": "ax: Double, ay: Double, az: Double, aw: Double, bx: Double, by: Double, bz: Double, bw: Double",
+    "call": "implot3d_quat_eq((implot3d_quat){ax, ay, az, aw}, (implot3d_quat){bx, by, bz, bw})",
+    "out": null,
+    "outType": null,
+    "cret": "bool"
+  }
+]

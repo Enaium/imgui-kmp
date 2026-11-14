@@ -2,6 +2,9 @@ plugins {
     alias(libs.plugins.kotlin.multiplatform)
 }
 
+// Browser target: shared wiring in gradle/wasm-example.gradle.
+apply(from = rootProject.file("gradle/wasm-example.gradle"))
+
 kotlin {
     jvm {
         compilerOptions {

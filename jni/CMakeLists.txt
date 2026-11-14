@@ -108,6 +108,12 @@ if(BUILD_JNI)
     endif()
 
     if(ANDROID)
+        # Android 15+ ships devices with 16 KB memory pages: every LOAD segment
+        # must be aligned accordingly or the loader refuses the .so.
+        target_link_options(imgui_jni PRIVATE
+            "-Wl,-z,max-page-size=16384"
+            "-Wl,-z,common-page-size=16384"
+        )
         find_library(log-lib log)
         if(log-lib)
             target_link_libraries(imgui_jni PRIVATE ${log-lib})

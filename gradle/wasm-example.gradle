@@ -1,0 +1,101 @@
+/*
+ * Adds the browser (wasmJs) target to an SDL-based example.
+ *
+ * Applied by examples that use SdlRendererApp:
+ *   apply(from = rootProject.file("gradle/wasm-example.gradle"))
+ *
+ * The example only provides src/wasmJsMain/kotlin/Main.wasm.kt; the target,
+ * the Emscripten runtime assets (imgui + SDL) and the host page are wired here
+ * so every example boots the same way. Written in Groovy because an applied
+ * Kotlin script has no access to the plugin's typed extension.
+ */
+def kotlinExt = extensions.getByName("kotlin")
+def catalogs = extensions.getByType(org.gradle.api.artifacts.VersionCatalogsExtension)
+def libs = catalogs.named("libs")
+def library = { String alias -> libs.findLibrary(alias).get().get() }
+def moduleName = project.name
+
+kotlinExt.wasmJs {
+    binaries.executable()
+    browser {
+        commonWebpackConfig {
+            outputFileName = "${moduleName}.js"
+        }
+    }
+}
+
+// Optional additional Emscripten runtime shipped as an npm package, e.g. the
+// image example sets:
+//   extra["wasmNpmRuntime"]        = "@enaium/sdl-image-kmp"
+//   extra["wasmNpmRuntimeVersion"] = "sdl-image-kmp-npm"
+//   extra["wasmNpmRuntimeInit"]    = "initSdlImageKmp"
+def extraNpm = project.findProperty("wasmNpmRuntime") as String
+def extraNpmVersion = project.findProperty("wasmNpmRuntimeVersion") as String
+def extraNpmInit = project.findProperty("wasmNpmRuntimeInit") as String
+def extraNpmGlue = project.findProperty("wasmNpmRuntimeGlue") as String
+
+kotlinExt.sourceSets.getByName("wasmJsMain").dependencies {
+    implementation library("kotlinx.browser")
+    implementation npm("@enaium/sdl-kmp", libs.findVersion("sdl-kmp-npm").get().requiredVersion)
+    if (extraNpm != null) {
+        implementation npm(extraNpm, libs.findVersion(extraNpmVersion).get().requiredVersion)
+    }
+}
+
+// The browser build serves the Emscripten modules (imgui + SDL) next to the
+// Kotlin module; both are copied into the webpack resources.
+def copyWasmAssets = tasks.register("copyWasmAssets") {
+    description = "Copies the imgui and SDL Emscripten runtime into the web resources"
+    dependsOn(":imgui-kmp:assembleWasmAssets", ":kotlinWasmNpmInstall")
+    def imguiAssets = rootProject.layout.projectDirectory.dir("imgui-kmp/build/wasm/assets")
+    def sdlAssets = rootProject.layout.buildDirectory.dir("wasm/node_modules/@enaium/sdl-kmp")
+    def output = layout.buildDirectory.dir("generated/wasmResources")
+    inputs.dir(imguiAssets)
+    inputs.files(sdlAssets)
+    outputs.dir(output)
+    doLast {
+        def dir = output.get().asFile
+        dir.mkdirs()
+        copy {
+            from(imguiAssets)
+            into(dir)
+        }
+        copy {
+            from(sdlAssets)
+            into(dir)
+        }
+        if (extraNpm != null) {
+            copy {
+                from(rootProject.layout.buildDirectory.dir("wasm/node_modules/" + extraNpm))
+                into(dir)
+            }
+        }
+    }
+}
+
+def generateWasmPage = tasks.register("generateWasmPage") {
+    description = "Renders the host page for the browser example"
+    def template = rootProject.layout.projectDirectory.file("gradle/wasm-example/index.html")
+    def title = "imgui-kmp $moduleName (wasm)"
+    def output = layout.buildDirectory.dir("generated/wasmPage")
+    outputs.dir(output)
+    doLast {
+        def dir = output.get().asFile
+        dir.mkdirs()
+        def glue = extraNpmGlue ?: (extraNpm?.tokenize("/")?.last() + "_glue.js")
+        def imports = extraNpm == null ? "" :
+            "    import { " + extraNpmInit + " } from './" + glue + "';"
+        def init = extraNpm == null ? "" : "    await " + extraNpmInit + "();"
+        new File(dir, "index.html").text = template.asFile.text
+            .replace("__TITLE__", title)
+            .replace("__MODULE__", moduleName)
+            .replace("__EXTRA_IMPORTS__", imports)
+            .replace("__EXTRA_INIT__", init)
+    }
+}
+
+tasks.named("wasmJsProcessResources") {
+    dependsOn(copyWasmAssets, generateWasmPage)
+    from(copyWasmAssets)
+    from(generateWasmPage)
+}

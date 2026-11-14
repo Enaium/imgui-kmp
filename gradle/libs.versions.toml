@@ -1,15 +1,15 @@
 [versions]
-kotlin = "2.4.10"
-agp = "9.3.1"
+kotlin = "2.4.21"
+agp = "9.5.1"
 junit = "5.11.0"
 junit-platform = "1.11.0"
 maven-publish = "0.37.0"
-sdl-kmp = "3.4.18.1"
-sdl-image-kmp = "3.4.8.1"
-androidx-core-ktx = "1.13.1"
-androidx-lifecycle-runtime-ktx = "2.8.7"
-androidx-activity-compose = "1.13.0"
-compose-bom = "2026.06.01"
+sdl-kmp = "3.4.18.2"
+# The browser runtime ships as an npm package (@enaium/sdl-kmp).
+sdl-kmp-npm = "3.4.18-2"
+sdl-image-kmp = "3.4.8.2"
+sdl-image-kmp-npm = "3.4.8-2"
+kotlinx-browser = "0.5.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -17,15 +17,7 @@ junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.r
 junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform-launcher", version.ref = "junit-platform" }
 sdl-kmp = { module = "cn.enaium.sdl:sdl-kmp", version.ref = "sdl-kmp" }
 sdl-image-kmp = { module = "cn.enaium.sdl:sdl-image-kmp", version.ref = "sdl-image-kmp" }
-androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core-ktx" }
-androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "androidx-lifecycle-runtime-ktx" }
-androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity-compose" }
-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "compose-bom" }
-compose-ui = { module = "androidx.compose.ui:ui" }
-compose-ui-graphics = { module = "androidx.compose.ui:ui-graphics" }
-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
-compose-material3 = { module = "androidx.compose.material3:material3" }
+kotlinx-browser = { module = "org.jetbrains.kotlinx:kotlinx-browser", version.ref = "kotlinx-browser" }
 
 [plugins]
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

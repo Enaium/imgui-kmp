@@ -25,8 +25,8 @@ package cn.enaium.imgui.extensions.threadedrendering
 import cn.enaium.imgui.ImDrawData
 import cn.enaium.imgui.ImDrawList
 import cn.enaium.imgui.ImVec2
-import cn.enaium.imgui.JvmImDrawData
-import cn.enaium.imgui.JvmImDrawList
+import cn.enaium.imgui.JniImDrawData
+import cn.enaium.imgui.JniImDrawList
 
 // =========================================================================
 // JNI bridge
@@ -99,7 +99,7 @@ actual object DrawDataSnapshot {
     actual fun snapUsingSwap(s: SnapshotInstance, src: ImDrawData, currentTime: Double) =
         Jni.snapshotSnapUsingSwap(
             (s as JvmSnapshotInstance).ptr,
-            (src as JvmImDrawData).ptr,
+            (src as JniImDrawData).ptr,
             currentTime,
         )
 
@@ -143,5 +143,5 @@ actual object DrawDataSnapshot {
         Jni.snapshotGetCmdListsCount((s as JvmSnapshotInstance).ptr)
 
     actual fun getCmdList(s: SnapshotInstance, index: Int): ImDrawList =
-        JvmImDrawList(Jni.snapshotGetCmdList((s as JvmSnapshotInstance).ptr, index))
+        JniImDrawList(Jni.snapshotGetCmdList((s as JvmSnapshotInstance).ptr, index))
 }

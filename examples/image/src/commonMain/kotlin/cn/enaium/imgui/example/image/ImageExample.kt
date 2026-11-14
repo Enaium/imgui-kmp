@@ -22,6 +22,7 @@
 
 package cn.enaium.imgui.example.image
 
+import cn.enaium.imgui.example.common.AppFrameDriver
 import cn.enaium.imgui.ImGui
 import cn.enaium.imgui.ImGuiCond
 import cn.enaium.imgui.ImTextureID
@@ -31,6 +32,7 @@ import cn.enaium.imgui.backends.sdl.ImGuiSdlRendererBackend
 import cn.enaium.imgui.backends.sdl.toImTextureID
 import cn.enaium.sdl.SDL
 import cn.enaium.sdl.SDLGPU
+import cn.enaium.sdl.SDLIO
 import cn.enaium.sdl.SDLInitFlags
 import cn.enaium.sdl.SDLPixelFormat
 import cn.enaium.sdl.SDLTextureAccess
@@ -65,7 +67,7 @@ import kotlin.math.max
  */
 const val TRIANGLE_SIZE = 256
 
-fun runImageExample(frames: Int = Int.MAX_VALUE) {
+fun runImageExample(frames: Int = Int.MAX_VALUE, driver: AppFrameDriver? = null) {
     SDL.setMainReady()
     if (!SDL.init(SDLInitFlags.VIDEO or SDLInitFlags.EVENTS)) {
         SDL.setHint("SDL_VIDEO_DRIVER", "dummy")
@@ -76,17 +78,17 @@ fun runImageExample(frames: Int = Int.MAX_VALUE) {
         }
     }
 
-    SDL.createWindow(
+    val window = SDL.createWindow(
         title = "imgui-kmp image example",
         width = 1280,
         height = 800,
         flags = SDLWindowFlags.RESIZABLE or SDLWindowFlags.HIGH_PIXEL_DENSITY,
-    ).use { window ->
-        // A GPU device is used only to create the window-2 GPU texture;
-        // headless sessions have no GPU backend, so its absence is tolerated.
-        val device = SDLGPU.createDevice()
-
-        SDL.createRenderer(window).use { renderer ->
+    )
+    // A GPU device is used only to create the window-2 GPU texture;
+    // headless sessions have no GPU backend, so its absence is tolerated.
+    val device = SDLGPU.createDevice()
+    val renderer = SDL.createRenderer(window)
+    run {
             val context = ImGui.createContext()
             try {
                 val imgui = ImGuiSdlBackend(window)
@@ -110,7 +112,18 @@ fun runImageExample(frames: Int = Int.MAX_VALUE) {
 
                 var running = true
                 var frameCount = 0
-                while (running && frameCount < frames) {
+
+                fun finish() {
+                    demo.close()
+                    backend.close()
+                    ImGui.destroyContext(context)
+                    renderer.close()
+                    window.close()
+                    device?.close()
+                    SDL.quit()
+                }
+
+                fun step(): Boolean {
                     // ---- events ----
                     while (true) {
                         val event = SDL.pollEvent() ?: break
@@ -132,17 +145,25 @@ fun runImageExample(frames: Int = Int.MAX_VALUE) {
                     backend.renderDrawData(ImGui.getDrawData())
                     renderer.present()
                     frameCount++
+                    return running && frameCount < frames
                 }
 
-                demo.close()
-                backend.close()
-            } finally {
+                if (driver != null) {
+                    driver(::step, ::finish)
+                } else {
+                    while (step()) {
+                    }
+                    finish()
+                }
+            } catch (t: Throwable) {
                 ImGui.destroyContext(context)
+                renderer.close()
+                window.close()
+                device?.close()
+                SDL.quit()
+                throw t
             }
-        }
-        device?.close()
     }
-    SDL.quit()
 }
 
 /** Owns the three demo textures and draws the three side-by-side windows. */
@@ -164,7 +185,10 @@ private class ImageDemo(
         val pixels = gradientTrianglePixels(TRIANGLE_SIZE)
         textureId = uploadPixelsToRendererTexture(pixels, TRIANGLE_SIZE, TRIANGLE_SIZE)
 
-        // The triangle as a PNG file on disk for the loader window.
+        // The triangle as a PNG file on disk (desktop) and in memory: the
+        // browser has no writable filesystem, so the loader window decodes
+        // the bytes straight from a memory stream there.
+        val pngBytes = writePng(pixels, TRIANGLE_SIZE, TRIANGLE_SIZE)
         writeGradientTrianglePng(pixels, TRIANGLE_SIZE)
 
         // 2. GPU texture: load the PNG straight into an SDL_GPUTexture with
@@ -188,14 +212,14 @@ private class ImageDemo(
             }
         }
 
-        // 3. SDL_image: decode the PNG to a surface and display it. Only this
-        //    window loads an image from disk.
-        SDLImage.load(pngPath)?.use { surface ->
-            val locked = surface.lock()
-            check(locked) { "surface lock failed: ${SDL.error()}" }
-            imageId = uploadPixelsToRendererTexture(surface.pixels, surface.width, surface.height)
-            surface.unlock()
-        } ?: error("SDLImage.load failed: ${SDLImage.error()}")
+        // 3. SDL_image: decode the PNG and display it. The bytes come from a
+        //    memory stream so this works with or without a filesystem.
+        val decoded = decodePng(pngBytes)
+        if (decoded != null) {
+            imageId = uploadPixelsToRendererTexture(decoded.pixels, decoded.width, decoded.height)
+        } else {
+            println("SDLImage.load failed: ${SDLImage.error()} - the SDL_image window stays empty")
+        }
     }
 
     fun draw() {
@@ -227,7 +251,7 @@ private class ImageDemo(
         ImGui.setNextWindowPos(ImVec2(700f, 20f), ImGuiCond.FIRST_USE_EVER)
         ImGui.setNextWindowSize(ImVec2(windowW, windowH), ImGuiCond.FIRST_USE_EVER)
         if (ImGui.begin("SDL_image")) {
-            ImGui.textWrapped("Image decoded from disk with SDLImage.load and displayed.")
+            ImGui.textWrapped("PNG decoded by SDL_image (memory buffer, no filesystem needed) and displayed.")
             ImGui.image(imageId, ImVec2(TRIANGLE_SIZE.toFloat(), TRIANGLE_SIZE.toFloat()))
             ImGui.text("ImTextureID 0x${imageId.value.toString(16)}")
         }

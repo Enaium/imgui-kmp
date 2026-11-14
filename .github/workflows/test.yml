@@ -24,7 +24,7 @@ concurrency:
 jobs:
   test-macos:
     name: Test macOS ARM64
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -39,6 +39,19 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
+
+      - name: Compile the wasm target and the browser examples
+        run: >
+          ./gradlew --no-daemon --stacktrace
+          :imgui-kmp:compileKotlinWasmJs
+          :examples:sdl_renderer:compileKotlinWasmJs
+          :examples:docking:compileKotlinWasmJs
+          :examples:font:compileKotlinWasmJs
+          :examples:image:compileKotlinWasmJs
+          :examples:node_editor:compileKotlinWasmJs
+          :examples:club:compileKotlinWasmJs
+          :examples:markdown:compileKotlinWasmJs
+          :examples:implot3d:compileKotlinWasmJs
 
       - name: Decode signing key
         run: |

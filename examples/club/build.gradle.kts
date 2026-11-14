@@ -22,6 +22,9 @@ fun konanAndroidLibDir(abi: String): String? {
     return "$toolchain/sysroot/usr/lib/$triple/26"
 }
 
+// Browser target: shared wiring in gradle/wasm-example.gradle.
+apply(from = rootProject.file("gradle/wasm-example.gradle"))
+
 kotlin {
     jvm {
         compilerOptions {

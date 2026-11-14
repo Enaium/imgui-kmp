@@ -8,7 +8,7 @@ name: Publish
 # coordinates are immutable, so each publication is produced by exactly one
 # runner:
 #
-#   macos-14      -> :imgui-kmp metadata + jvm + android AAR + all Apple
+#   macos-15      -> :imgui-kmp metadata + jvm + android AAR + all Apple
 #                    target klibs (macos/ios/tvos/watchos) + androidNative
 #                    klibs (the macOS image ships the Android NDK) and
 #                    :jni-jvm-darwin-aarch64, :jni-jvm-darwin-x86_64
@@ -31,7 +31,7 @@ name: Publish
 jobs:
   publish-macos:
     name: Publish macOS (metadata + jvm + android + Apple + androidNative klibs + darwin JNI)
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -62,6 +62,7 @@ jobs:
           :imgui-kmp:publishKotlinMultiplatformPublicationToMavenCentralRepository
           :imgui-kmp:publishJvmPublicationToMavenCentralRepository
           :imgui-kmp:publishAndroidPublicationToMavenCentralRepository
+          :imgui-kmp:publishWasmJsPublicationToMavenCentralRepository
           :imgui-kmp:publishMacosArm64PublicationToMavenCentralRepository
           :imgui-kmp:publishMacosX64PublicationToMavenCentralRepository
           :imgui-kmp:publishIosArm64PublicationToMavenCentralRepository

@@ -9,6 +9,10 @@ kotlin {
         }
     }
 
+    wasmJs {
+        browser()
+    }
+
     macosArm64()
     macosX64()
     linuxX64()
