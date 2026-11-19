@@ -7,11 +7,11 @@ plugins {
     alias(libs.plugins.maven.publish) apply false
 }
 
-// <vendored imgui version>.<binding revision>: bump by hand, together with the
-// `includes/imgui` submodule.
+// <binding version>-fixed.<vendored imgui version>: the first number belongs to
+// this module, the second to the imgui submodule (bump both by hand).
 allprojects {
     group = "cn.enaium.imgui"
-    version = "1.93.0.2"
+    version = "1.0.17-fixed.1.93.0"
 }
 
 // ==================== Submodule patches ====================

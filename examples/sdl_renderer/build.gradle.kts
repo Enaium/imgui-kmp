@@ -121,18 +121,26 @@ val copyWasmAssets by tasks.registering {
     description = "Copies the imgui and SDL Emscripten runtime into the web resources"
     dependsOn(":imgui-kmp:assembleWasmAssets", ":kotlinWasmNpmInstall")
     val imguiAssets = rootProject.layout.projectDirectory.dir("imgui-kmp/build/wasm/assets")
-    val sdlAssets = rootProject.layout.buildDirectory.dir("wasm/node_modules/@enaium/sdl-kmp")
+    // The JS plugin's npm workspace layout moves @enaium/sdl-kmp around, so
+    // resolve the runtime files by name.
+    val sdlAssets = rootProject.fileTree(rootProject.layout.buildDirectory.dir("wasm")) {
+        include("**/node_modules/@enaium/sdl-kmp/sdl_kmp_glue.js")
+        include("**/node_modules/@enaium/sdl-kmp/sdl_wasm.js")
+        include("**/node_modules/@enaium/sdl-kmp/sdl_wasm.wasm")
+    }
     val output = layout.buildDirectory.dir("generated/wasmResources")
     outputs.dir(output)
     doLast {
         val dir = output.get().asFile
+        // Rebuild from scratch so a missing package cannot leave stale assets.
+        dir.deleteRecursively()
         dir.mkdirs()
         copy {
             from(imguiAssets)
             into(dir)
         }
         copy {
-            from(sdlAssets)
+            from(sdlAssets.files.groupBy { it.name }.map { it.value.first() })
             into(dir)
         }
     }

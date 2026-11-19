@@ -798,7 +798,8 @@ val assembleWasmAssets = tasks.register<Copy>("assembleWasmAssets") {
 // The Emscripten module cannot ride inside the klib, so it ships as an npm
 // package next to it (same layout as sdl-kmp's @enaium/sdl-kmp).
 val wasmNpmDir = layout.buildDirectory.dir("wasm/npm").get().asFile
-val npmPackageVersion = version.toString().replaceFirst(Regex("""\.(\d+)$"""), "-$1")
+// The project version is already a valid semver (1.0.0-fixed.1.93.0).
+val npmPackageVersion = version.toString()
 
 tasks.register("assembleWasmNpm") {
     group = "build"
@@ -861,8 +862,8 @@ tasks.register<Exec>("publishWasmNpm") {
             "//registry.npmjs.org/:_authToken=\${NODE_AUTH_TOKEN}\n",
         )
     }
-    // The revision-bearing version (1.93.0-2) is a semver prerelease, so npm
-    // needs an explicit tag; `latest` keeps `npm i @enaium/imgui-kmp` working.
+    // The -fixed.<imgui> version is a semver prerelease, so npm needs an
+    // explicit tag; `latest` keeps `npm i @enaium/imgui-kmp` working.
     commandLine("npm", "publish", "--access", "public", "--tag", "latest")
 }
 

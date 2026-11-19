@@ -55,13 +55,15 @@ def copyWasmAssets = tasks.register("copyWasmAssets") {
     outputs.dir(output)
     doLast {
         def dir = output.get().asFile
+        // Rebuild from scratch so a missing package cannot leave stale assets.
+        dir.deleteDir()
         dir.mkdirs()
         copy {
             from(imguiAssets)
             into(dir)
         }
         copy {
-            from(sdlAssets)
+            from(sdlAssets.files.groupBy { it.name }.collect { _, v -> v.first() })
             into(dir)
         }
         if (extraNpm != null) {
